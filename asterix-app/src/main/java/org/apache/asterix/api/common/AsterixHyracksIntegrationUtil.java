@@ -36,7 +36,7 @@ import org.apache.hyracks.control.nc.NodeControllerService;
 
 public class AsterixHyracksIntegrationUtil {
 
-    public static final int NODES = 2;
+    public static final int NODES = 1;
     public static final int PARTITONS = 2;
 
     public static final int DEFAULT_HYRACKS_CC_CLIENT_PORT = 1098;

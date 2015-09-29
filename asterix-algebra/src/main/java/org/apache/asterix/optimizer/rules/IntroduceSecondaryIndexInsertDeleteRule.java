@@ -22,13 +22,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Stack;
-
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.Mutable;
-import org.apache.commons.lang3.mutable.MutableObject;
 
 import org.apache.asterix.aql.util.FunctionUtils;
 import org.apache.asterix.common.config.DatasetConfig.DatasetType;
@@ -53,7 +49,11 @@ import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.AUnionType;
 import org.apache.asterix.om.types.BuiltinType;
 import org.apache.asterix.om.types.IAType;
+import org.apache.asterix.om.types.hierachy.ATypeHierarchy;
 import org.apache.asterix.om.util.NonTaggedFormatUtil;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.mutable.Mutable;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
@@ -70,9 +70,12 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.VariableReferenceE
 import org.apache.hyracks.algebricks.core.algebra.functions.FunctionIdentifier;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator.ExecutionMode;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractModificationOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.DeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteOperator.Kind;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.ProjectOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.ReplicateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.TokenizeOperator;
@@ -82,8 +85,46 @@ import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewriteRule {
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         return false;
+    }
+
+    private List<LogicalVariable> getRecordVarFromInsertDeleteOp(AbstractLogicalOperator insertDeleteOp,
+            ILogicalOperator projectOp, Kind operation) throws AlgebricksException {
+        List<LogicalVariable> recordVar = new ArrayList<LogicalVariable>();
+        if (operation == Kind.INSERT) {
+            /** find the record variable */
+            InsertOperator insertOp = (InsertOperator) insertDeleteOp;
+            ILogicalExpression recordExpr = insertOp.getPayloadExpression().getValue();
+            /** assume the payload is always a single variable expression */
+            recordExpr.getUsedVariables(recordVar);
+        } else if (operation == Kind.DELETE) {
+            ILogicalOperator op = (DeleteOperator) insertDeleteOp;
+            // find a project-assign sequence
+            while (op.getOperatorTag() != LogicalOperatorTag.EMPTYTUPLESOURCE) {
+                op = op.getInputs().get(0).getValue();
+
+                if (op.getOperatorTag() != LogicalOperatorTag.ASSIGN)
+                    continue;
+                projectOp = op;
+                AssignOperator pkAssign = (AssignOperator) op;
+
+                // assign should have field-access-by-idx function, which extracts PK from the deleted record
+                ILogicalExpression fieldAccessExpr = pkAssign.getExpressions().get(0).getValue();
+                if (fieldAccessExpr.getExpressionTag() != LogicalExpressionTag.FUNCTION_CALL)
+                    continue;
+
+                if (((AbstractFunctionCallExpression) fieldAccessExpr)
+                        .getFunctionIdentifier() != AsterixBuiltinFunctions.FIELD_ACCESS_BY_INDEX)
+                    continue;
+
+                fieldAccessExpr.getUsedVariables(recordVar);
+                break;
+            }
+        } else
+            throw new AlgebricksException("Unsopported record modification operation");
+        return recordVar;
     }
 
     @Override
@@ -94,17 +135,23 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             return false;
         }
         AbstractLogicalOperator op1 = (AbstractLogicalOperator) op0.getInputs().get(0).getValue();
-        if (op1.getOperatorTag() != LogicalOperatorTag.INSERT_DELETE) {
+        if (op1.getOperatorTag() != LogicalOperatorTag.INSERT && op1.getOperatorTag() != LogicalOperatorTag.DELETE) {
             return false;
         }
 
+        AbstractModificationOperator insertDeleteOp = (AbstractModificationOperator) op1;
+        Kind operation = null;
+        boolean isBulkload = false;
+        if (op1.getOperatorTag() == LogicalOperatorTag.INSERT) {
+            operation = Kind.INSERT;
+            isBulkload = ((InsertOperator) insertDeleteOp).isBulkload();
+        } else if (op1.getOperatorTag() == LogicalOperatorTag.DELETE)
+            operation = Kind.DELETE;
+
+        ILogicalOperator projectOp = null;
+        List<LogicalVariable> recordVar = getRecordVarFromInsertDeleteOp(op1, projectOp, operation);
+
         FunctionIdentifier fid = null;
-        /** find the record variable */
-        InsertDeleteOperator insertOp = (InsertDeleteOperator) op1;
-        ILogicalExpression recordExpr = insertOp.getPayloadExpression().getValue();
-        List<LogicalVariable> recordVar = new ArrayList<LogicalVariable>();
-        /** assume the payload is always a single variable expression */
-        recordExpr.getUsedVariables(recordVar);
 
         /**
          * op2 is the assign operator which extract primary keys from the record
@@ -137,7 +184,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             AssignOperator assignOp2 = (AssignOperator) op2;
             recordVar.addAll(assignOp2.getVariables());
         }
-        AqlDataSource datasetSource = (AqlDataSource) insertOp.getDataSource();
+        AqlDataSource datasetSource = (AqlDataSource) insertDeleteOp.getDataSource();
         AqlMetadataProvider mp = (AqlMetadataProvider) context.getMetadataProvider();
         String dataverseName = datasetSource.getId().getDataverseName();
         String datasetName = datasetSource.getId().getDatasourceName();
@@ -185,7 +232,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
         // Replicate Operator is applied only when doing the bulk-load.
         AbstractLogicalOperator replicateOp = null;
 
-        if (secondaryIndexTotalCnt > 1 && insertOp.isBulkload()) {
+        if (secondaryIndexTotalCnt > 1 && isBulkload) {
             // Split the logical plan into "each secondary index update branch"
             // to replicate each <PK,RECORD> pair.
             replicateOp = new ReplicateOperator(secondaryIndexTotalCnt);
@@ -211,24 +258,26 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             additionalFilteringAssign = new AssignOperator(additionalFilteringVars,
                     additionalFilteringAssignExpressions);
             for (LogicalVariable var : additionalFilteringVars) {
-                additionalFilteringExpressions.add(new MutableObject<ILogicalExpression>(
-                        new VariableReferenceExpression(var)));
+                additionalFilteringExpressions
+                        .add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(var)));
             }
         }
 
+        List<LogicalVariable> projectVars = new ArrayList<LogicalVariable>();
+        VariableUtilities.getUsedVariables(op1, projectVars);
+
+        LogicalVariable enforcedRecordVar = recordVar.get(0);
         // Iterate each secondary index and applying Index Update operations.
         for (Index index : indexes) {
-            List<LogicalVariable> projectVars = new ArrayList<LogicalVariable>();
-            VariableUtilities.getUsedVariables(op1, projectVars);
             if (!index.isSecondaryIndex()) {
                 continue;
             }
-            LogicalVariable enforcedRecordVar = recordVar.get(0);
+
+            // enforce record type for open indexes
             hasSecondaryIndex = true;
-            //if the index is enforcing field types
-            if (index.isEnforcingKeyFileds()) {
+            if (operation == Kind.INSERT && index.isEnforcingKeyFileds()) {
                 try {
-                    DatasetDataSource ds = (DatasetDataSource) (insertOp.getDataSource());
+                    DatasetDataSource ds = (DatasetDataSource) (insertDeleteOp.getDataSource());
                     ARecordType insertRecType = (ARecordType) ds.getSchemaTypes()[ds.getSchemaTypes().length - 1];
                     LogicalVariable castVar = context.newVar();
                     ARecordType enforcedType = createEnforcedType(insertRecType, index);
@@ -236,8 +285,8 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     AbstractFunctionCallExpression castFunc = new ScalarFunctionCallExpression(
                             FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.CAST_RECORD));
 
-                    castFunc.getArguments().add(
-                            new MutableObject<ILogicalExpression>(insertOp.getPayloadExpression().getValue()));
+                    castFunc.getArguments().add(new MutableObject<ILogicalExpression>(
+                            ((InsertOperator) insertDeleteOp).getPayloadExpression().getValue()));
                     TypeComputerUtilities.setRequiredAndInputTypes(castFunc, enforcedType, insertRecType);
                     AssignOperator newAssignOperator = new AssignOperator(castVar,
                             new MutableObject<ILogicalExpression>(castFunc));
@@ -254,6 +303,8 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 }
             }
 
+            projectVars.add(enforcedRecordVar);
+
             List<List<String>> secondaryKeyFields = index.getKeyFieldNames();
             List<IAType> secondaryKeyTypes = index.getKeyFieldTypes();
             List<LogicalVariable> secondaryKeyVars = new ArrayList<LogicalVariable>();
@@ -264,6 +315,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 prepareVarAndExpression(secondaryKey, recType.getFieldNames(), enforcedRecordVar, expressions,
                         secondaryKeyVars, context);
             }
+            projectVars.addAll(secondaryKeyVars);
 
             AssignOperator assign = new AssignOperator(secondaryKeyVars, expressions);
             ProjectOperator project = new ProjectOperator(projectVars);
@@ -276,7 +328,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             }
 
             // Only apply replicate operator when doing bulk-load
-            if (secondaryIndexTotalCnt > 1 && insertOp.isBulkload())
+            if (secondaryIndexTotalCnt > 1 && isBulkload)
                 project.getInputs().add(new MutableObject<ILogicalOperator>(replicateOp));
             else
                 project.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
@@ -291,14 +343,13 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             currentTop = assign;
 
             // BTree, Keyword, or n-gram index case
-            if (index.getIndexType() == IndexType.BTREE
-                    || index.getIndexType() == IndexType.SINGLE_PARTITION_WORD_INVIX
+            if (index.getIndexType() == IndexType.BTREE || index.getIndexType() == IndexType.SINGLE_PARTITION_WORD_INVIX
                     || index.getIndexType() == IndexType.SINGLE_PARTITION_NGRAM_INVIX
                     || index.getIndexType() == IndexType.LENGTH_PARTITIONED_WORD_INVIX
                     || index.getIndexType() == IndexType.LENGTH_PARTITIONED_NGRAM_INVIX) {
                 for (LogicalVariable secondaryKeyVar : secondaryKeyVars) {
-                    secondaryExpressions.add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(
-                            secondaryKeyVar)));
+                    secondaryExpressions.add(
+                            new MutableObject<ILogicalExpression>(new VariableReferenceExpression(secondaryKeyVar)));
                 }
                 Mutable<ILogicalExpression> filterExpression = createFilterExpression(secondaryKeyVars,
                         context.getOutputTypeEnvironment(currentTop), false);
@@ -306,7 +357,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
 
                 // Introduce the TokenizeOperator only when doing bulk-load,
                 // and index type is keyword or n-gram.
-                if (index.getIndexType() != IndexType.BTREE && insertOp.isBulkload()) {
+                if (index.getIndexType() != IndexType.BTREE && isBulkload) {
 
                     // Check whether the index is length-partitioned or not.
                     // If partitioned, [input variables to TokenizeOperator,
@@ -326,8 +377,8 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     List<Mutable<ILogicalExpression>> tokenizeKeyExprs = new ArrayList<Mutable<ILogicalExpression>>();
                     LogicalVariable tokenVar = context.newVar();
                     tokenizeKeyVars.add(tokenVar);
-                    tokenizeKeyExprs.add(new MutableObject<ILogicalExpression>(
-                            new VariableReferenceExpression(tokenVar)));
+                    tokenizeKeyExprs
+                            .add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(tokenVar)));
 
                     // Check the field type of the secondary key.
                     IAType secondaryKeyType = null;
@@ -345,21 +396,21 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     if (isPartitioned) {
                         LogicalVariable lengthVar = context.newVar();
                         tokenizeKeyVars.add(lengthVar);
-                        tokenizeKeyExprs.add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(
-                                lengthVar)));
+                        tokenizeKeyExprs
+                                .add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(lengthVar)));
                         varTypes.add(BuiltinType.SHORTWITHOUTTYPEINFO);
                     }
 
                     // TokenizeOperator to tokenize [SK, PK] pairs
                     TokenizeOperator tokenUpdate = new TokenizeOperator(dataSourceIndex,
-                            insertOp.getPrimaryKeyExpressions(), secondaryExpressions, tokenizeKeyVars,
-                            filterExpression, insertOp.getOperation(), insertOp.isBulkload(), isPartitioned, varTypes);
+                            insertDeleteOp.getPrimaryKeyExpressions(), secondaryExpressions, tokenizeKeyVars,
+                            filterExpression, operation, isBulkload, isPartitioned, varTypes);
                     tokenUpdate.getInputs().add(new MutableObject<ILogicalOperator>(assign));
                     context.computeAndSetTypeEnvironmentForOperator(tokenUpdate);
 
                     IndexInsertDeleteOperator indexUpdate = new IndexInsertDeleteOperator(dataSourceIndex,
-                            insertOp.getPrimaryKeyExpressions(), tokenizeKeyExprs, filterExpression,
-                            insertOp.getOperation(), insertOp.isBulkload());
+                            insertDeleteOp.getPrimaryKeyExpressions(), tokenizeKeyExprs, filterExpression, operation,
+                            isBulkload);
                     indexUpdate.setAdditionalFilteringExpressions(additionalFilteringExpressions);
                     indexUpdate.getInputs().add(new MutableObject<ILogicalOperator>(tokenUpdate));
 
@@ -371,15 +422,15 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 } else {
                     // When TokenizeOperator is not needed
                     IndexInsertDeleteOperator indexUpdate = new IndexInsertDeleteOperator(dataSourceIndex,
-                            insertOp.getPrimaryKeyExpressions(), secondaryExpressions, filterExpression,
-                            insertOp.getOperation(), insertOp.isBulkload());
+                            insertDeleteOp.getPrimaryKeyExpressions(), secondaryExpressions, filterExpression,
+                            operation, isBulkload);
                     indexUpdate.setAdditionalFilteringExpressions(additionalFilteringExpressions);
                     indexUpdate.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
 
                     currentTop = indexUpdate;
                     context.computeAndSetTypeEnvironmentForOperator(indexUpdate);
 
-                    if (insertOp.isBulkload())
+                    if (isBulkload)
                         op0.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
 
                 }
@@ -397,20 +448,17 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     keyVarList.add(keyVar);
                     AbstractFunctionCallExpression createMBR = new ScalarFunctionCallExpression(
                             FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.CREATE_MBR));
-                    createMBR.getArguments().add(
-                            new MutableObject<ILogicalExpression>(new VariableReferenceExpression(secondaryKeyVars
-                                    .get(0))));
-                    createMBR.getArguments().add(
-                            new MutableObject<ILogicalExpression>(new ConstantExpression(new AsterixConstantValue(
-                                    new AInt32(dimension)))));
-                    createMBR.getArguments().add(
-                            new MutableObject<ILogicalExpression>(new ConstantExpression(new AsterixConstantValue(
-                                    new AInt32(i)))));
+                    createMBR.getArguments().add(new MutableObject<ILogicalExpression>(
+                            new VariableReferenceExpression(secondaryKeyVars.get(0))));
+                    createMBR.getArguments().add(new MutableObject<ILogicalExpression>(
+                            new ConstantExpression(new AsterixConstantValue(new AInt32(dimension)))));
+                    createMBR.getArguments().add(new MutableObject<ILogicalExpression>(
+                            new ConstantExpression(new AsterixConstantValue(new AInt32(i)))));
                     keyExprList.add(new MutableObject<ILogicalExpression>(createMBR));
                 }
                 for (LogicalVariable secondaryKeyVar : keyVarList) {
-                    secondaryExpressions.add(new MutableObject<ILogicalExpression>(new VariableReferenceExpression(
-                            secondaryKeyVar)));
+                    secondaryExpressions.add(
+                            new MutableObject<ILogicalExpression>(new VariableReferenceExpression(secondaryKeyVar)));
                 }
                 AssignOperator assignCoordinates = new AssignOperator(keyVarList, keyExprList);
                 assignCoordinates.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
@@ -422,14 +470,14 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                         context.getOutputTypeEnvironment(assignCoordinates), forceFilter);
                 AqlIndex dataSourceIndex = new AqlIndex(index, dataverseName, datasetName, mp);
                 IndexInsertDeleteOperator indexUpdate = new IndexInsertDeleteOperator(dataSourceIndex,
-                        insertOp.getPrimaryKeyExpressions(), secondaryExpressions, filterExpression,
-                        insertOp.getOperation(), insertOp.isBulkload());
+                        insertDeleteOp.getPrimaryKeyExpressions(), secondaryExpressions, filterExpression, operation,
+                        isBulkload);
                 indexUpdate.setAdditionalFilteringExpressions(additionalFilteringExpressions);
                 indexUpdate.getInputs().add(new MutableObject<ILogicalOperator>(assignCoordinates));
                 currentTop = indexUpdate;
                 context.computeAndSetTypeEnvironmentForOperator(indexUpdate);
 
-                if (insertOp.isBulkload())
+                if (isBulkload)
                     op0.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
 
             }
@@ -439,15 +487,15 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             return false;
         }
 
-        if (!insertOp.isBulkload()) {
+        if (!isBulkload) {
             op0.getInputs().clear();
             op0.getInputs().add(new MutableObject<ILogicalOperator>(currentTop));
         }
         return true;
     }
 
-    public static ARecordType createEnforcedType(ARecordType initialType, Index index) throws AsterixException,
-            AlgebricksException {
+    public static ARecordType createEnforcedType(ARecordType initialType, Index index)
+            throws AsterixException, AlgebricksException {
         ARecordType enforcedType = initialType;
         for (int i = 0; i < index.getKeyFieldNames().size(); i++) {
             try {
@@ -469,9 +517,9 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 }
                 if (openRecords == true) {
                     //create the smallest record
-                    enforcedType = new ARecordType(splits.get(splits.size() - 2), new String[] { splits.get(splits
-                            .size() - 1) }, new IAType[] { AUnionType.createNullableType(index.getKeyFieldTypes()
-                            .get(i)) }, true);
+                    enforcedType = new ARecordType(splits.get(splits.size() - 2),
+                            new String[] { splits.get(splits.size() - 1) },
+                            new IAType[] { AUnionType.createNullableType(index.getKeyFieldTypes().get(i)) }, true);
                     //create the open part of the nested field
                     for (int k = splits.size() - 3; k > (j - 2); k--) {
                         enforcedType = new ARecordType(splits.get(k), new String[] { splits.get(k + 1) },
@@ -483,16 +531,30 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
 
                     IAType[] parentFieldTypes = ArrayUtils.addAll(parent.getFieldTypes().clone(),
                             new IAType[] { AUnionType.createNullableType(enforcedType) });
-                    enforcedType = new ARecordType(bridgeName, ArrayUtils.addAll(parent.getFieldNames(),
-                            enforcedType.getTypeName()), parentFieldTypes, true);
+                    enforcedType = new ARecordType(bridgeName,
+                            ArrayUtils.addAll(parent.getFieldNames(), enforcedType.getTypeName()), parentFieldTypes,
+                            true);
 
                 } else {
                     //Schema is closed all the way to the field
                     //enforced fields are either null or strongly typed
-                    enforcedType = new ARecordType(nestedFieldType.getTypeName(), ArrayUtils.addAll(
-                            nestedFieldType.getFieldNames(), splits.get(splits.size() - 1)), ArrayUtils.addAll(
-                            nestedFieldType.getFieldTypes(),
-                            AUnionType.createNullableType(index.getKeyFieldTypes().get(i))), nestedFieldType.isOpen());
+                    LinkedHashMap<String, IAType> recordNameTypesMap = new LinkedHashMap<String, IAType>();
+                    for (j = 0; j < nestedFieldType.getFieldNames().length; j++) {
+                        recordNameTypesMap.put(nestedFieldType.getFieldNames()[j], nestedFieldType.getFieldTypes()[j]);
+                    }
+                    // if a an enforced field already exists and the type is correct
+                    IAType enforcedFieldType = recordNameTypesMap.get(splits.get(splits.size() - 1));
+                    if (enforcedFieldType != null && !ATypeHierarchy.canPromote(enforcedFieldType.getTypeTag(),
+                            index.getKeyFieldTypes().get(i).getTypeTag()))
+                        throw new AlgebricksException("Cannot enforce field " + index.getKeyFieldNames().get(i)
+                                + " to have type " + index.getKeyFieldTypes().get(i));
+                    if (enforcedFieldType == null)
+                        recordNameTypesMap.put(splits.get(splits.size() - 1),
+                                AUnionType.createNullableType(index.getKeyFieldTypes().get(i)));
+                    enforcedType = new ARecordType(nestedFieldType.getTypeName(),
+                            recordNameTypesMap.keySet().toArray(new String[recordNameTypesMap.size()]),
+                            recordNameTypesMap.values().toArray(new IAType[recordNameTypesMap.size()]),
+                            nestedFieldType.isOpen());
                 }
 
                 //Create the enforcedtype for the nested fields in the schema, from the ground up
@@ -508,8 +570,6 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 }
 
             } catch (AsterixException e) {
-                throw new AlgebricksException("Cannot enforce typed fields "
-                        + StringUtils.join(index.getKeyFieldNames()), e);
             } catch (IOException e) {
                 throw new AsterixException(e);
             }
@@ -520,9 +580,9 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
     @SuppressWarnings("unchecked")
     private void prepareVarAndExpression(List<String> field, String[] fieldNames, LogicalVariable recordVar,
             List<Mutable<ILogicalExpression>> expressions, List<LogicalVariable> vars, IOptimizationContext context)
-            throws AlgebricksException {
-        Mutable<ILogicalExpression> varRef = new MutableObject<ILogicalExpression>(new VariableReferenceExpression(
-                recordVar));
+                    throws AlgebricksException {
+        Mutable<ILogicalExpression> varRef = new MutableObject<ILogicalExpression>(
+                new VariableReferenceExpression(recordVar));
         int pos = -1;
         if (field.size() == 1) {
             for (int j = 0; j < fieldNames.length; j++) {
@@ -539,14 +599,14 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                 for (int i = 0; i < field.size(); i++) {
                     fieldList.add(new AString(field.get(i)));
                 }
-                Mutable<ILogicalExpression> fieldRef = new MutableObject<ILogicalExpression>(new ConstantExpression(
-                        new AsterixConstantValue(fieldList)));
+                Mutable<ILogicalExpression> fieldRef = new MutableObject<ILogicalExpression>(
+                        new ConstantExpression(new AsterixConstantValue(fieldList)));
                 //Create an expression for the nested case
                 func = new ScalarFunctionCallExpression(
                         FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.FIELD_ACCESS_NESTED), varRef, fieldRef);
             } else {
-                Mutable<ILogicalExpression> fieldRef = new MutableObject<ILogicalExpression>(new ConstantExpression(
-                        new AsterixConstantValue(new AString(field.get(0)))));
+                Mutable<ILogicalExpression> fieldRef = new MutableObject<ILogicalExpression>(
+                        new ConstantExpression(new AsterixConstantValue(new AString(field.get(0)))));
                 //Create an expression for the open field case (By name)
                 func = new ScalarFunctionCallExpression(
                         FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.FIELD_ACCESS_BY_NAME), varRef, fieldRef);
@@ -556,8 +616,8 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
             vars.add(newVar);
         } else {
             // Assumes the indexed field is in the closed portion of the type.
-            Mutable<ILogicalExpression> indexRef = new MutableObject<ILogicalExpression>(new ConstantExpression(
-                    new AsterixConstantValue(new AInt32(pos))));
+            Mutable<ILogicalExpression> indexRef = new MutableObject<ILogicalExpression>(
+                    new ConstantExpression(new AsterixConstantValue(new AInt32(pos))));
             AbstractFunctionCallExpression func = new ScalarFunctionCallExpression(
                     FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.FIELD_ACCESS_BY_INDEX), varRef, indexRef);
             expressions.add(new MutableObject<ILogicalExpression>(func));
@@ -581,8 +641,8 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.IS_NULL),
                     new MutableObject<ILogicalExpression>(new VariableReferenceExpression(secondaryKeyVar)));
             ScalarFunctionCallExpression notFuncExpr = new ScalarFunctionCallExpression(
-                    FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.NOT), new MutableObject<ILogicalExpression>(
-                            isNullFuncExpr));
+                    FunctionUtils.getFunctionInfo(AsterixBuiltinFunctions.NOT),
+                    new MutableObject<ILogicalExpression>(isNullFuncExpr));
             filterExpressions.add(new MutableObject<ILogicalExpression>(notFuncExpr));
         }
         // No nullable secondary keys.

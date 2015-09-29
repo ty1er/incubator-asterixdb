@@ -26,7 +26,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableObject;
-
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.Counter;
@@ -38,6 +37,7 @@ import org.apache.hyracks.algebricks.core.algebra.base.LogicalVariable;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AggregateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.DeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistinctOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistributeResultOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.EmptyTupleSourceOperator;
@@ -47,7 +47,7 @@ import org.apache.hyracks.algebricks.core.algebra.operators.logical.ExternalData
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.GroupByOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.InnerJoinOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.LeftOuterJoinOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.LimitOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.MaterializeOperator;
@@ -280,10 +280,10 @@ public class LogicalOperatorDeepCopyVisitor implements ILogicalOperatorVisitor<I
 
     @Override
     public ILogicalOperator visitGroupByOperator(GroupByOperator op, ILogicalOperator arg) throws AlgebricksException {
-        List<Pair<LogicalVariable, Mutable<ILogicalExpression>>> groupByListCopy = deepCopyVariableExpressionReferencePairList(op
-                .getGroupByList());
-        List<Pair<LogicalVariable, Mutable<ILogicalExpression>>> decorListCopy = deepCopyVariableExpressionReferencePairList(op
-                .getDecorList());
+        List<Pair<LogicalVariable, Mutable<ILogicalExpression>>> groupByListCopy = deepCopyVariableExpressionReferencePairList(
+                op.getGroupByList());
+        List<Pair<LogicalVariable, Mutable<ILogicalExpression>>> decorListCopy = deepCopyVariableExpressionReferencePairList(
+                op.getDecorList());
         List<ILogicalPlan> nestedPlansCopy = new ArrayList<ILogicalPlan>();
 
         GroupByOperator opCopy = new GroupByOperator(groupByListCopy, decorListCopy, nestedPlansCopy);
@@ -297,9 +297,10 @@ public class LogicalOperatorDeepCopyVisitor implements ILogicalOperatorVisitor<I
     @Override
     public ILogicalOperator visitInnerJoinOperator(InnerJoinOperator op, ILogicalOperator arg)
             throws AlgebricksException {
-        InnerJoinOperator opCopy = new InnerJoinOperator(exprDeepCopyVisitor.deepCopyExpressionReference(op
-                .getCondition()), deepCopyOperatorReference(op.getInputs().get(0), null), deepCopyOperatorReference(op
-                .getInputs().get(1), null));
+        InnerJoinOperator opCopy = new InnerJoinOperator(
+                exprDeepCopyVisitor.deepCopyExpressionReference(op.getCondition()),
+                deepCopyOperatorReference(op.getInputs().get(0), null),
+                deepCopyOperatorReference(op.getInputs().get(1), null));
         copyAnnotations(op, opCopy);
         opCopy.setExecutionMode(op.getExecutionMode());
         return opCopy;
@@ -436,7 +437,12 @@ public class LogicalOperatorDeepCopyVisitor implements ILogicalOperatorVisitor<I
     }
 
     @Override
-    public ILogicalOperator visitInsertDeleteOperator(InsertDeleteOperator op, ILogicalOperator arg) {
+    public ILogicalOperator visitDeleteOperator(DeleteOperator op, ILogicalOperator arg) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ILogicalOperator visitInsertOperator(InsertOperator op, ILogicalOperator arg) {
         throw new UnsupportedOperationException();
     }
 

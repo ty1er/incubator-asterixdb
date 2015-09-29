@@ -21,7 +21,6 @@ package org.apache.asterix.optimizer.rules;
 import java.util.List;
 
 import org.apache.commons.lang3.mutable.Mutable;
-
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
@@ -33,6 +32,7 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.AbstractFunctionCa
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AggregateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.DeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistinctOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistributeResultOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.EmptyTupleSourceOperator;
@@ -42,7 +42,7 @@ import org.apache.hyracks.algebricks.core.algebra.operators.logical.ExternalData
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.GroupByOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.InnerJoinOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.LeftOuterJoinOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.LimitOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.MaterializeOperator;
@@ -76,7 +76,8 @@ public class SweepIllegalNonfunctionalFunctions extends AbstractExtractExprRule 
     }
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         return false;
     }
 
@@ -100,8 +101,8 @@ public class SweepIllegalNonfunctionalFunctions extends AbstractExtractExprRule 
             if (expr.getExpressionTag() == LogicalExpressionTag.FUNCTION_CALL) {
                 if (!expr.isFunctional()) {
                     AbstractFunctionCallExpression fce = (AbstractFunctionCallExpression) expr;
-                    throw new AlgebricksException("Found non-functional function " + fce.getFunctionIdentifier()
-                            + " in op " + op);
+                    throw new AlgebricksException(
+                            "Found non-functional function " + fce.getFunctionIdentifier() + " in op " + op);
                 }
             }
         }
@@ -276,7 +277,12 @@ public class SweepIllegalNonfunctionalFunctions extends AbstractExtractExprRule 
         }
 
         @Override
-        public Void visitInsertDeleteOperator(InsertDeleteOperator op, Void tag) throws AlgebricksException {
+        public Void visitInsertOperator(InsertOperator op, Void tag) throws AlgebricksException {
+            return null;
+        }
+
+        @Override
+        public Void visitDeleteOperator(DeleteOperator op, Void tag) throws AlgebricksException {
             return null;
         }
 
@@ -291,7 +297,8 @@ public class SweepIllegalNonfunctionalFunctions extends AbstractExtractExprRule 
         }
 
         @Override
-        public Void visitExternalDataLookupOperator(ExternalDataLookupOperator op, Void arg) throws AlgebricksException {
+        public Void visitExternalDataLookupOperator(ExternalDataLookupOperator op, Void arg)
+                throws AlgebricksException {
             return null;
         }
 

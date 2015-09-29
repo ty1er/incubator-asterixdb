@@ -27,13 +27,9 @@ import org.apache.asterix.aql.base.Expression;
 import org.apache.asterix.aql.base.Statement.Kind;
 import org.apache.asterix.aql.expression.CallExpr;
 import org.apache.asterix.aql.expression.FLWOGRExpression;
-import org.apache.asterix.aql.expression.FieldAccessor;
-import org.apache.asterix.aql.expression.FieldBinding;
 import org.apache.asterix.aql.expression.ForClause;
-import org.apache.asterix.aql.expression.Identifier;
 import org.apache.asterix.aql.expression.LiteralExpr;
 import org.apache.asterix.aql.expression.Query;
-import org.apache.asterix.aql.expression.RecordConstructor;
 import org.apache.asterix.aql.expression.VariableExpr;
 import org.apache.asterix.aql.expression.WhereClause;
 import org.apache.asterix.aql.literal.StringLiteral;
@@ -42,8 +38,6 @@ import org.apache.asterix.common.feeds.FeedConnectionRequest;
 import org.apache.asterix.common.functions.FunctionConstants;
 import org.apache.asterix.common.functions.FunctionSignature;
 import org.apache.asterix.metadata.declared.AqlMetadataProvider;
-import org.apache.asterix.metadata.entities.Dataset;
-import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.IAType;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 
@@ -211,7 +205,8 @@ public class CompiledStatements {
         private final int gramLength;
 
         public CompiledCreateIndexStatement(String indexName, String dataverseName, String datasetName,
-                List<List<String>> keyFields, List<IAType> keyTypes, boolean isEnforced, int gramLength, IndexType indexType) {
+                List<List<String>> keyFields, List<IAType> keyTypes, boolean isEnforced, int gramLength,
+                IndexType indexType) {
             this.indexName = indexName;
             this.dataverseName = dataverseName;
             this.datasetName = datasetName;
@@ -390,7 +385,7 @@ public class CompiledStatements {
             return policyName;
         }
     }
-    
+
     public static class CompiledSubscribeFeedStatement implements ICompiledDmlStatement {
 
         private final FeedConnectionRequest request;
@@ -431,7 +426,6 @@ public class CompiledStatements {
         }
 
     }
-
 
     public static class CompiledDisconnectFeedStatement implements ICompiledDmlStatement {
         private String dataverseName;
@@ -483,8 +477,8 @@ public class CompiledStatements {
         private int varCounter;
         private AqlMetadataProvider metadataProvider;
 
-        public CompiledDeleteStatement(VariableExpr var, String dataverseName, String datasetName,
-                Expression condition, int varCounter, AqlMetadataProvider metadataProvider) {
+        public CompiledDeleteStatement(VariableExpr var, String dataverseName, String datasetName, Expression condition,
+                int varCounter, AqlMetadataProvider metadataProvider) {
             this.var = var;
             this.dataverseName = dataverseName;
             this.datasetName = datasetName;
@@ -529,23 +523,7 @@ public class CompiledStatements {
                 clauseList.add(whereClause);
             }
 
-            Dataset dataset = metadataProvider.findDataset(dataverseName, datasetName);
-            if (dataset == null) {
-                throw new AlgebricksException("Unknown dataset " + datasetName);
-            }
-            String itemTypeName = dataset.getItemTypeName();
-            IAType itemType = metadataProvider.findType(dataset.getDataverseName(), itemTypeName);
-            ARecordType recType = (ARecordType) itemType;
-            String[] fieldNames = recType.getFieldNames();
-            List<FieldBinding> fieldBindings = new ArrayList<FieldBinding>();
-            for (int i = 0; i < fieldNames.length; i++) {
-                FieldAccessor fa = new FieldAccessor(var, new Identifier(fieldNames[i]));
-                FieldBinding fb = new FieldBinding(new LiteralExpr(new StringLiteral(fieldNames[i])), fa);
-                fieldBindings.add(fb);
-            }
-            RecordConstructor rc = new RecordConstructor(fieldBindings);
-
-            FLWOGRExpression flowgr = new FLWOGRExpression(clauseList, rc);
+            FLWOGRExpression flowgr = new FLWOGRExpression(clauseList, var);
             Query query = new Query();
             query.setBody(flowgr);
             return query;
@@ -592,7 +570,8 @@ public class CompiledStatements {
         private final int gramLength;
 
         public CompiledIndexCompactStatement(String dataverseName, String datasetName, String indexName,
-                List<List<String>> keyFields, List<IAType> keyTypes, boolean isEnforced, int gramLength, IndexType indexType) {
+                List<List<String>> keyFields, List<IAType> keyTypes, boolean isEnforced, int gramLength,
+                IndexType indexType) {
             super(dataverseName, datasetName);
             this.indexName = indexName;
             this.keyFields = keyFields;

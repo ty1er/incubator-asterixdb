@@ -18,14 +18,13 @@
  */
 package org.apache.asterix.optimizer.rules;
 
-import org.apache.commons.lang3.mutable.Mutable;
-import org.apache.commons.lang3.mutable.MutableObject;
-
 import org.apache.asterix.metadata.declared.AqlDataSource;
 import org.apache.asterix.metadata.declared.AqlDataSource.AqlDataSourceType;
 import org.apache.asterix.metadata.declared.DatasetDataSource;
 import org.apache.asterix.om.functions.AsterixBuiltinFunctions;
 import org.apache.asterix.optimizer.rules.am.AccessMethodJobGenParams;
+import org.apache.commons.lang3.mutable.Mutable;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
@@ -36,7 +35,7 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.AbstractFunctionCa
 import org.apache.hyracks.algebricks.core.algebra.functions.FunctionIdentifier;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.MaterializeOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.UnnestMapOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.physical.MaterializePOperator;
@@ -45,7 +44,8 @@ import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 public class IntroduceMaterializationForInsertWithSelfScanRule implements IAlgebraicRewriteRule {
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         return false;
     }
 
@@ -53,21 +53,21 @@ public class IntroduceMaterializationForInsertWithSelfScanRule implements IAlgeb
     public boolean rewritePost(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
             throws AlgebricksException {
         AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
-        if (op.getOperatorTag() != LogicalOperatorTag.INSERT_DELETE) {
+        if (op.getOperatorTag() != LogicalOperatorTag.INSERT) {
             return false;
         }
 
-        InsertDeleteOperator insertOp = (InsertDeleteOperator) op;
-        boolean sameDataset = checkIfInsertAndScanDatasetsSame(op, ((DatasetDataSource) insertOp.getDataSource())
-                .getDataset().getDatasetName());
+        InsertOperator insertOp = (InsertOperator) op;
+        boolean sameDataset = checkIfInsertAndScanDatasetsSame(op,
+                ((DatasetDataSource) insertOp.getDataSource()).getDataset().getDatasetName());
 
         if (sameDataset) {
             MaterializeOperator materializeOperator = new MaterializeOperator();
             MaterializePOperator materializePOperator = new MaterializePOperator(true);
             materializeOperator.setPhysicalOperator(materializePOperator);
 
-            materializeOperator.getInputs().add(
-                    new MutableObject<ILogicalOperator>(insertOp.getInputs().get(0).getValue()));
+            materializeOperator.getInputs()
+                    .add(new MutableObject<ILogicalOperator>(insertOp.getInputs().get(0).getValue()));
             context.computeAndSetTypeEnvironmentForOperator(materializeOperator);
 
             insertOp.getInputs().clear();

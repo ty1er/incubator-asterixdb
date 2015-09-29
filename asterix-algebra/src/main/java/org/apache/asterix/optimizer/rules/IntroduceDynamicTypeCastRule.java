@@ -22,9 +22,6 @@ package org.apache.asterix.optimizer.rules;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.mutable.Mutable;
-import org.apache.commons.lang3.mutable.MutableObject;
-
 import org.apache.asterix.aql.util.FunctionUtils;
 import org.apache.asterix.metadata.declared.AqlDataSource;
 import org.apache.asterix.om.functions.AsterixBuiltinFunctions;
@@ -34,6 +31,8 @@ import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.AUnionType;
 import org.apache.asterix.om.types.IAType;
 import org.apache.asterix.om.util.NonTaggedFormatUtil;
+import org.apache.commons.lang3.mutable.Mutable;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
@@ -47,7 +46,7 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.VariableReferenceE
 import org.apache.hyracks.algebricks.core.algebra.functions.FunctionIdentifier;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.visitors.VariableUtilities;
 import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 
@@ -75,7 +74,8 @@ import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 public class IntroduceDynamicTypeCastRule implements IAlgebraicRewriteRule {
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         return false;
     }
 
@@ -97,16 +97,12 @@ public class IntroduceDynamicTypeCastRule implements IAlgebraicRewriteRule {
                  */
 
                 AbstractLogicalOperator op2 = (AbstractLogicalOperator) op1.getInputs().get(0).getValue();
-                if (op2.getOperatorTag() == LogicalOperatorTag.INSERT_DELETE) {
-                    InsertDeleteOperator insertDeleteOp = (InsertDeleteOperator) op2;
-                    if (insertDeleteOp.getOperation() == InsertDeleteOperator.Kind.DELETE)
-                        return false;
-
+                if (op2.getOperatorTag() == LogicalOperatorTag.INSERT) {
                     // Remember this is the operator we need to modify
-                    op = insertDeleteOp;
+                    op = op2;
 
                     // Derive the required ARecordType based on the schema of the AqlDataSource
-                    InsertDeleteOperator insertDeleteOperator = (InsertDeleteOperator) op2;
+                    InsertOperator insertDeleteOperator = (InsertOperator) op2;
                     AqlDataSource dataSource = (AqlDataSource) insertDeleteOperator.getDataSource();
                     IAType[] schemaTypes = (IAType[]) dataSource.getSchemaTypes();
                     requiredRecordType = (ARecordType) schemaTypes[schemaTypes.length - 1];
@@ -171,7 +167,8 @@ public class IntroduceDynamicTypeCastRule implements IAlgebraicRewriteRule {
         boolean cast = !compatible(requiredRecordType, inputRecordType);
 
         if (checkNull) {
-            recordVar = addWrapperFunction(requiredRecordType, recordVar, op, context, AsterixBuiltinFunctions.NOT_NULL);
+            recordVar = addWrapperFunction(requiredRecordType, recordVar, op, context,
+                    AsterixBuiltinFunctions.NOT_NULL);
         }
         if (cast) {
             addWrapperFunction(requiredRecordType, recordVar, op, context, AsterixBuiltinFunctions.CAST_RECORD);

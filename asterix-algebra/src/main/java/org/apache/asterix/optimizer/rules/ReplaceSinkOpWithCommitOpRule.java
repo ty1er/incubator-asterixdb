@@ -21,13 +21,12 @@ package org.apache.asterix.optimizer.rules;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.mutable.Mutable;
-
 import org.apache.asterix.algebra.operators.CommitOperator;
 import org.apache.asterix.algebra.operators.physical.CommitPOperator;
 import org.apache.asterix.common.transactions.JobId;
 import org.apache.asterix.metadata.declared.AqlMetadataProvider;
 import org.apache.asterix.metadata.declared.DatasetDataSource;
+import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
@@ -36,16 +35,18 @@ import org.apache.hyracks.algebricks.core.algebra.base.LogicalOperatorTag;
 import org.apache.hyracks.algebricks.core.algebra.base.LogicalVariable;
 import org.apache.hyracks.algebricks.core.algebra.expressions.VariableReferenceExpression;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.DeleteOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.ExtensionOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.SinkOperator;
 import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 
 public class ReplaceSinkOpWithCommitOpRule implements IAlgebraicRewriteRule {
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         // TODO Auto-generated method stub
         return false;
     }
@@ -72,13 +73,18 @@ public class ReplaceSinkOpWithCommitOpRule implements IAlgebraicRewriteRule {
                             .getDataset().getDatasetId();
                     break;
                 }
-            } else if (descendantOp.getOperatorTag() == LogicalOperatorTag.INSERT_DELETE) {
-                InsertDeleteOperator insertDeleteOperator = (InsertDeleteOperator) descendantOp;
-                if (!insertDeleteOperator.isBulkload()) {
-                    primaryKeyExprs = insertDeleteOperator.getPrimaryKeyExpressions();
-                    datasetId = ((DatasetDataSource) insertDeleteOperator.getDataSource()).getDataset().getDatasetId();
+            } else if (descendantOp.getOperatorTag() == LogicalOperatorTag.INSERT) {
+                InsertOperator insertOperator = (InsertOperator) descendantOp;
+                if (!insertOperator.isBulkload()) {
+                    primaryKeyExprs = insertOperator.getPrimaryKeyExpressions();
+                    datasetId = ((DatasetDataSource) insertOperator.getDataSource()).getDataset().getDatasetId();
                     break;
                 }
+            } else if (descendantOp.getOperatorTag() == LogicalOperatorTag.DELETE) {
+                DeleteOperator deleteOperator = (DeleteOperator) descendantOp;
+                primaryKeyExprs = deleteOperator.getPrimaryKeyExpressions();
+                datasetId = ((DatasetDataSource) deleteOperator.getDataSource()).getDataset().getDatasetId();
+                break;
             }
             if (descendantOp.getInputs().size() < 1) {
                 break;

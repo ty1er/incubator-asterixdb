@@ -22,12 +22,11 @@ package org.apache.asterix.optimizer.rules;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.mutable.Mutable;
-
 import org.apache.asterix.metadata.declared.AqlDataSource;
 import org.apache.asterix.om.typecomputer.base.TypeComputerUtilities;
 import org.apache.asterix.om.types.IAType;
 import org.apache.asterix.optimizer.rules.typecast.StaticTypeCastUtil;
+import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
@@ -39,7 +38,7 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.AbstractFunctionCa
 import org.apache.hyracks.algebricks.core.algebra.expressions.IVariableTypeEnvironment;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertDeleteOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.InsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.visitors.VariableUtilities;
 import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 
@@ -67,7 +66,8 @@ import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
 public class IntroduceStaticTypeCastForInsertRule implements IAlgebraicRewriteRule {
 
     @Override
-    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context) throws AlgebricksException {
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
         return false;
     }
 
@@ -89,15 +89,12 @@ public class IntroduceStaticTypeCastForInsertRule implements IAlgebraicRewriteRu
         if (op1.getOperatorTag() != LogicalOperatorTag.SINK)
             return false;
         AbstractLogicalOperator op2 = (AbstractLogicalOperator) op1.getInputs().get(0).getValue();
-        if (op2.getOperatorTag() != LogicalOperatorTag.INSERT_DELETE)
-            return false;
-        InsertDeleteOperator insertDeleteOp = (InsertDeleteOperator) op2;
-        if (insertDeleteOp.getOperation() == InsertDeleteOperator.Kind.DELETE)
+        if (op2.getOperatorTag() != LogicalOperatorTag.INSERT)
             return false;
         /**
          * get required record type
          */
-        InsertDeleteOperator insertDeleteOperator = (InsertDeleteOperator) op2;
+        InsertOperator insertDeleteOperator = (InsertOperator) op2;
         AqlDataSource dataSource = (AqlDataSource) insertDeleteOperator.getDataSource();
         IAType[] schemaTypes = (IAType[]) dataSource.getSchemaTypes();
         IAType requiredRecordType = schemaTypes[schemaTypes.length - 1];
