@@ -862,10 +862,10 @@ public class AsterixBuiltinFunctions {
         addPrivateFunction(LOCAL_SQL_MIN, NonTaggedMinMaxAggTypeComputer.INSTANCE, true);
         addFunction(SQL_SUM, NonTaggedNumericAggTypeComputer.INSTANCE, true);
         addPrivateFunction(LOCAL_SQL_SUM, NonTaggedNumericAggTypeComputer.INSTANCE, true);
-        addFunction(SCALAR_SQL_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
+        addFunction(SCALAR_SQL_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
         addFunction(SCALAR_SQL_COUNT, AInt64TypeComputer.INSTANCE, true);
-        addPrivateFunction(SCALAR_GLOBAL_SQL_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
-        addPrivateFunction(SCALAR_LOCAL_SQL_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
+        addPrivateFunction(SCALAR_GLOBAL_SQL_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
+        addPrivateFunction(SCALAR_LOCAL_SQL_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
         addFunction(SCALAR_SQL_MAX, ScalarVersionOfAggregateResultType.INSTANCE, true);
         addFunction(SCALAR_SQL_MIN, ScalarVersionOfAggregateResultType.INSTANCE, true);
         addFunction(SCALAR_SQL_SUM, ScalarVersionOfAggregateResultType.INSTANCE, true);
@@ -880,10 +880,10 @@ public class AsterixBuiltinFunctions {
         addPrivateFunction(INTERMEDIATE_AVG, NonTaggedLocalAvgTypeComputer.INSTANCE, true);
         addPrivateFunction(INTERMEDIATE_SQL_AVG, NonTaggedLocalAvgTypeComputer.INSTANCE, true);
 
-        addFunction(SCALAR_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
+        addFunction(SCALAR_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
         addFunction(SCALAR_COUNT, AInt64TypeComputer.INSTANCE, true);
-        addPrivateFunction(SCALAR_GLOBAL_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
-        addPrivateFunction(SCALAR_LOCAL_AVG, ScalarVersionOfAggregateResultType.INSTANCE, true);
+        addPrivateFunction(SCALAR_GLOBAL_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
+        addPrivateFunction(SCALAR_LOCAL_AVG, OptionalADoubleTypeComputer.INSTANCE, true);
         addFunction(SCALAR_MAX, ScalarVersionOfAggregateResultType.INSTANCE, true);
         addFunction(SCALAR_MIN, ScalarVersionOfAggregateResultType.INSTANCE, true);
         addFunction(SCALAR_SUM, ScalarVersionOfAggregateResultType.INSTANCE, true);
@@ -1297,9 +1297,10 @@ public class AsterixBuiltinFunctions {
 
         IFunctionInfo finfo = getAsterixFunctionInfo(fi);
         IFunctionInfo serializableFinfo = aggregateToSerializableAggregate.get(finfo);
-        if (serializableFinfo == null)
+        if (serializableFinfo == null) {
             throw new IllegalStateException(
                     "no serializable implementation for aggregate function " + serializableFinfo);
+        }
 
         IFunctionInfo fiLocal = aggregateToLocalAggregate.get(serializableFinfo);
         IFunctionInfo fiGlobal = aggregateToGlobalAggregate.get(serializableFinfo);
