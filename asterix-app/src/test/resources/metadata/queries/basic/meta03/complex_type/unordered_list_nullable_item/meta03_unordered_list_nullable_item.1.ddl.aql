@@ -17,13 +17,15 @@
  * under the License.
  */
 /*
- * Description  : Create closed type &  query Metadata dataset Datatype to verify.
+ * Description  : Create open type & query Metadata dataset Datatype to verify.
  * Expected Res : Success
  * Date         : 15 Sep 2012
  */
 
+drop dataverse testdv if exists;
+create dataverse testdv;
 
-for $l in dataset('Metadata.Datatype')
-where $l.DataverseName='testdv'
-return $l
-
+create type testdv.testtype as closed {
+id : int32,
+list: {{ string? }}
+}

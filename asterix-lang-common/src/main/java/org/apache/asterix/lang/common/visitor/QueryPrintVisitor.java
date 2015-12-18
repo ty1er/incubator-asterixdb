@@ -40,13 +40,13 @@ import org.apache.asterix.lang.common.expression.IfExpr;
 import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
 import org.apache.asterix.lang.common.expression.RecordConstructor;
 import org.apache.asterix.lang.common.expression.RecordTypeDefinition;
 import org.apache.asterix.lang.common.expression.RecordTypeDefinition.RecordKind;
-import org.apache.asterix.lang.common.expression.TypeExpression;
 import org.apache.asterix.lang.common.expression.TypeReferenceExpression;
 import org.apache.asterix.lang.common.expression.UnaryExpr;
 import org.apache.asterix.lang.common.expression.UnorderedListTypeDefinition;
@@ -77,8 +77,9 @@ public class QueryPrintVisitor extends AbstractQueryExpressionVisitor<Void, Inte
 
     protected String skip(int step) {
         StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < step; i++)
+        for (int i = 0; i < step; i++) {
             sb.append("  ");
+        }
         return sb.toString();
     }
 
@@ -338,8 +339,7 @@ public class QueryPrintVisitor extends AbstractQueryExpressionVisitor<Void, Inte
         }
         out.println("RecordType {");
         Iterator<String> nameIter = r.getFieldNames().iterator();
-        Iterator<TypeExpression> typeIter = r.getFieldTypes().iterator();
-        Iterator<Boolean> isnullableIter = r.getNullableFields().iterator();
+        Iterator<NullableTypeExpression> typeIter = r.getFieldTypes().iterator();
         boolean first = true;
         while (nameIter.hasNext()) {
             if (first) {
@@ -348,11 +348,10 @@ public class QueryPrintVisitor extends AbstractQueryExpressionVisitor<Void, Inte
                 out.println(",");
             }
             String name = nameIter.next();
-            TypeExpression texp = typeIter.next();
-            Boolean isNullable = isnullableIter.next();
+            NullableTypeExpression texp = typeIter.next();
             out.print(skip(step + 1) + name + " : ");
             texp.accept(this, step + 2);
-            if (isNullable) {
+            if (texp.isNullable()) {
                 out.print("?");
             }
         }

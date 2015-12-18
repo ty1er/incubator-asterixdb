@@ -72,6 +72,7 @@ import org.apache.asterix.lang.common.expression.IfExpr;
 import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
@@ -444,7 +445,7 @@ DatasetDecl DatasetSpecification() throws ParseException:
     | ("internal" | "temporary" {
             temp = token.image.toLowerCase().equals("temporary");
         }
-      )? 
+      )?
     <DATASET> nameComponents = QualifiedName()
     <LEFTPAREN> typeName = Identifier() <RIGHTPAREN>
     ifNotExists = IfNotExists()
@@ -658,7 +659,7 @@ CreateFeedStatement FeedSpecification() throws ParseException:
   FunctionSignature appliedFunction = null;
   CreateFeedStatement cfs = null;
   Pair<Identifier,Identifier> sourceNameComponents = null;
-  
+
 }
 {
   (
@@ -670,7 +671,7 @@ CreateFeedStatement FeedSpecification() throws ParseException:
       }
      |
      ("primary")? "feed" nameComponents = QualifiedName() ifNotExists = IfNotExists()
-      "using" adapterName = AdapterName() properties = Configuration() (appliedFunction = ApplyFunction())?  
+      "using" adapterName = AdapterName() properties = Configuration() (appliedFunction = ApplyFunction())?
        {
         cfs = new CreatePrimaryFeedStatement(nameComponents,
                                     adapterName, properties, appliedFunction, ifNotExists);
@@ -683,8 +684,8 @@ CreateFeedStatement FeedSpecification() throws ParseException:
 
 CreateFeedPolicyStatement FeedPolicySpecification() throws ParseException:
 {
-  String policyName = null;  
-  String basePolicyName = null; 
+  String policyName = null;
+  String basePolicyName = null;
   String sourcePolicyFile = null;
   String definition = null;
   boolean ifNotExists = false;
@@ -694,18 +695,18 @@ CreateFeedPolicyStatement FeedPolicySpecification() throws ParseException:
 {
   (
     "ingestion" "policy"  policyName = Identifier() ifNotExists = IfNotExists()
-      <FROM> 
-      ("policy" basePolicyName = Identifier() properties = Configuration() ("definition" definition = StringLiteral())?  
+      <FROM>
+      ("policy" basePolicyName = Identifier() properties = Configuration() ("definition" definition = StringLiteral())?
       {
         cfps = new CreateFeedPolicyStatement(policyName,
                                    basePolicyName, properties, definition, ifNotExists);
       }
-     | "path" sourcePolicyFile = Identifier() ("definition" definition = StringLiteral())?  
+     | "path" sourcePolicyFile = Identifier() ("definition" definition = StringLiteral())?
        {
         cfps = new CreateFeedPolicyStatement(policyName, sourcePolicyFile, definition, ifNotExists);
        }
-     ) 
-       
+     )
+
   )
     {
       return cfps;
@@ -1179,6 +1180,19 @@ TypeExpression TypeExpr() throws ParseException:
   }
 }
 
+NullableTypeExpression NullableTypeExpr() throws ParseException:
+{
+  TypeExpression typeExpr = null;
+  boolean nullable = false;
+}
+{
+  typeExpr = TypeExpr()
+  (<QUES> { nullable = true; } )?
+  {
+    return new NullableTypeExpression(typeExpr, nullable);
+  }
+}
+
 RecordTypeDefinition RecordTypeDef() throws ParseException:
 {
   RecordTypeDefinition recType = new RecordTypeDefinition();
@@ -1223,8 +1237,7 @@ RecordTypeDefinition RecordTypeDef() throws ParseException:
 void RecordField(RecordTypeDefinition recType) throws ParseException:
 {
   String fieldName;
-  TypeExpression type = null;
-  boolean nullable = false;
+  NullableTypeExpression type = null;
 }
 {
   fieldName = Identifier()
@@ -1232,9 +1245,9 @@ void RecordField(RecordTypeDefinition recType) throws ParseException:
       String hint = getHint(token);
       IRecordFieldDataGen rfdg = hint != null ? parseFieldDataGen(hint) : null;
     }
-  <COLON> type =  TypeExpr() (<QUES> { nullable = true; } )?
+  <COLON> type = NullableTypeExpr()
     {
-      recType.addField(fieldName, type, nullable, rfdg);
+      recType.addField(fieldName, type, rfdg);
     }
 }
 
@@ -1255,11 +1268,11 @@ TypeReferenceExpression TypeReference() throws ParseException:
 
 OrderedListTypeDefinition OrderedListTypeDef() throws ParseException:
 {
-  TypeExpression type = null;
+  NullableTypeExpression type = null;
 }
 {
   <LEFTBRACKET>
-    ( type =  TypeExpr() )
+    ( type =  NullableTypeExpr() )
   <RIGHTBRACKET>
   {
     return new OrderedListTypeDefinition(type);
@@ -1269,11 +1282,11 @@ OrderedListTypeDefinition OrderedListTypeDef() throws ParseException:
 
 UnorderedListTypeDefinition UnorderedListTypeDef() throws ParseException:
 {
-  TypeExpression type = null;
+  NullableTypeExpression type = null;
 }
 {
   <LEFTDBLBRACE>
-    ( type =  TypeExpr() )
+    ( type =  NullableTypeExpr() )
   <RIGHTDBLBRACE>
   {
     return new UnorderedListTypeDefinition(type);
@@ -1288,11 +1301,11 @@ FunctionName FunctionName() throws ParseException:
   boolean secondAfterDot = false;
 }
 {
-  first = Identifier() 
+  first = Identifier()
   {
     FunctionName result = new FunctionName();
     result.hint = getHint(token);
-  } 
+  }
   ( <DOT> second = Identifier()
     {
       secondAfterDot = true;

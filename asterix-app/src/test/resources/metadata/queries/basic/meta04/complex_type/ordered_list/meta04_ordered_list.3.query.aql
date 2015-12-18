@@ -24,6 +24,6 @@
 
 
 for $l in dataset('Metadata.Datatype')
-where $l.DataverseName='testdv' and $l.DatatypeName='testtype'
+where $l.DataverseName='testdv'
 return $l
 

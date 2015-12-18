@@ -70,6 +70,7 @@ import org.apache.asterix.lang.common.expression.IfExpr;
 import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
@@ -352,6 +353,19 @@ TypeExpression TypeExpr() throws ParseException:
   }
 }
 
+NullableTypeExpression NullableTypeExpr() throws ParseException:
+{
+  TypeExpression typeExpr = null;
+  boolean nullable = false;
+}
+{
+  typeExpr = TypeExpr()
+  ("?" { nullable = true; } )?
+  {
+    return new NullableTypeExpression(typeExpr, nullable);
+  }
+}
+
 RecordTypeDefinition RecordTypeDef() throws ParseException:
 {
   RecordTypeDefinition recType = new RecordTypeDefinition();
@@ -378,8 +392,7 @@ RecordTypeDefinition RecordTypeDef() throws ParseException:
 void RecordField(RecordTypeDefinition recType) throws ParseException:
 {
         String fieldName;
-        TypeExpression type = null;
-        boolean nullable = false;
+        NullableTypeExpression type = null;
 }
 {
       <IDENTIFIER>
@@ -388,11 +401,10 @@ void RecordField(RecordTypeDefinition recType) throws ParseException:
          fieldName = t.toString();
         }
       ":"
-      ( type =  TypeExpr() )
-      ("?" { nullable = true; } )?
+      ( type =  NullableTypeExpr() )
       {
 
-         recType.addField(fieldName, type, nullable);
+         recType.addField(fieldName, type);
       }
 }
 
@@ -414,11 +426,11 @@ TypeReferenceExpression TypeReference() throws ParseException:
 
 OrderedListTypeDefinition OrderedListTypeDef() throws ParseException:
 {
-  TypeExpression type = null;
+  NullableTypeExpression type = null;
 }
 {
   "["
-    ( type =  TypeExpr() )
+    ( type =  NullableTypeExpr() )
   "]"
   {
     return new OrderedListTypeDefinition(type);
@@ -428,11 +440,11 @@ OrderedListTypeDefinition OrderedListTypeDef() throws ParseException:
 
 UnorderedListTypeDefinition UnorderedListTypeDef() throws ParseException:
 {
-  TypeExpression type = null;
+  NullableTypeExpression type = null;
 }
 {
   "<"
-    ( type =  TypeExpr() )
+    ( type =  NullableTypeExpr() )
   ">"
   {
     return new UnorderedListTypeDefinition(type);

@@ -57,6 +57,7 @@ import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.ListConstructor.Type;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
@@ -1190,6 +1191,13 @@ public class AqlPlusExpressionToPlanTranslator extends AbstractLangTranslator
 
     @Override
     public Pair<ILogicalOperator, LogicalVariable> visit(RecordTypeDefinition tre, Mutable<ILogicalOperator> arg)
+            throws AsterixException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Pair<ILogicalOperator, LogicalVariable> visit(NullableTypeExpression nte, Mutable<ILogicalOperator> arg)
             throws AsterixException {
         // TODO Auto-generated method stub
         return null;

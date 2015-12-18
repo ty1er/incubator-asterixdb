@@ -33,16 +33,14 @@ public class RecordTypeDefinition extends TypeExpression {
     }
 
     private ArrayList<String> fieldNames;
-    private ArrayList<TypeExpression> fieldTypes;
+    private ArrayList<NullableTypeExpression> fieldTypes;
     private ArrayList<IRecordFieldDataGen> fieldDataGen;
-    private ArrayList<Boolean> nullableFields;
     private RecordKind recordKind;
     private UndeclaredFieldsDataGen undeclaredFieldsDataGen;
 
     public RecordTypeDefinition() {
         fieldNames = new ArrayList<String>();
-        fieldTypes = new ArrayList<TypeExpression>();
-        nullableFields = new ArrayList<Boolean>();
+        fieldTypes = new ArrayList<NullableTypeExpression>();
         fieldDataGen = new ArrayList<IRecordFieldDataGen>();
     }
 
@@ -51,29 +49,22 @@ public class RecordTypeDefinition extends TypeExpression {
         return TypeExprKind.RECORD;
     }
 
-    public void addField(String name, TypeExpression type, Boolean nullable, IRecordFieldDataGen fldDataGen) {
-        fieldNames.add(name);
-        fieldTypes.add(type);
-        nullableFields.add(nullable);
+    public void addField(String name, NullableTypeExpression type, IRecordFieldDataGen fldDataGen) {
+        addField(name, type);
         fieldDataGen.add(fldDataGen);
     }
 
-    public void addField(String name, TypeExpression type, Boolean nullable) {
+    public void addField(String name, NullableTypeExpression type) {
         fieldNames.add(name);
         fieldTypes.add(type);
-        nullableFields.add(nullable);
     }
 
     public ArrayList<String> getFieldNames() {
         return fieldNames;
     }
 
-    public ArrayList<TypeExpression> getFieldTypes() {
+    public ArrayList<NullableTypeExpression> getFieldTypes() {
         return fieldTypes;
-    }
-
-    public ArrayList<Boolean> getNullableFields() {
-        return nullableFields;
     }
 
     public ArrayList<IRecordFieldDataGen> getFieldDataGen() {

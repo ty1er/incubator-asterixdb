@@ -28,6 +28,7 @@ import java.util.Map;
 import org.apache.asterix.common.annotations.IRecordFieldDataGen;
 import org.apache.asterix.common.annotations.RecordDataGenAnnotation;
 import org.apache.asterix.common.exceptions.AsterixException;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.RecordTypeDefinition;
 import org.apache.asterix.lang.common.expression.RecordTypeDefinition.RecordKind;
@@ -69,9 +70,11 @@ public class TypeTranslator {
         secondPass(mdTxnCtx, typeMap, incompleteFieldTypes, incompleteItemTypes, incompleteTopLevelTypeReferences,
                 typeDataverse);
 
-        for (IAType type : typeMap.values())
-            if (type.getTypeTag().isDerivedType())
+        for (IAType type : typeMap.values()) {
+            if (type.getTypeTag().isDerivedType()) {
                 ((AbstractComplexType) type).generateNestedDerivedTypeNames();
+            }
+        }
         return typeMap;
     }
 
@@ -143,8 +146,9 @@ public class TypeTranslator {
                     typeSignature.getName());
             if (dt == null) {
                 throw new AlgebricksException("Could not resolve type " + typeSignature);
-            } else
+            } else {
                 t = dt.getDatatype();
+            }
             for (TypeSignature sign : incompleteTopLevelTypeReferences.get(typeSignature)) {
                 typeMap.put(sign, t);
             }
@@ -155,8 +159,9 @@ public class TypeTranslator {
             Datatype dt = MetadataManager.INSTANCE.getDatatype(mdTxnCtx, typeDataverse, trefName);
             if (dt == null) {
                 throw new AlgebricksException("Could not resolve type " + trefName);
-            } else
+            } else {
                 t = dt.getDatatype();
+            }
             Map<ARecordType, List<Integer>> fieldsToFix = incompleteFieldTypes.get(trefName);
             for (ARecordType recType : fieldsToFix.keySet()) {
                 List<Integer> positions = fieldsToFix.get(recType);
@@ -196,7 +201,7 @@ public class TypeTranslator {
             Map<TypeSignature, IAType> typeMap, Map<TypeSignature, List<AbstractCollectionType>> incompleteItemTypes,
             Map<String, Map<ARecordType, List<Integer>>> incompleteFieldTypes, String defaultDataverse)
                     throws AsterixException {
-        TypeExpression tExpr = oltd.getItemTypeExpression();
+        NullableTypeExpression tExpr = oltd.getItemTypeExpression();
         String typeName = typeSignature != null ? typeSignature.getName() : null;
         AOrderedListType aolt = new AOrderedListType(null, typeName);
         setCollectionItemType(tExpr, typeMap, incompleteItemTypes, incompleteFieldTypes, aolt, defaultDataverse);
@@ -208,47 +213,45 @@ public class TypeTranslator {
             Map<TypeSignature, List<AbstractCollectionType>> incompleteItemTypes,
             Map<String, Map<ARecordType, List<Integer>>> incompleteFieldTypes, String defaulDataverse)
                     throws AsterixException {
-        TypeExpression tExpr = ultd.getItemTypeExpression();
+        NullableTypeExpression tExpr = ultd.getItemTypeExpression();
         String typeName = typeSignature != null ? typeSignature.getName() : null;
         AUnorderedListType ault = new AUnorderedListType(null, typeName);
         setCollectionItemType(tExpr, typeMap, incompleteItemTypes, incompleteFieldTypes, ault, defaulDataverse);
         return ault;
     }
 
-    private static void setCollectionItemType(TypeExpression tExpr, Map<TypeSignature, IAType> typeMap,
+    private static void setCollectionItemType(NullableTypeExpression tExpr, Map<TypeSignature, IAType> typeMap,
             Map<TypeSignature, List<AbstractCollectionType>> incompleteItemTypes,
             Map<String, Map<ARecordType, List<Integer>>> incompleteFieldTypes, AbstractCollectionType act,
             String defaultDataverse) throws AsterixException {
-        switch (tExpr.getTypeKind()) {
+        IAType t;
+        switch (tExpr.getTypeExpression().getTypeKind()) {
             case ORDEREDLIST: {
-                OrderedListTypeDefinition oltd = (OrderedListTypeDefinition) tExpr;
-                IAType t = computeOrderedListType(null, oltd, typeMap, incompleteItemTypes, incompleteFieldTypes,
+                OrderedListTypeDefinition oltd = (OrderedListTypeDefinition) tExpr.getTypeExpression();
+                t = computeOrderedListType(null, oltd, typeMap, incompleteItemTypes, incompleteFieldTypes,
                         defaultDataverse);
                 act.setItemType(t);
                 break;
             }
             case UNORDEREDLIST: {
-                UnorderedListTypeDefinition ultd = (UnorderedListTypeDefinition) tExpr;
-                IAType t = computeUnorderedListType(null, ultd, typeMap, incompleteItemTypes, incompleteFieldTypes,
+                UnorderedListTypeDefinition ultd = (UnorderedListTypeDefinition) tExpr.getTypeExpression();
+                t = computeUnorderedListType(null, ultd, typeMap, incompleteItemTypes, incompleteFieldTypes,
                         defaultDataverse);
                 act.setItemType(t);
                 break;
             }
             case RECORD: {
-                RecordTypeDefinition rtd = (RecordTypeDefinition) tExpr;
-                IAType t = computeRecordType(null, rtd, typeMap, incompleteFieldTypes, incompleteItemTypes,
-                        defaultDataverse);
-                act.setItemType(t);
+                RecordTypeDefinition rtd = (RecordTypeDefinition) tExpr.getTypeExpression();
+                t = computeRecordType(null, rtd, typeMap, incompleteFieldTypes, incompleteItemTypes, defaultDataverse);
                 break;
             }
             case TYPEREFERENCE: {
-                TypeReferenceExpression tre = (TypeReferenceExpression) tExpr;
+                TypeReferenceExpression tre = (TypeReferenceExpression) tExpr.getTypeExpression();
                 TypeSignature signature = new TypeSignature(defaultDataverse, tre.getIdent().getValue());
-                IAType tref = solveTypeReference(signature, typeMap);
-                if (tref != null) {
-                    act.setItemType(tref);
-                } else {
+                t = solveTypeReference(signature, typeMap);
+                if (t == null) {
                     addIncompleteCollectionTypeReference(act, tre, incompleteItemTypes, defaultDataverse);
+                    return;
                 }
                 break;
             }
@@ -256,6 +259,10 @@ public class TypeTranslator {
                 throw new IllegalStateException();
             }
         }
+        if (tExpr.isNullable()) {
+            t = AUnionType.createNullableType(t);
+        }
+        act.setItemType(t);
     }
 
     private static void addIncompleteCollectionTypeReference(AbstractCollectionType collType,
@@ -332,49 +339,41 @@ public class TypeTranslator {
         }
 
         for (int j = 0; j < n; j++) {
-            TypeExpression texpr = rtd.getFieldTypes().get(j);
-            switch (texpr.getTypeKind()) {
+            NullableTypeExpression texpr = rtd.getFieldTypes().get(j);
+            switch (texpr.getTypeExpression().getTypeKind()) {
                 case TYPEREFERENCE: {
-                    TypeReferenceExpression tre = (TypeReferenceExpression) texpr;
+                    TypeReferenceExpression tre = (TypeReferenceExpression) texpr.getTypeExpression();
                     TypeSignature signature = new TypeSignature(defaultDataverse, tre.getIdent().getValue());
                     IAType tref = solveTypeReference(signature, typeMap);
                     if (tref != null) {
-                        if (!rtd.getNullableFields().get(j)) { // not nullable
-                            fldTypes[j] = tref;
-                        } else { // nullable
-                            fldTypes[j] = AUnionType.createNullableType(tref);
-                        }
+                        fldTypes[j] = (texpr.isNullable()) ? AUnionType.createNullableType(tref) : tref;
                     } else {
                         addIncompleteFieldTypeReference(recType, j, tre, incompleteFieldTypes);
-                        if (rtd.getNullableFields().get(j)) {
+                        if (texpr.isNullable()) {
                             fldTypes[j] = AUnionType.createNullableType(null);
                         }
                     }
                     break;
                 }
                 case RECORD: {
-                    RecordTypeDefinition recTypeDef2 = (RecordTypeDefinition) texpr;
+                    RecordTypeDefinition recTypeDef2 = (RecordTypeDefinition) texpr.getTypeExpression();
                     IAType t2 = computeRecordType(null, recTypeDef2, typeMap, incompleteFieldTypes, incompleteItemTypes,
                             defaultDataverse);
-                    if (!rtd.getNullableFields().get(j)) { // not nullable
-                        fldTypes[j] = t2;
-                    } else { // nullable
-                        fldTypes[j] = AUnionType.createNullableType(t2);
-                    }
+                    fldTypes[j] = (texpr.isNullable()) ? AUnionType.createNullableType(t2) : t2;
                     break;
                 }
                 case ORDEREDLIST: {
-                    OrderedListTypeDefinition oltd = (OrderedListTypeDefinition) texpr;
+                    OrderedListTypeDefinition oltd = (OrderedListTypeDefinition) texpr.getTypeExpression();
                     IAType t2 = computeOrderedListType(null, oltd, typeMap, incompleteItemTypes, incompleteFieldTypes,
                             defaultDataverse);
-                    fldTypes[j] = (rtd.getNullableFields().get(j)) ? AUnionType.createNullableType(t2) : t2;
+                    fldTypes[j] = (texpr.isNullable()) ? AUnionType.createNullableType(t2) : t2;
                     break;
                 }
                 case UNORDEREDLIST: {
-                    UnorderedListTypeDefinition ultd = (UnorderedListTypeDefinition) texpr;
+                    UnorderedListTypeDefinition ultd = (UnorderedListTypeDefinition) texpr.getTypeExpression();
                     IAType t2 = computeUnorderedListType(null, ultd, typeMap, incompleteItemTypes, incompleteFieldTypes,
                             defaultDataverse);
-                    fldTypes[j] = (rtd.getNullableFields().get(j)) ? AUnionType.createNullableType(t2) : t2;
+                    fldTypes[j] = (texpr.isNullable()) ? AUnionType.createNullableType(t2) : t2;
                     break;
                 }
                 default: {

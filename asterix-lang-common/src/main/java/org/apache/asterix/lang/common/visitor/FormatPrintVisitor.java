@@ -48,6 +48,7 @@ import org.apache.asterix.lang.common.expression.IfExpr;
 import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
@@ -137,8 +138,9 @@ public class FormatPrintVisitor implements ILangVisitor<Void, Integer> {
 
     protected String skip(int step) {
         StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < step; i++)
+        for (int i = 0; i < step; i++) {
             sb.append("  ");
+        }
         return sb.toString();
     }
 
@@ -403,6 +405,14 @@ public class FormatPrintVisitor implements ILangVisitor<Void, Integer> {
     }
 
     @Override
+    public Void visit(NullableTypeExpression t, Integer arg) throws AsterixException {
+        if (t.isNullable()) {
+            out.print("?");
+        }
+        return null;
+    }
+
+    @Override
     public Void visit(RecordTypeDefinition r, Integer step) throws AsterixException {
         if (r.getRecordKind() == RecordKind.CLOSED) {
             out.print(" closed ");
@@ -410,8 +420,7 @@ public class FormatPrintVisitor implements ILangVisitor<Void, Integer> {
 
         out.println("{");
         Iterator<String> nameIter = r.getFieldNames().iterator();
-        Iterator<TypeExpression> typeIter = r.getFieldTypes().iterator();
-        Iterator<Boolean> isnullableIter = r.getNullableFields().iterator();
+        Iterator<NullableTypeExpression> typeIter = r.getFieldTypes().iterator();
         boolean first = true;
         while (nameIter.hasNext()) {
             if (first) {
@@ -420,13 +429,9 @@ public class FormatPrintVisitor implements ILangVisitor<Void, Integer> {
                 out.println(COMMA);
             }
             String name = normalize(nameIter.next());
-            TypeExpression texp = typeIter.next();
-            Boolean isNullable = isnullableIter.next();
+            NullableTypeExpression texp = typeIter.next();
             out.print(skip(step) + name + " : ");
             texp.accept(this, step + 2);
-            if (isNullable) {
-                out.print("?");
-            }
         }
         out.println();
         out.println(skip(step - 2) + "}");

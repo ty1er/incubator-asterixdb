@@ -564,13 +564,14 @@ The following example creates a dataverse named TinySocial.
     FunctionOrTypeName   ::= QualifiedName
     IfNotExists          ::= ( "if not exists" )?
     TypeExpr             ::= RecordTypeDef | TypeReference | OrderedListTypeDef | UnorderedListTypeDef
+    NullableTypeExpr     ::= ( TypeExpr ) ( "?" )?
     RecordTypeDef        ::= ( "closed" | "open" )? "{" ( RecordField ( "," RecordField )* )? "}"
-    RecordField          ::= Identifier ":" ( TypeExpr ) ( "?" )?
+    RecordField          ::= Identifier ":" NullableTypeExpr
     NestedField          ::= Identifier ( "." Identifier )*
     IndexField           ::= NestedField ( ":" TypeReference )?
     TypeReference        ::= Identifier
-    OrderedListTypeDef   ::= "[" ( TypeExpr ) "]"
-    UnorderedListTypeDef ::= "{{" ( TypeExpr ) "}}"
+    OrderedListTypeDef   ::= "[" ( NullableTypeExpr ) "]"
+    UnorderedListTypeDef ::= "{{" ( NullableTypeExpr ) "}}"
 
 The create type statement is used to create a new named ADM datatype.
 This type can then be used to create datasets or utilized when defining one or more other ADM datatypes.

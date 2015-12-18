@@ -23,9 +23,9 @@ import org.apache.asterix.lang.common.visitor.base.ILangVisitor;
 
 public class OrderedListTypeDefinition extends TypeExpression {
 
-    private TypeExpression itemTypeExpression;
+    private NullableTypeExpression itemTypeExpression;
 
-    public OrderedListTypeDefinition(TypeExpression itemTypeExpression) {
+    public OrderedListTypeDefinition(NullableTypeExpression itemTypeExpression) {
         this.itemTypeExpression = itemTypeExpression;
     }
 
@@ -39,7 +39,7 @@ public class OrderedListTypeDefinition extends TypeExpression {
         return visitor.visit(this, arg);
     }
 
-    public TypeExpression getItemTypeExpression() {
+    public NullableTypeExpression getItemTypeExpression() {
         return itemTypeExpression;
     }
 

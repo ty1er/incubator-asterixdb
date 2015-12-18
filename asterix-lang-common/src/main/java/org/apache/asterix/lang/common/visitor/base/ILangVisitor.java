@@ -31,6 +31,7 @@ import org.apache.asterix.lang.common.expression.IfExpr;
 import org.apache.asterix.lang.common.expression.IndexAccessor;
 import org.apache.asterix.lang.common.expression.ListConstructor;
 import org.apache.asterix.lang.common.expression.LiteralExpr;
+import org.apache.asterix.lang.common.expression.NullableTypeExpression;
 import org.apache.asterix.lang.common.expression.OperatorExpr;
 import org.apache.asterix.lang.common.expression.OrderedListTypeDefinition;
 import org.apache.asterix.lang.common.expression.QuantifiedExpression;
@@ -95,6 +96,8 @@ public interface ILangVisitor<R, T> {
     R visit(UpdateClause del, T arg) throws AsterixException;
 
     R visit(TypeReferenceExpression tre, T arg) throws AsterixException;
+
+    R visit(NullableTypeExpression nte, T arg) throws AsterixException;
 
     R visit(RecordTypeDefinition tre, T arg) throws AsterixException;
 

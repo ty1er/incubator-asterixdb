@@ -45,7 +45,6 @@ import org.apache.asterix.om.base.AString;
 import org.apache.asterix.om.base.IACursor;
 import org.apache.asterix.om.types.AOrderedListType;
 import org.apache.asterix.om.types.ARecordType;
-import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.AUnionType;
 import org.apache.asterix.om.types.AUnorderedListType;
 import org.apache.asterix.om.types.AbstractCollectionType;
@@ -69,6 +68,8 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
     public static final int DATATYPE_DATATYPE_TUPLE_FIELD_INDEX = 1;
     // Payload field containing serialized Datatype.
     public static final int DATATYPE_PAYLOAD_TUPLE_FIELD_INDEX = 2;
+
+    public static final String DATATYPE_PAYLOAD_TUPLE_ISNULLABLE_FIELD_NAME = "IsListItemNullable";
 
     public enum DerivedTypeTag {
         RECORD,
@@ -99,7 +100,7 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
         return createDataTypeFromARecord(datatypeRecord);
     }
 
-    private Datatype createDataTypeFromARecord(ARecord datatypeRecord) throws MetadataException {
+    private Datatype createDataTypeFromARecord(ARecord datatypeRecord) throws IOException, MetadataException {
         String dataverseName = ((AString) datatypeRecord
                 .getValueByPos(MetadataRecordTypes.DATATYPE_ARECORD_DATAVERSENAME_FIELD_INDEX)).getStringValue();
         String datatypeName = ((AString) datatypeRecord
@@ -114,6 +115,12 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                             .getStringValue());
             boolean isAnonymous = ((ABoolean) derivedTypeRecord
                     .getValueByPos(MetadataRecordTypes.DERIVEDTYPE_ARECORD_ISANONYMOUS_FIELD_INDEX)).getBoolean();
+
+            int isNullablePos = derivedTypeRecord.getType().getFieldIndex(DATATYPE_PAYLOAD_TUPLE_ISNULLABLE_FIELD_NAME);
+            boolean isNullable = false;
+            if (isNullablePos > 0) {
+                isNullable = ((ABoolean) derivedTypeRecord.getValueByPos(isNullablePos)).getBoolean();
+            }
             switch (tag) {
                 case RECORD: {
                     ARecord recordType = (ARecord) derivedTypeRecord
@@ -137,11 +144,11 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                         fieldTypeName = ((AString) field
                                 .getValueByPos(MetadataRecordTypes.FIELD_ARECORD_FIELDTYPE_FIELD_INDEX))
                                         .getStringValue();
-                        boolean isNullable = ((ABoolean) field
+                        boolean fieldIsNullable = ((ABoolean) field
                                 .getValueByPos(MetadataRecordTypes.FIELD_ARECORD_ISNULLABLE_FIELD_INDEX)).getBoolean()
                                         .booleanValue();
                         fieldTypes[fieldId] = AsterixBuiltinTypeMap.getTypeFromTypeName(metadataNode, jobId,
-                                dataverseName, fieldTypeName, isNullable);
+                                dataverseName, fieldTypeName, fieldIsNullable);
                         fieldId++;
                     }
                     return new Datatype(dataverseName, datatypeName,
@@ -151,9 +158,9 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                     String unorderedlistTypeName = ((AString) derivedTypeRecord
                             .getValueByPos(MetadataRecordTypes.DERIVEDTYPE_ARECORD_UNORDEREDLIST_FIELD_INDEX))
                                     .getStringValue();
-                    return new Datatype(dataverseName, datatypeName,
-                            new AUnorderedListType(AsterixBuiltinTypeMap.getTypeFromTypeName(metadataNode, jobId,
-                                    dataverseName, unorderedlistTypeName, false), datatypeName),
+                    return new Datatype(dataverseName,
+                            datatypeName, new AUnorderedListType(AsterixBuiltinTypeMap.getTypeFromTypeName(metadataNode,
+                                    jobId, dataverseName, unorderedlistTypeName, isNullable), datatypeName),
                             isAnonymous);
                 }
                 case ORDEREDLIST: {
@@ -162,7 +169,7 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                                     .getStringValue();
                     return new Datatype(dataverseName, datatypeName,
                             new AOrderedListType(AsterixBuiltinTypeMap.getTypeFromTypeName(metadataNode, jobId,
-                                    dataverseName, orderedlistTypeName, false), datatypeName),
+                                    dataverseName, orderedlistTypeName, isNullable), datatypeName),
                             isAnonymous);
                 }
                 default:
@@ -198,24 +205,19 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
         stringSerde.serialize(aString, fieldValue.getDataOutput());
         recordBuilder.addField(MetadataRecordTypes.DATATYPE_ARECORD_DATATYPENAME_FIELD_INDEX, fieldValue);
 
-        IAType fieldType = dataType.getDatatype();
-        //unwrap nullable type out of the union
-        if (fieldType.getTypeTag() == ATypeTag.UNION) {
-            fieldType = ((AUnionType) dataType.getDatatype()).getNullableType();
-        }
-
-        // write field 3
-        if (fieldType.getTypeTag().isDerivedType()) {
+        // write field 2
+        if (dataType.getDatatype().getTypeTag().isDerivedType()) {
             fieldValue.reset();
             try {
-                writeDerivedTypeRecord(dataType, (AbstractComplexType) fieldType, fieldValue.getDataOutput());
+                writeDerivedTypeRecord(dataType, (AbstractComplexType) dataType.getDatatype(),
+                        fieldValue.getDataOutput());
             } catch (AsterixException e) {
                 throw new MetadataException(e);
             }
             recordBuilder.addField(MetadataRecordTypes.DATATYPE_ARECORD_DERIVED_FIELD_INDEX, fieldValue);
         }
 
-        // write field 4
+        // write field 3
         fieldValue.reset();
         aString.setValue(Calendar.getInstance().getTime().toString());
         stringSerde.serialize(aString, fieldValue.getDataOutput());
@@ -235,10 +237,18 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
 
     private void writeDerivedTypeRecord(Datatype type, AbstractComplexType derivedDatatype, DataOutput out)
             throws IOException, AsterixException {
+        //unwrap nullable type out of the union
+        boolean isNullable = false;
+        IAType nonNullableDatatype = derivedDatatype;
+        if (NonTaggedFormatUtil.isOptional(derivedDatatype)) {
+            nonNullableDatatype = ((AUnionType) derivedDatatype).getNullableType();
+            isNullable = true;
+        }
+
         DerivedTypeTag tag = null;
         IARecordBuilder derivedRecordBuilder = new RecordBuilder();
         ArrayBackedValueStorage fieldValue = new ArrayBackedValueStorage();
-        switch (derivedDatatype.getTypeTag()) {
+        switch (nonNullableDatatype.getTypeTag()) {
             case ORDEREDLIST:
                 tag = DerivedTypeTag.ORDEREDLIST;
                 break;
@@ -250,8 +260,9 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                 break;
             default:
                 throw new UnsupportedOperationException(
-                        "No metadata record Type for " + derivedDatatype.getDisplayName());
+                        "No metadata record Type for " + nonNullableDatatype.getDisplayName());
         }
+        derivedDatatype = (AbstractComplexType) nonNullableDatatype;
 
         derivedRecordBuilder.reset(MetadataRecordTypes.DERIVEDTYPE_RECORDTYPE);
 
@@ -274,29 +285,45 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                 break;
             case UNORDEREDLIST:
                 fieldValue.reset();
-                writeCollectionType(type, derivedDatatype, fieldValue.getDataOutput());
+                isNullable = writeCollectionType(type, derivedDatatype, fieldValue.getDataOutput());
                 derivedRecordBuilder.addField(MetadataRecordTypes.DERIVEDTYPE_ARECORD_UNORDEREDLIST_FIELD_INDEX,
                         fieldValue);
                 break;
             case ORDEREDLIST:
                 fieldValue.reset();
-                writeCollectionType(type, derivedDatatype, fieldValue.getDataOutput());
+                isNullable = writeCollectionType(type, derivedDatatype, fieldValue.getDataOutput());
                 derivedRecordBuilder.addField(MetadataRecordTypes.DERIVEDTYPE_ARECORD_ORDEREDLIST_FIELD_INDEX,
                         fieldValue);
                 break;
         }
+        // write optional field "IsListItemNullable"
+        if (isNullable) {
+            ArrayBackedValueStorage nameValue = new ArrayBackedValueStorage();
+            fieldValue.reset();
+            aString.setValue(DATATYPE_PAYLOAD_TUPLE_ISNULLABLE_FIELD_NAME);
+            stringSerde.serialize(aString, nameValue.getDataOutput());
+            booleanSerde.serialize(ABoolean.TRUE, fieldValue.getDataOutput());
+            derivedRecordBuilder.addField(nameValue, fieldValue);
+        }
         derivedRecordBuilder.write(out, true);
     }
 
-    private void writeCollectionType(Datatype instance, AbstractComplexType type, DataOutput out)
+    private boolean writeCollectionType(Datatype instance, AbstractComplexType type, DataOutput out)
             throws HyracksDataException {
         AbstractCollectionType listType = (AbstractCollectionType) type;
         IAType itemType = listType.getItemType();
-        if (itemType.getTypeTag().isDerivedType())
+        boolean itemIsNullable = false;
+        if (NonTaggedFormatUtil.isOptional(itemType)) {
+            itemType = ((AUnionType) itemType).getNullableType();
+            itemIsNullable = true;
+        }
+        if (itemType.getTypeTag().isDerivedType()) {
             handleNestedDerivedType(itemType.getTypeName(), (AbstractComplexType) itemType, instance,
                     instance.getDataverseName(), instance.getDatatypeName());
-        aString.setValue(listType.getItemType().getTypeName());
+        }
+        aString.setValue(itemType.getTypeName());
         stringSerde.serialize(aString, out);
+        return itemIsNullable;
     }
 
     private void writeRecordType(Datatype instance, AbstractComplexType type, DataOutput out)
@@ -319,9 +346,10 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
                 fieldIsNullable = true;
                 fieldType = ((AUnionType) fieldType).getNullableType();
             }
-            if (fieldType.getTypeTag().isDerivedType())
+            if (fieldType.getTypeTag().isDerivedType()) {
                 handleNestedDerivedType(fieldType.getTypeName(), (AbstractComplexType) fieldType, instance,
                         instance.getDataverseName(), instance.getDatatypeName());
+            }
 
             itemValue.reset();
             fieldRecordBuilder.reset(MetadataRecordTypes.FIELD_RECORDTYPE);
@@ -373,8 +401,9 @@ public class DatatypeTupleTranslator extends AbstractTupleTranslator<Datatype> {
         } catch (MetadataException e) {
             // The nested record type may have been inserted by a previous DDL statement or by
             // a previous nested type.
-            if (!e.getCause().getClass().equals(TreeIndexDuplicateKeyException.class))
+            if (!e.getCause().getClass().equals(TreeIndexDuplicateKeyException.class)) {
                 throw new HyracksDataException(e);
+            }
         } catch (Exception e) {
             // TODO: This should not be a HyracksDataException. Can't
             // fix this currently because of BTree exception model whose

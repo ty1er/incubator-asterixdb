@@ -19,28 +19,29 @@
 package org.apache.asterix.lang.common.expression;
 
 import org.apache.asterix.common.exceptions.AsterixException;
+import org.apache.asterix.lang.common.base.ILangExpression;
 import org.apache.asterix.lang.common.visitor.base.ILangVisitor;
 
-public class UnorderedListTypeDefinition extends TypeExpression {
+public class NullableTypeExpression implements ILangExpression {
 
-    private NullableTypeExpression itemTypeExpression;
+    private final TypeExpression typeExpr;
+    private final Boolean nullable;
 
-    public UnorderedListTypeDefinition(NullableTypeExpression itemTypeExpression) {
-        this.itemTypeExpression = itemTypeExpression;
+    public NullableTypeExpression(TypeExpression typeRef, Boolean nullable) {
+        this.typeExpr = typeRef;
+        this.nullable = nullable;
     }
 
-    @Override
-    public TypeExprKind getTypeKind() {
-        return TypeExprKind.UNORDEREDLIST;
+    public TypeExpression getTypeExpression() {
+        return typeExpr;
+    }
+
+    public Boolean isNullable() {
+        return nullable;
     }
 
     @Override
     public <R, T> R accept(ILangVisitor<R, T> visitor, T arg) throws AsterixException {
         return visitor.visit(this, arg);
     }
-
-    public NullableTypeExpression getItemTypeExpression() {
-        return itemTypeExpression;
-    }
-
 }
