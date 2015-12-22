@@ -22,7 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.formats.nontagged.AqlSerializerDeserializerProvider;
 import org.apache.asterix.om.base.ANull;
 import org.apache.asterix.om.functions.AsterixBuiltinFunctions;
@@ -47,6 +47,7 @@ public class GetItemDescriptor extends AbstractScalarFunctionDynamicDescriptor {
 
     private static final long serialVersionUID = 1L;
     public static final IFunctionDescriptorFactory FACTORY = new IFunctionDescriptorFactory() {
+        @Override
         public IFunctionDescriptor createFunctionDescriptor() {
             return new GetItemDescriptor();
         }
@@ -113,30 +114,30 @@ public class GetItemDescriptor extends AbstractScalarFunctionDynamicDescriptor {
                         if (serOrderedList[0] == SER_ORDEREDLIST_TYPE_TAG) {
                             itemIndex = ATypeHierarchy.getIntegerValue(outInputIdx.getByteArray(), 0);
                         } else {
-                            throw new AlgebricksException(
-                                    AsterixBuiltinFunctions.GET_ITEM.getName()
-                                            + ": expects input type (NULL/ORDEREDLIST, [INT8/16/32/64/FLOAT/DOUBLE]), but got ("
-                                            + EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serOrderedList[0])
-                                            + ", "
-                                            + EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(outInputIdx
-                                                    .getByteArray()[0]) + ").");
+                            throw new AlgebricksException(AsterixBuiltinFunctions.GET_ITEM.getName()
+                                    + ": expects input type (NULL/ORDEREDLIST, [INT8/16/32/64/FLOAT/DOUBLE]), but got ("
+                                    + EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serOrderedList[0]) + ", "
+                                    + EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(outInputIdx.getByteArray()[0])
+                                    + ").");
                         }
 
-                        if (itemIndex >= AOrderedListSerializerDeserializer.getNumberOfItems(serOrderedList)) {
+                        if (itemIndex >= AbstractListSerializerDeserializer.getNumberOfItems(serOrderedList)) {
                             out.writeByte(SER_NULL_TYPE_TAG);
                             return;
                         }
-                        if (itemIndex < 0)
-                            throw new AlgebricksException(AsterixBuiltinFunctions.GET_ITEM.getName()
-                                    + ": item index cannot be negative!");
+                        if (itemIndex < 0) {
+                            throw new AlgebricksException(
+                                    AsterixBuiltinFunctions.GET_ITEM.getName() + ": item index cannot be negative!");
+                        }
 
                         itemTag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serOrderedList[1]);
-                        if (itemTag == ATypeTag.ANY)
+                        if (itemTag == ATypeTag.ANY) {
                             selfDescList = true;
-                        else
+                        } else {
                             serItemTypeTag = serOrderedList[1];
+                        }
 
-                        itemOffset = AOrderedListSerializerDeserializer.getItemOffset(serOrderedList, itemIndex);
+                        itemOffset = AbstractListSerializerDeserializer.getItemOffset(serOrderedList, itemIndex);
 
                         if (selfDescList) {
                             itemTag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serOrderedList[itemOffset]);

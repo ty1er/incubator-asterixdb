@@ -22,8 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
-import org.apache.asterix.dataflow.data.nontagged.serde.AUnorderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.formats.nontagged.AqlSerializerDeserializerProvider;
 import org.apache.asterix.om.base.ANull;
 import org.apache.asterix.om.functions.AsterixBuiltinFunctions;
@@ -47,6 +46,7 @@ public class AnyCollectionMemberDescriptor extends AbstractScalarFunctionDynamic
 
     private static final long serialVersionUID = 1L;
     public static final IFunctionDescriptorFactory FACTORY = new IFunctionDescriptorFactory() {
+        @Override
         public IFunctionDescriptor createFunctionDescriptor() {
             return new AnyCollectionMemberDescriptor();
         }
@@ -110,29 +110,23 @@ public class AnyCollectionMemberDescriptor extends AbstractScalarFunctionDynamic
                                     + EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serList[0]));
                         }
 
-                        if (serList[0] == SER_ORDEREDLIST_TYPE_TAG) {
-                            if (AOrderedListSerializerDeserializer.getNumberOfItems(serList) == 0) {
-                                out.writeByte(SER_NULL_TYPE_TAG);
-                                return;
-                            }
-                            itemOffset = AOrderedListSerializerDeserializer.getItemOffset(serList, 0);
-                        } else {
-                            if (AUnorderedListSerializerDeserializer.getNumberOfItems(serList) == 0) {
-                                out.writeByte(SER_NULL_TYPE_TAG);
-                                return;
-                            }
-                            itemOffset = AUnorderedListSerializerDeserializer.getItemOffset(serList, 0);
+                        if (AbstractListSerializerDeserializer.getNumberOfItems(serList) == 0) {
+                            out.writeByte(SER_NULL_TYPE_TAG);
+                            return;
                         }
+                        itemOffset = AbstractListSerializerDeserializer.getItemOffset(serList, 0);
 
                         itemTag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serList[1]);
-                        if (itemTag == ATypeTag.ANY)
+                        if (itemTag == ATypeTag.ANY) {
                             selfDescList = true;
-                        else
+                        } else {
                             serItemTypeTag = serList[1];
+                        }
 
                         if (selfDescList) {
                             itemTag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serList[itemOffset]);
-                            itemLength = NonTaggedFormatUtil.getFieldValueLength(serList, itemOffset, itemTag, true) + 1;
+                            itemLength = NonTaggedFormatUtil.getFieldValueLength(serList, itemOffset, itemTag, true)
+                                    + 1;
                             out.write(serList, itemOffset, itemLength);
                         } else {
                             itemLength = NonTaggedFormatUtil.getFieldValueLength(serList, itemOffset, itemTag, false);

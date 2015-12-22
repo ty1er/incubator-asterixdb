@@ -25,6 +25,8 @@ import org.apache.hyracks.storage.am.lsm.invertedindex.tokenizers.IToken;
 
 public class OrderedListBuilder extends AbstractListBuilder {
 
+    private static final long serialVersionUID = 1L;
+
     public OrderedListBuilder() {
         super(ATypeTag.ORDEREDLIST);
     }

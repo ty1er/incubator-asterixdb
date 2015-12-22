@@ -22,7 +22,10 @@ import org.apache.asterix.om.types.ATypeTag;
 
 public class UnorderedListBuilder extends AbstractListBuilder {
 
+    private static final long serialVersionUID = 1L;
+
     public UnorderedListBuilder() {
         super(ATypeTag.UNORDEREDLIST);
     }
+
 }

@@ -334,7 +334,7 @@ public class IntroduceSecondaryIndexInsertDeleteRule implements IAlgebraicRewrit
                     secondaryKeyType = keyPairType.first;
 
                     List<Object> varTypes = new ArrayList<Object>();
-                    varTypes.add(NonTaggedFormatUtil.getTokenType(secondaryKeyType));
+                    varTypes.add(NonTaggedFormatUtil.getListType(secondaryKeyType));
 
                     // If the index is a length-partitioned, then create
                     // additional variable - number of token.

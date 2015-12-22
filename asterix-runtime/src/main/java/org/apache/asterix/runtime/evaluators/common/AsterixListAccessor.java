@@ -23,8 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
-import org.apache.asterix.dataflow.data.nontagged.serde.AUnorderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.EnumDeserializer;
 import org.apache.asterix.om.util.NonTaggedFormatUtil;
@@ -49,7 +48,7 @@ public class AsterixListAccessor {
     }
 
     public boolean itemsAreSelfDescribing() {
-        return itemType == ATypeTag.ANY;
+        return itemType == ATypeTag.ANY || itemType == ATypeTag.UNION;
     }
 
     public void reset(byte[] listBytes, int start) throws AsterixException {
@@ -60,11 +59,7 @@ public class AsterixListAccessor {
             throw new AsterixException("Unsupported type: " + listType);
         }
         itemType = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(listBytes[start + 1]);
-        if (listType == ATypeTag.UNORDEREDLIST) {
-            size = AUnorderedListSerializerDeserializer.getNumberOfItems(listBytes, start);
-        } else {
-            size = AOrderedListSerializerDeserializer.getNumberOfItems(listBytes, start);
-        }
+        size = AbstractListSerializerDeserializer.getNumberOfItems(listBytes, start);
     }
 
     public int size() {
@@ -72,11 +67,7 @@ public class AsterixListAccessor {
     }
 
     public int getItemOffset(int itemIndex) throws AsterixException {
-        if (listType == ATypeTag.UNORDEREDLIST) {
-            return AUnorderedListSerializerDeserializer.getItemOffset(listBytes, start, itemIndex);
-        } else {
-            return AOrderedListSerializerDeserializer.getItemOffset(listBytes, start, itemIndex);
-        }
+        return AbstractListSerializerDeserializer.getItemOffset(listBytes, start, itemIndex);
     }
 
     public int getItemLength(int itemOffset) throws AsterixException {
@@ -85,7 +76,7 @@ public class AsterixListAccessor {
     }
 
     public ATypeTag getItemType(int itemOffset) throws AsterixException {
-        if (itemType == ATypeTag.ANY) {
+        if (itemsAreSelfDescribing()) {
             return EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(listBytes[itemOffset]);
         } else {
             return itemType;

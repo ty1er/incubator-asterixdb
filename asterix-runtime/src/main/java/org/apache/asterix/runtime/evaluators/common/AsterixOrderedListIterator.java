@@ -19,22 +19,22 @@
 package org.apache.asterix.runtime.evaluators.common;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 
 public final class AsterixOrderedListIterator extends AbstractAsterixListIterator {
 
     @Override
     protected int getItemOffset(byte[] serOrderedList, int offset, int itemIndex) throws AsterixException {
-        return AOrderedListSerializerDeserializer.getItemOffset(serOrderedList, offset, itemIndex);
+        return AbstractListSerializerDeserializer.getItemOffset(serOrderedList, offset, itemIndex);
     }
 
     @Override
     protected int getNumberOfItems(byte[] serOrderedList, int offset) {
-        return AOrderedListSerializerDeserializer.getNumberOfItems(serOrderedList, offset);
+        return AbstractListSerializerDeserializer.getNumberOfItems(serOrderedList, offset);
     }
 
     @Override
     protected int getListLength(byte[] serOrderedList, int offset) {
-        return AOrderedListSerializerDeserializer.getOrderedListLength(serOrderedList, offset + 1);
+        return AbstractListSerializerDeserializer.getListLength(serOrderedList, offset + 1);
     }
 }

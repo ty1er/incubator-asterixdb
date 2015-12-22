@@ -23,9 +23,8 @@ import java.util.List;
 import org.apache.asterix.common.config.DatasetConfig.IndexType;
 import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.dataflow.data.nontagged.serde.AInt16SerializerDeserializer;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
 import org.apache.asterix.dataflow.data.nontagged.serde.ARecordSerializerDeserializer;
-import org.apache.asterix.dataflow.data.nontagged.serde.AUnorderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.formats.nontagged.AqlBinaryComparatorFactoryProvider;
 import org.apache.asterix.formats.nontagged.AqlBinaryTokenizerFactoryProvider;
 import org.apache.asterix.formats.nontagged.AqlTypeTraitProvider;
@@ -54,13 +53,9 @@ public final class NonTaggedFormatUtil {
             case ORDEREDLIST:
             case UNORDEREDLIST:
             case POLYGON:
+            case UNION:
             case ANY:
                 return false;
-            case UNION:
-                if (!((AUnionType) type).isNullableType())
-                    return false;
-                else
-                    return isFixedSizedCollection(((AUnionType) type).getNullableType());
             default:
                 return true;
         }
@@ -72,13 +67,16 @@ public final class NonTaggedFormatUtil {
         for (int i = 0; i < recType.getFieldTypes().length; i++) {
             type = recType.getFieldTypes()[i];
             if (type != null) {
-                if (type.getTypeTag() == ATypeTag.NULL)
+                if (type.getTypeTag() == ATypeTag.NULL) {
                     return true;
+                }
                 if (type.getTypeTag() == ATypeTag.UNION) { // union
                     unionList = ((AUnionType) type).getUnionList();
-                    for (int j = 0; j < unionList.size(); j++)
-                        if (unionList.get(j).getTypeTag() == ATypeTag.NULL)
+                    for (int j = 0; j < unionList.size(); j++) {
+                        if (unionList.get(j).getTypeTag() == ATypeTag.NULL) {
                             return true;
+                        }
+                    }
 
                 }
             }
@@ -100,6 +98,7 @@ public final class NonTaggedFormatUtil {
             throws AsterixException {
         switch (typeTag) {
             case ANY:
+            case UNION:
                 ATypeTag tag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(serNonTaggedAObject[offset]);
                 if (tag == ATypeTag.ANY) {
                     throw new AsterixException("Field value has type tag ANY, but it should have a concrete type.");
@@ -138,10 +137,11 @@ public final class NonTaggedFormatUtil {
             case RECTANGLE:
                 return 32;
             case POLYGON:
-                if (tagged)
+                if (tagged) {
                     return AInt16SerializerDeserializer.getShort(serNonTaggedAObject, offset + 1) * 16 + 2;
-                else
+                } else {
                     return AInt16SerializerDeserializer.getShort(serNonTaggedAObject, offset) * 16 + 2;
+                }
             case STRING:
                 if (tagged) {
                     int len = UTF8StringUtil.getUTFLength(serNonTaggedAObject, offset + 1);
@@ -159,21 +159,18 @@ public final class NonTaggedFormatUtil {
                     return len + ByteArrayPointable.getNumberBytesToStoreMeta(len);
                 }
             case RECORD:
-                if (tagged)
+                if (tagged) {
                     return ARecordSerializerDeserializer.getRecordLength(serNonTaggedAObject, offset + 1) - 1;
-                else
+                } else {
                     return ARecordSerializerDeserializer.getRecordLength(serNonTaggedAObject, offset) - 1;
+                }
             case ORDEREDLIST:
-                if (tagged)
-                    return AOrderedListSerializerDeserializer.getOrderedListLength(serNonTaggedAObject, offset + 1) - 1;
-                else
-                    return AOrderedListSerializerDeserializer.getOrderedListLength(serNonTaggedAObject, offset) - 1;
             case UNORDEREDLIST:
-                if (tagged)
-                    return AUnorderedListSerializerDeserializer.getUnorderedListLength(serNonTaggedAObject, offset + 1)
-                            - 1;
-                else
-                    return AUnorderedListSerializerDeserializer.getUnorderedListLength(serNonTaggedAObject, offset) - 1;
+                if (tagged) {
+                    return AbstractListSerializerDeserializer.getListLength(serNonTaggedAObject, offset + 1) - 1;
+                } else {
+                    return AbstractListSerializerDeserializer.getListLength(serNonTaggedAObject, offset) - 1;
+                }
             default:
                 throw new NotImplementedException(
                         "No getLength implemented for a value of this type " + typeTag + " .");
@@ -227,7 +224,7 @@ public final class NonTaggedFormatUtil {
         }
     }
 
-    public static IAType getTokenType(IAType keyType) throws AlgebricksException {
+    public static IAType getListType(IAType keyType) throws AlgebricksException {
         IAType type = keyType;
         ATypeTag typeTag = keyType.getTypeTag();
         // Extract item type from list.
@@ -242,13 +239,13 @@ public final class NonTaggedFormatUtil {
     }
 
     public static IBinaryComparatorFactory getTokenBinaryComparatorFactory(IAType keyType) throws AlgebricksException {
-        IAType type = getTokenType(keyType);
+        IAType type = getListType(keyType);
         // Ignore case for string types.
         return AqlBinaryComparatorFactoryProvider.INSTANCE.getBinaryComparatorFactory(type, true, true);
     }
 
     public static ITypeTraits getTokenTypeTrait(IAType keyType) throws AlgebricksException {
-        IAType type = getTokenType(keyType);
+        IAType type = getListType(keyType);
         return AqlTypeTraitProvider.INSTANCE.getTypeTrait(type);
     }
 }

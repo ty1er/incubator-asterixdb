@@ -22,7 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.om.functions.AsterixBuiltinFunctions;
 import org.apache.asterix.om.functions.IFunctionDescriptor;
 import org.apache.asterix.om.functions.IFunctionDescriptorFactory;
@@ -43,6 +43,7 @@ public class CodePointToStringDescriptor extends AbstractScalarFunctionDynamicDe
 
     private static final long serialVersionUID = 1L;
     public static final IFunctionDescriptorFactory FACTORY = new IFunctionDescriptorFactory() {
+        @Override
         public IFunctionDescriptor createFunctionDescriptor() {
             return new CodePointToStringDescriptor();
         }
@@ -86,7 +87,7 @@ public class CodePointToStringDescriptor extends AbstractScalarFunctionDynamicDe
                                     case FLOAT:
                                     case DOUBLE:
                                     case ANY:
-                                        size = AOrderedListSerializerDeserializer.getNumberOfItems(serOrderedList);
+                                        size = AbstractListSerializerDeserializer.getNumberOfItems(serOrderedList);
                                         break;
                                     default:
                                         cannotProcessException(serOrderedList[0], serOrderedList[1]);
@@ -97,21 +98,21 @@ public class CodePointToStringDescriptor extends AbstractScalarFunctionDynamicDe
                                 // calculate length first
                                 int utf_8_len = 0;
                                 for (int i = 0; i < size; i++) {
-                                    int itemOffset = AOrderedListSerializerDeserializer
-                                            .getItemOffset(serOrderedList, i);
+                                    int itemOffset = AbstractListSerializerDeserializer.getItemOffset(serOrderedList,
+                                            i);
                                     int codePoint = 0;
-                                    codePoint = ATypeHierarchy.getIntegerValueWithDifferentTypeTagPosition(
-                                            serOrderedList, itemOffset, 1);
+                                    codePoint = ATypeHierarchy
+                                            .getIntegerValueWithDifferentTypeTagPosition(serOrderedList, itemOffset, 1);
                                     utf_8_len += UTF8StringUtil.codePointToUTF8(codePoint, currentUTF8);
                                 }
                                 out.writeByte(stringTypeTag);
                                 UTF8StringUtil.writeUTF8Length(utf_8_len, tempStoreForLength, out);
                                 for (int i = 0; i < size; i++) {
-                                    int itemOffset = AOrderedListSerializerDeserializer
-                                            .getItemOffset(serOrderedList, i);
+                                    int itemOffset = AbstractListSerializerDeserializer.getItemOffset(serOrderedList,
+                                            i);
                                     int codePoint = 0;
-                                    codePoint = ATypeHierarchy.getIntegerValueWithDifferentTypeTagPosition(
-                                            serOrderedList, itemOffset, 1);
+                                    codePoint = ATypeHierarchy
+                                            .getIntegerValueWithDifferentTypeTagPosition(serOrderedList, itemOffset, 1);
                                     utf_8_len = UTF8StringUtil.codePointToUTF8(codePoint, currentUTF8);
                                     for (int j = 0; j < utf_8_len; j++) {
                                         out.writeByte(currentUTF8[j]);

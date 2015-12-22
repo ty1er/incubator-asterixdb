@@ -118,6 +118,8 @@ public class AObjectSerializerDeserializer implements ISerializerDeserializer<IA
                 return AOrderedListSerializerDeserializer.SCHEMALESS_INSTANCE.deserialize(in);
             case UNORDEREDLIST:
                 return AUnorderedListSerializerDeserializer.SCHEMALESS_INSTANCE.deserialize(in);
+            case UNION:
+                return AObjectSerializerDeserializer.INSTANCE.deserialize(in);
             default:
                 throw new NotImplementedException("No serializer/deserializer implemented for type " + typeTag + " .");
         }

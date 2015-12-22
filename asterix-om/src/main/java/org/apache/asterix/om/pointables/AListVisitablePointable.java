@@ -48,6 +48,7 @@ public class AListVisitablePointable extends AbstractVisitablePointable {
      * object pool based allocator, in order to have object reuse.
      */
     static IObjectFactory<IVisitablePointable, IAType> FACTORY = new IObjectFactory<IVisitablePointable, IAType>() {
+        @Override
         public IVisitablePointable create(IAType type) {
             return new AListVisitablePointable((AbstractCollectionType) type);
         }
@@ -67,7 +68,7 @@ public class AListVisitablePointable extends AbstractVisitablePointable {
 
     /**
      * private constructor, to prevent constructing it arbitrarily
-     * 
+     *
      * @param inputType
      */
     public AListVisitablePointable(AbstractCollectionType inputType) {
@@ -76,7 +77,7 @@ public class AListVisitablePointable extends AbstractVisitablePointable {
         }
         if (inputType != null && inputType.getItemType() != null) {
             itemType = inputType.getItemType();
-            if (itemType.getTypeTag() == ATypeTag.ANY) {
+            if (itemType.getTypeTag() == ATypeTag.ANY || itemType.getTypeTag() == ATypeTag.UNION) {
                 typedItemList = false;
             } else {
                 typedItemList = true;
@@ -109,6 +110,7 @@ public class AListVisitablePointable extends AbstractVisitablePointable {
                 case ORDEREDLIST:
                 case UNORDEREDLIST:
                 case ANY:
+                case UNION:
                     itemOffset = s + 10 + (numberOfitems * 4);
                     break;
                 default:

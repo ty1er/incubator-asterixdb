@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 
+import org.apache.asterix.common.exceptions.AsterixRuntimeException;
 import org.apache.asterix.dataflow.data.nontagged.serde.ABinarySerializerDeserializer;
 import org.apache.asterix.dataflow.data.nontagged.serde.ABooleanSerializerDeserializer;
 import org.apache.asterix.dataflow.data.nontagged.serde.ACircleSerializerDeserializer;
@@ -58,8 +59,10 @@ import org.apache.asterix.om.base.IAObject;
 import org.apache.asterix.om.types.AOrderedListType;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.ATypeTag;
+import org.apache.asterix.om.types.AUnionType;
 import org.apache.asterix.om.types.AUnorderedListType;
 import org.apache.asterix.om.types.IAType;
+import org.apache.asterix.om.util.NonTaggedFormatUtil;
 import org.apache.hyracks.algebricks.common.exceptions.NotImplementedException;
 import org.apache.hyracks.algebricks.data.ISerializerDeserializerProvider;
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
@@ -181,6 +184,12 @@ public class AqlSerializerDeserializerProvider implements ISerializerDeserialize
             }
             case SHORTWITHOUTTYPEINFO: {
                 return ShortSerializerDeserializer.INSTANCE;
+            }
+            case UNION: {
+                if (!NonTaggedFormatUtil.isOptional(aqlType)) {
+                    throw new AsterixRuntimeException("Cannot serialize non-nullable union types");
+                }
+                return getSerializerDeserializer(((AUnionType) aqlType).getNullableType());
             }
             default: {
                 throw new NotImplementedException(

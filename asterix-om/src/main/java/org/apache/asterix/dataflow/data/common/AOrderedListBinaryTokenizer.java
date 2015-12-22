@@ -19,7 +19,7 @@
 package org.apache.asterix.dataflow.data.common;
 
 import org.apache.asterix.common.exceptions.AsterixException;
-import org.apache.asterix.dataflow.data.nontagged.serde.AOrderedListSerializerDeserializer;
+import org.apache.asterix.dataflow.data.nontagged.serde.AbstractListSerializerDeserializer;
 import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.EnumDeserializer;
 import org.apache.asterix.om.util.NonTaggedFormatUtil;
@@ -79,11 +79,11 @@ public class AOrderedListBinaryTokenizer implements IBinaryTokenizer {
     }
 
     protected int getItemOffset(byte[] data, int start, int itemIndex) throws AsterixException {
-        return AOrderedListSerializerDeserializer.getItemOffset(data, start, itemIndex);
+        return AbstractListSerializerDeserializer.getItemOffset(data, start, itemIndex);
     }
 
     protected int getNumberOfItems(byte[] data, int start) {
-        return AOrderedListSerializerDeserializer.getNumberOfItems(data, start);
+        return AbstractListSerializerDeserializer.getNumberOfItems(data, start);
     }
 
     @Override

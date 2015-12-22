@@ -24,8 +24,10 @@ import org.apache.asterix.om.constants.AsterixConstantValue;
 import org.apache.asterix.om.typecomputer.base.IResultTypeComputer;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.ATypeTag;
+import org.apache.asterix.om.types.AUnionType;
 import org.apache.asterix.om.types.BuiltinType;
 import org.apache.asterix.om.types.IAType;
+import org.apache.asterix.om.util.NonTaggedFormatUtil;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.LogicalExpressionTag;
@@ -72,7 +74,12 @@ public class FieldAccessByIndexResultType implements IResultTypeComputer {
             throw new AlgebricksException("Typing error: expecting an INT32, found " + ce + " instead.");
         }
         int pos = ((AInt32) v).getIntegerValue();
-        return t0.getFieldTypes()[pos];
+        IAType fieldType = t0.getFieldTypes()[pos];
+        if (NonTaggedFormatUtil.isOptional(fieldType)) {
+            return fieldType;
+        } else {
+            return AUnionType.createNullableType(fieldType);
+        }
     }
 
 }
