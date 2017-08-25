@@ -21,29 +21,42 @@ create dataverse experiments;
 use dataverse experiments;
 
 create type TwitterUserType as closed {
-    screen-name: string,
-    lang: string,
+    screen_name: string,
+    language: string,
     friends_count: int32,
-    statuses_count: int32,
+    status_count: int32,
     name: string,
     followers_count: int32
+}
+
+create type MetaType as {
+    id:int32
 }
 
 create type TweetMessageType as closed {
     tweetid: int64,
     user: TwitterUserType,
     sender-location: point,
-    send-time: datetime,
+    send-time: string,
     referred-topics: {{ string }},
     message-text: string,
-
-    btree-extra-field1: int32,
-    btree-extra-field2: int32,
-    btree-extra-field3: int32,
-    btree-extra-field4: int32,
-    btree-extra-field5: int32,
-    btree-extra-field6: int32,
-    btree-extra-field7: int32,
-    btree-extra-field8: int32,
+    btree-extra-field1: int16,
+    btree-extra-field2: int16,
+    btree-extra-field3: int16,
+    btree-extra-field4: int16,
+    btree-extra-field5: int16,
+    btree-extra-field6: int16,
+    btree-extra-field7: int16,
+    btree-extra-field8: int16,
+    btree-extra-field9: int16,
+    btree-extra-field10: int16,
+    btree-extra-field11: int16,
+    btree-extra-field12: int16,
+    btree-extra-field13: int16,
+    btree-extra-field14: int16,
+    btree-extra-field15: int16,
+    btree-extra-field16: int16,
+    btree-extra-field17: int16,
+    btree-extra-field18: int16,
     dummy-size-adjuster: string // 357
 }

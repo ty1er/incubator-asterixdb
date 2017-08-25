@@ -44,6 +44,7 @@ import org.apache.asterix.api.http.server.FullApiServlet;
 import org.apache.asterix.api.http.server.NodeControllerDetailsApiServlet;
 import org.apache.asterix.api.http.server.QueryApiServlet;
 import org.apache.asterix.api.http.server.QueryCancellationServlet;
+import org.apache.asterix.api.http.server.QueryPlanServlet;
 import org.apache.asterix.api.http.server.QueryResultApiServlet;
 import org.apache.asterix.api.http.server.QueryServiceServlet;
 import org.apache.asterix.api.http.server.QueryStatusApiServlet;
@@ -256,6 +257,7 @@ public class CCApplication extends BaseCCApplication {
         addServlet(jsonAPIServer, Servlets.SQLPP);
 
         // Other APIs.
+        addServlet(jsonAPIServer, Servlets.QUERY_PLAN);
         addServlet(jsonAPIServer, Servlets.QUERY_STATUS);
         addServlet(jsonAPIServer, Servlets.QUERY_RESULT);
         addServlet(jsonAPIServer, Servlets.QUERY_SERVICE);
@@ -310,6 +312,9 @@ public class CCApplication extends BaseCCApplication {
                         getStatementExecutorFactory(), componentProvider);
             case Servlets.SQLPP_DDL:
                 return new DdlApiServlet(ctx, paths, appCtx, ccExtensionManager.getCompilationProvider(SQLPP),
+                        getStatementExecutorFactory(), componentProvider);
+            case Servlets.QUERY_PLAN:
+                return new QueryPlanServlet(ctx, paths, appCtx, ccExtensionManager.getCompilationProvider(AQL),
                         getStatementExecutorFactory(), componentProvider);
             case Servlets.RUNNING_REQUESTS:
                 return new QueryCancellationServlet(ctx, paths);

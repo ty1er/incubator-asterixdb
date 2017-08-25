@@ -41,7 +41,8 @@ public class PlanPrettyPrinter {
         }
     }
 
-    public static void printOperator(AbstractLogicalOperator op, LogicalOperatorPrettyPrintVisitor pvisitor, int indent)
+    public static void printOperator(AbstractLogicalOperator op, LogicalOperatorPrettyPrintVisitor pvisitor,
+            Integer indent)
             throws AlgebricksException {
         final AlgebricksAppendable out = pvisitor.get();
         op.accept(pvisitor, indent);
@@ -60,7 +61,7 @@ public class PlanPrettyPrinter {
         }
     }
 
-    private static void printPhysicalOperator(AbstractLogicalOperator op, int indent, AlgebricksAppendable out)
+    public static void printPhysicalOperator(AbstractLogicalOperator op, int indent, AlgebricksAppendable out)
             throws AlgebricksException {
         IPhysicalOperator pOp = op.getPhysicalOperator();
         pad(out, indent);

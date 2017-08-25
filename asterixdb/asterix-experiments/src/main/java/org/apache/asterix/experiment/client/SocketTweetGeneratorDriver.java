@@ -19,29 +19,27 @@
 
 package org.apache.asterix.experiment.client;
 
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
+import static org.apache.asterix.experiment.client.GeneratorFactory.KEY_MIN_SPREAD;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SocketTweetGeneratorDriver {
     public static void main(String[] args) throws Exception {
-        SocketTweetGeneratorConfig clientConfig = new SocketTweetGeneratorConfig();
-        CmdLineParser clp = new CmdLineParser(clientConfig);
-        try {
-            clp.parseArgument(args);
-        } catch (CmdLineException e) {
-            System.err.println(e.getMessage());
-            clp.printUsage(System.err);
+        SocketTweetGeneratorStatisticsConfig config = new SocketTweetGeneratorStatisticsConfig();
+        config = DriverUtils.getCmdParams(args, config);
+
+        if ((config.getDatagenCount() == -1 && config.getDatagenDuration() == -1) || (config.getDatagenCount() > 0
+                && config.getDatagenDuration() > 0)) {
+            System.err.println("Must use exactly one of -d(--datagen-duration) or -dc(--datagen-count)");
             System.exit(1);
         }
 
-        if ((clientConfig.getDataInterval() == -1 && clientConfig.getDataGenDuration() == -1)
-                || (clientConfig.getDataInterval() > 0 && clientConfig.getDataGenDuration() > 0)) {
-            System.err.println("Must use exactly one of -d or -di");
-            clp.printUsage(System.err);
-            System.exit(1);
-        }
+        Map<String, String> properties = new HashMap<>();
+        properties.put(GeneratorFactory.KEY_ZIPF_SKEW, config.getSkew().toString());
+        properties.put(KEY_MIN_SPREAD, Integer.toString(config.getSpreadMin()));
 
-        SocketTweetGenerator client = new SocketTweetGenerator(clientConfig);
+        SocketTweetGenerator client = new SocketTweetGenerator(config, properties);
         client.start();
     }
 }

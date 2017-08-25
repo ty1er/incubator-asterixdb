@@ -26,10 +26,9 @@ import java.util.Map.Entry;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 
 public abstract class AbstractRemoteExecutableAction extends AbstractExecutableAction {
-
-    private final SSHClient client;
 
     private final String hostname;
 
@@ -50,13 +49,14 @@ public abstract class AbstractRemoteExecutableAction extends AbstractExecutableA
         this.port = port;
         this.username = username;
         this.keyLocation = keyLocation;
-        client = new SSHClient();
     }
 
+    @Override
     protected InputStream getErrorStream() {
         return cmd == null ? null : cmd.getErrorStream();
     }
 
+    @Override
     protected InputStream getInputStream() {
         return cmd == null ? null : cmd.getInputStream();
     }
@@ -64,7 +64,9 @@ public abstract class AbstractRemoteExecutableAction extends AbstractExecutableA
     @Override
     protected boolean doExecute(String command, Map<String, String> env) throws Exception {
         int exitVal = 0;
+        SSHClient client = new SSHClient();
         client.loadKnownHosts();
+        client.addHostKeyVerifier(new PromiscuousVerifier());
         try {
             client.connect(hostname, port);
             client.authPublickey(username, keyLocation);

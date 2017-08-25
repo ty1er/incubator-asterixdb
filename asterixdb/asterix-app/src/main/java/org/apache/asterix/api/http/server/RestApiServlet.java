@@ -174,7 +174,7 @@ public abstract class RestApiServlet extends AbstractServlet {
             response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
             SessionOutput sessionOutput = initResponse(request, response);
             QueryTranslator.ResultDelivery resultDelivery = whichResultDelivery(request);
-            doHandle(response, query, sessionOutput, resultDelivery);
+            doHandle(response, query, sessionOutput, resultDelivery, new IStatementExecutor.Stats());
         } catch (Exception e) {
             response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
             LOGGER.log(Level.WARNING, "Failure handling request", e);
@@ -182,8 +182,8 @@ public abstract class RestApiServlet extends AbstractServlet {
         }
     }
 
-    private void doHandle(IServletResponse response, String query, SessionOutput sessionOutput,
-            ResultDelivery resultDelivery) throws JsonProcessingException {
+    protected void doHandle(IServletResponse response, String query, SessionOutput sessionOutput,
+            ResultDelivery resultDelivery, IStatementExecutor.Stats stats) throws JsonProcessingException {
         try {
             response.setStatus(HttpResponseStatus.OK);
             IHyracksClientConnection hcc = (IHyracksClientConnection) ctx.get(HYRACKS_CONNECTION_ATTR);
@@ -205,7 +205,7 @@ public abstract class RestApiServlet extends AbstractServlet {
             IStatementExecutor translator = statementExecutorFactory.create(appCtx, aqlStatements, sessionOutput,
                     compilationProvider, componentProvider);
             final IRequestParameters requestParameters =
-                    new RequestParameters(hds, resultDelivery, new IStatementExecutor.Stats(), null, null, null);
+                    new RequestParameters(hds, resultDelivery, stats, null, null, null);
             translator.compileAndExecute(hcc, null, requestParameters);
         } catch (AsterixException | TokenMgrError | org.apache.asterix.aqlplus.parser.TokenMgrError pe) {
             response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);

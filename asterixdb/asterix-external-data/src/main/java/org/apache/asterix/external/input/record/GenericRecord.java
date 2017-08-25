@@ -18,6 +18,8 @@
  */
 package org.apache.asterix.external.input.record;
 
+import java.io.IOException;
+
 import org.apache.asterix.external.api.IRawRecord;
 
 public class GenericRecord<T> implements IRawRecord<T> {
@@ -49,6 +51,14 @@ public class GenericRecord<T> implements IRawRecord<T> {
     @Override
     public void set(T record) {
         this.record = record;
+    }
+
+    @Override
+    public void append(T recordBuffer, int offset, int length) throws IOException {
+    }
+
+    @Override
+    public void endRecord() throws IOException {
     }
 
     @Override

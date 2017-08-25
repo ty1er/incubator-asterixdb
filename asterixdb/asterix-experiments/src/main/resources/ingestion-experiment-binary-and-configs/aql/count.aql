@@ -18,5 +18,5 @@
  */
 use dataverse experiments;
 
-let $count := count(for $t in dataset Tweets return $t.tweetid)
+let $count := count(for $t in dataset Tweets return $t)
 return $count;

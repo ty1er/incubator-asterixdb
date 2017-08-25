@@ -20,6 +20,7 @@
 package org.apache.asterix.experiment.client;
 
 public enum OrchestratorDGProtocol {
+    START,
     STOPPED,
     RESUME,
     REACHED

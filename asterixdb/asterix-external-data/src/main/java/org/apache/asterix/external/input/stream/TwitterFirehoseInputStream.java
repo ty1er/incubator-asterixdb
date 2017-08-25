@@ -23,14 +23,17 @@ import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.asterix.external.api.AsterixInputStream;
+import org.apache.asterix.external.generator.DataGenerator;
+import org.apache.asterix.external.generator.DataGenerator.TweetMessage;
+import org.apache.asterix.external.generator.DataGenerator.TwitterUser;
 import org.apache.asterix.external.generator.TweetGenerator;
-import org.apache.hyracks.api.context.IHyracksTaskContext;
+import org.apache.asterix.external.util.SimpleIDGenerator;
 
 public class TwitterFirehoseInputStream extends AsterixInputStream {
 
@@ -100,7 +103,9 @@ public class TwitterFirehoseInputStream extends AsterixInputStream {
         }
 
         public DataProvider(Map<String, String> configuration, int partition, OutputStream os) {
-            this.tweetGenerator = new TweetGenerator(configuration, partition);
+            this.tweetGenerator = new TweetGenerator(configuration, partition, new DataGenerator<>(
+                    new DataGenerator.InitializationInfo<>(new TweetMessage(), new TwitterUser(), new Random())),
+                    new SimpleIDGenerator());
             this.tweetGenerator.registerSubscriber(os);
             this.os = os;
             mode = configuration.get(KEY_MODE) != null ? Mode.valueOf(configuration.get(KEY_MODE).toUpperCase())

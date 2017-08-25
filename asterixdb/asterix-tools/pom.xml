@@ -148,11 +148,5 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.asterix</groupId>
-      <artifactId>asterix-external-data</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 </project>

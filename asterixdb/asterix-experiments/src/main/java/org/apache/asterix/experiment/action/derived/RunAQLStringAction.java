@@ -19,68 +19,25 @@
 
 package org.apache.asterix.experiment.action.derived;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 
-import org.apache.asterix.experiment.action.base.AbstractAction;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 
-public class RunAQLStringAction extends AbstractAction {
-    private static final String REST_URI_TEMPLATE = "http://{0}:{1}/aql";
-
-    private final HttpClient httpClient;
+public class RunAQLStringAction extends RunAQLAction {
 
     private final String aql;
 
-    private final String restHost;
-
-    private final int restPort;
-
-    private final OutputStream os;
-
-    public RunAQLStringAction(HttpClient httpClient, String restHost, int restPort, String aql) {
-        this.httpClient = httpClient;
-        this.aql = aql;
-        this.restHost = restHost;
-        this.restPort = restPort;
-        os = null;
+    public RunAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql) {
+        this(httpClient, restHost, restPort, aql, null);
     }
 
-    public RunAQLStringAction(HttpClient httpClient, String restHost, int restPort, String aql, OutputStream os) {
-        this.httpClient = httpClient;
+    public RunAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql, OutputStream os) {
+        super(httpClient, restHost, restPort, os);
         this.aql = aql;
-        this.restHost = restHost;
-        this.restPort = restPort;
-        this.os = os;
     }
 
     @Override
     public void doPerform() throws Exception {
-        String uri = MessageFormat.format(REST_URI_TEMPLATE, restHost, String.valueOf(restPort));
-        HttpPost post = new HttpPost(uri);
-        post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        post.setEntity(new StringEntity(aql, StandardCharsets.UTF_8));
-        HttpEntity entity = httpClient.execute(post).getEntity();
-        if (entity != null && entity.isStreaming()) {
-            printStream(entity.getContent());
-        }
-    }
-
-    private void printStream(InputStream content) throws IOException {
-        if (os == null) {
-            IOUtils.copy(content, System.out);
-            System.out.flush();
-        } else {
-            IOUtils.copy(content, os);
-            os.flush();
-        }
+        performAqlAction(aql);
     }
 }

@@ -28,7 +28,7 @@ public class RemoteAsterixDriverKill extends AbstractRemoteExecutableAction {
     @Override
     protected String getCommand() {
         return "ps -ef | awk '/java.*org\\.apache\\.hyracks\\.control\\.[cn]c\\.[CN]CDriver/ {print $2}' " +
-                "| xargs -n 1 kill -9";
+                "| xargs -r -n 1 kill -9";
     }
 
 }

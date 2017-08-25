@@ -21,15 +21,15 @@ package org.apache.asterix.experiment.action.derived;
 
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.io.IOUtils;
-
 import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.experiment.action.base.AbstractAction;
+import org.apache.commons.io.IOUtils;
 
 public abstract class AbstractExecutableAction extends AbstractAction {
 
@@ -52,14 +52,14 @@ public abstract class AbstractExecutableAction extends AbstractAction {
         StringWriter sw = new StringWriter();
         String cmd = getCommand();
         if (!doExecute(cmd, getEnvironment())) {
-            IOUtils.copy(getErrorStream(), sw);
-            throw new AsterixException("Error executing command: " + cmd + ".\n Error = " + sw.toString());
+            IOUtils.copy(getErrorStream(), sw, Charset.defaultCharset());
+            throw new AsterixException("Error executing command: " + cmd + "\n Error = " + sw.toString());
         } else {
-            IOUtils.copy(getInputStream(), sw);
-            IOUtils.copy(getErrorStream(), sw);
+            IOUtils.copy(getInputStream(), sw, Charset.defaultCharset());
+            IOUtils.copy(getErrorStream(), sw, Charset.defaultCharset());
         }
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info(sw.toString());
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(sw.toString());
         }
     }
 }
