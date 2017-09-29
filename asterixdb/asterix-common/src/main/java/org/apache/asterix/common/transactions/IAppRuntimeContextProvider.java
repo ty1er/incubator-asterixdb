@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import org.apache.asterix.common.api.IDatasetLifecycleManager;
 import org.apache.asterix.common.api.INcApplicationContext;
 import org.apache.hyracks.api.io.IIOManager;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTracker;
 import org.apache.hyracks.storage.common.ILocalResourceRepository;
@@ -37,6 +38,8 @@ public interface IAppRuntimeContextProvider {
     ITransactionSubsystem getTransactionSubsystem();
 
     IDatasetLifecycleManager getDatasetLifecycleManager();
+
+    IStatisticsManager getStatisticsManager();
 
     double getBloomFilterFalsePositiveRate();
 

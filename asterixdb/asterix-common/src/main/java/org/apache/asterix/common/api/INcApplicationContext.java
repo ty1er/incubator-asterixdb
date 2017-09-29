@@ -33,6 +33,7 @@ import org.apache.asterix.common.transactions.ITransactionSubsystem;
 import org.apache.hyracks.api.application.INCServiceContext;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.api.io.IIOManager;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTracker;
@@ -113,4 +114,6 @@ public interface INcApplicationContext extends IApplicationContext {
 
     @Override
     INCServiceContext getServiceContext();
+
+    IStatisticsManager getStatisticsManager();
 }

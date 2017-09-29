@@ -70,6 +70,7 @@ import org.apache.asterix.metadata.entities.InternalDatasetDetails;
 import org.apache.asterix.metadata.entities.Library;
 import org.apache.asterix.metadata.entities.Node;
 import org.apache.asterix.metadata.entities.NodeGroup;
+import org.apache.asterix.metadata.entities.Statistics;
 import org.apache.asterix.metadata.entitytupletranslators.CompactionPolicyTupleTranslator;
 import org.apache.asterix.metadata.entitytupletranslators.DatasetTupleTranslator;
 import org.apache.asterix.metadata.entitytupletranslators.DatasourceAdapterTupleTranslator;
@@ -85,8 +86,10 @@ import org.apache.asterix.metadata.entitytupletranslators.LibraryTupleTranslator
 import org.apache.asterix.metadata.entitytupletranslators.MetadataTupleTranslatorProvider;
 import org.apache.asterix.metadata.entitytupletranslators.NodeGroupTupleTranslator;
 import org.apache.asterix.metadata.entitytupletranslators.NodeTupleTranslator;
+import org.apache.asterix.metadata.entitytupletranslators.StatisticsTupleTranslator;
 import org.apache.asterix.metadata.valueextractors.MetadataEntityValueExtractor;
 import org.apache.asterix.metadata.valueextractors.TupleCopyValueExtractor;
+import org.apache.asterix.om.base.ABoolean;
 import org.apache.asterix.om.base.AInt32;
 import org.apache.asterix.om.base.AMutableString;
 import org.apache.asterix.om.base.AString;
@@ -117,6 +120,8 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndexAccessor;
 import org.apache.hyracks.storage.am.lsm.common.api.LSMOperationType;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndex;
+import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndexFileManager;
+import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
 import org.apache.hyracks.storage.common.IIndex;
 import org.apache.hyracks.storage.common.IIndexAccessor;
 import org.apache.hyracks.storage.common.IIndexCursor;
@@ -690,11 +695,21 @@ public class MetadataNode implements IMetadataNode {
     public void dropIndex(JobId jobId, String dataverseName, String datasetName, String indexName)
             throws MetadataException, RemoteException {
         try {
+            // Delete related entry(s) from the 'statistics' dataset.
+            List<Statistics> indexStatistics = getIndexStatistics(jobId, dataverseName, datasetName, indexName);
+            if (indexStatistics != null) {
+                for (Statistics stats : indexStatistics) {
+                    dropStatistics(jobId, stats.getDataverseName(), stats.getDatasetName(), stats.getIndexName(),
+                            stats.getNode(), stats.getPartition(), stats.getComponentID(), stats.isAntimatter());
+                }
+            }
+
             ITupleReference searchKey = createTuple(dataverseName, datasetName, indexName);
             // Searches the index for the tuple to be deleted. Acquires an S
             // lock on the 'index' dataset.
             ITupleReference tuple = getTupleToBeDeleted(jobId, MetadataPrimaryIndexes.INDEX_DATASET, searchKey);
             deleteTupleFromIndex(jobId, MetadataPrimaryIndexes.INDEX_DATASET, tuple);
+
             // TODO: Change this to be a BTree specific exception, e.g.,
             // BTreeKeyDoesNotExistException.
         } catch (HyracksDataException e) {
@@ -1963,5 +1978,191 @@ public class MetadataNode implements IMetadataNode {
         } catch (HyracksDataException | ACIDException e) {
             throw new MetadataException(e);
         }
+    }
+
+    @Override
+    public void addStatistics(JobId jobId, Statistics statistics) throws MetadataException, RemoteException {
+        try {
+            // Insert into the 'Statistics' dataset.
+            StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, true);
+            ITupleReference statsTuple = tupleReaderWriter.getTupleFromMetadataEntity(statistics);
+            insertTupleIntoIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, statsTuple);
+        } catch (HyracksDataException e) {
+            if (e.getComponent().equals(ErrorCode.HYRACKS) && e.getErrorCode() == ErrorCode.DUPLICATE_KEY) {
+                // This could happen only if the statistics on merged component was persisted before the flushed one.
+                // In this case We can safely ignore the flushed statistics, the info is reflected in merged statistics.
+            } else {
+                throw new MetadataException("A statistics with this name "
+                        + String.join(".", statistics.getDatasetName(), statistics.getIndexName(), statistics.getNode(),
+                                statistics.getPartition(), statistics.getComponentID().toString())
+                        + " already exists in dataverse '" + statistics.getDataverseName() + "'.", e);
+            }
+        } catch (ACIDException e) {
+            throw new MetadataException(e);
+        }
+
+    }
+
+    @Override
+    public List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index,
+            boolean isAntimatter) throws MetadataException, RemoteException {
+        try {
+            ITupleReference searchKey = createIndexStatisticsSearchTuple(dataverse, dataset, index, isAntimatter);
+            StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
+            IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
+            List<Statistics> results = new ArrayList<>();
+            searchIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey, valueExtractor, results);
+            return results;
+        } catch (Exception e) {
+            throw new MetadataException(e);
+        }
+    }
+
+    @Override
+    public List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index)
+            throws MetadataException, RemoteException {
+        try {
+            ITupleReference searchKey = createTuple(dataverse, dataset, index);
+            StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
+            IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
+            List<Statistics> results = new ArrayList<>();
+            searchIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey, valueExtractor, results);
+            return results;
+        } catch (Exception e) {
+            throw new MetadataException(e);
+        }
+    }
+
+    @Override
+    public Statistics getStatistics(JobId jobId, String dataverseName, String datasetName, String indexName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws MetadataException, RemoteException {
+        try {
+            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, node,
+                    partition, componentId, isAntimatter);
+            StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
+            List<Statistics> results = new ArrayList<>();
+            IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
+            searchIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey, valueExtractor, results);
+            if (results.isEmpty()) {
+                return null;
+            }
+            return results.get(0);
+        } catch (Exception e) {
+            throw new MetadataException(e);
+        }
+    }
+
+    public ITupleReference createIndexStatisticsSearchTuple(String dataverseName, String datasetName, String indexName,
+            boolean isAntimatter) throws HyracksDataException {
+        ISerializerDeserializer<AString> stringSerde =
+                SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ASTRING);
+        ISerializerDeserializer<ABoolean> boolSerde =
+                SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ABOOLEAN);
+
+        AMutableString aString = new AMutableString("");
+        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(4);
+
+        //dataverse field
+        aString.setValue(dataverseName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //dataset field
+        aString.setValue(datasetName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //index field
+        aString.setValue(indexName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //isAntimatter number field
+        boolSerde.serialize(isAntimatter ? ABoolean.TRUE : ABoolean.FALSE, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        ArrayTupleReference tuple = new ArrayTupleReference();
+        tuple.reset(tupleBuilder.getFieldEndOffsets(), tupleBuilder.getByteArray());
+        return tuple;
+    }
+
+    // This method is used to create a search tuple for statistics since the search tuple has an non-string fields
+    @SuppressWarnings("unchecked")
+    public ITupleReference createStatisticsSearchTuple(String dataverseName, String datasetName, String indexName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws HyracksDataException {
+        ISerializerDeserializer<AString> stringSerde =
+                SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ASTRING);
+        ISerializerDeserializer<ABoolean> boolSerde =
+                SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ABOOLEAN);
+
+        AMutableString aString = new AMutableString("");
+        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(7);
+
+        //dataverse field
+        aString.setValue(dataverseName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //dataset field
+        aString.setValue(datasetName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //index field
+        aString.setValue(indexName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //isAntimatter field
+        boolSerde.serialize(isAntimatter ? ABoolean.TRUE : ABoolean.FALSE, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //node field
+        aString.setValue(node);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //partition field
+        aString.setValue(partition);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //minComponentId field
+        aString.setValue(AbstractLSMIndexFileManager.FORMATTER.format(componentId.getMinTimestamp()));
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        ArrayTupleReference tuple = new ArrayTupleReference();
+        tuple.reset(tupleBuilder.getFieldEndOffsets(), tupleBuilder.getByteArray());
+        return tuple;
+    }
+
+    @Override
+    public void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName, String node,
+            String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws MetadataException, RemoteException {
+        try {
+            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, node,
+                    partition, componentId, isAntimatter);
+            // Searches the index for the tuple to be deleted. Acquires an S lock on the 'Statistics' dataset.
+            ITupleReference datasetTuple =
+                    getTupleToBeDeleted(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey);
+            // Delete entry from the 'Statistics' dataset.
+            deleteTupleFromIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, datasetTuple);
+
+            // TODO: Change this to be a BTree specific exception, e.g.,
+            // BTreeKeyDoesNotExistException.
+        } catch (HyracksDataException e) {
+            //swallow the exception because stats could be missing, e.g. optimized out due to 0 length
+            if (!(e.getComponent().equals(ErrorCode.HYRACKS)
+                    && e.getErrorCode() == ErrorCode.UPDATE_OR_DELETE_NON_EXISTENT_KEY)) {
+                throw new MetadataException(e);
+            }
+        } catch (ACIDException e) {
+            throw new MetadataException(e);
+        }
+
     }
 }

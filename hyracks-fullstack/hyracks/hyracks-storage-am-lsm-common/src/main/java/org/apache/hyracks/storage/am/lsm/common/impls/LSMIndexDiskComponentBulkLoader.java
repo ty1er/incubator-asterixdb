@@ -21,22 +21,25 @@ package org.apache.hyracks.storage.am.lsm.common.impls;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallback;
 import org.apache.hyracks.storage.am.lsm.common.api.LSMOperationType;
 import org.apache.hyracks.storage.common.IIndexBulkLoader;
 
 public class LSMIndexDiskComponentBulkLoader implements IIndexBulkLoader {
     private final AbstractLSMIndex lsmIndex;
     private final ILSMDiskComponent component;
+    private final ILSMIOOperationCallback ioOperationCallback;
     private final IIndexBulkLoader componentBulkLoader;
 
-    public LSMIndexDiskComponentBulkLoader(AbstractLSMIndex lsmIndex, float fillFactor, boolean verifyInput,
-            long numElementsHint) throws HyracksDataException {
+    public LSMIndexDiskComponentBulkLoader(AbstractLSMIndex lsmIndex, ILSMIOOperationCallback ioOperationCallback,
+            float fillFactor, boolean verifyInput, long numElementsHint) throws HyracksDataException {
         this.lsmIndex = lsmIndex;
         // Note that by using a flush target file name, we state that the
         // new bulk loaded component is "newer" than any other merged component.
         this.component = lsmIndex.createBulkLoadTarget();
+        this.ioOperationCallback = ioOperationCallback;
         this.componentBulkLoader =
-                component.createBulkLoader(fillFactor, verifyInput, numElementsHint, false, true, true);
+                component.createBulkLoader(fillFactor, verifyInput, numElementsHint, 0L, false, true, true);
     }
 
     @Override
@@ -51,7 +54,7 @@ public class LSMIndexDiskComponentBulkLoader implements IIndexBulkLoader {
             //TODO(amoudi): Ensure Bulk load follow the same lifecycle Other Operations (Flush, Merge, etc).
             //then after operation should be called from harness as well
             //https://issues.apache.org/jira/browse/ASTERIXDB-1764
-            lsmIndex.getIOOperationCallback().afterOperation(LSMOperationType.FLUSH, null, component);
+            ioOperationCallback.afterOperation(LSMOperationType.FLUSH, null, component);
             lsmIndex.getLsmHarness().addBulkLoadedComponent(component);
         }
     }

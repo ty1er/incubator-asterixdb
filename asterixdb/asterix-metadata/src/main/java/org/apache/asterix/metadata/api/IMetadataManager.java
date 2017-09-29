@@ -41,6 +41,8 @@ import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.metadata.entities.Library;
 import org.apache.asterix.metadata.entities.Node;
 import org.apache.asterix.metadata.entities.NodeGroup;
+import org.apache.asterix.metadata.entities.Statistics;
+import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
 
 /**
  * A metadata manager provides user access to Asterix metadata (e.g., types,
@@ -268,6 +270,8 @@ public interface IMetadataManager extends IMetadataBootstrap {
      *            Name of the dataset holding the index.
      * @param indexName
      *            Name of the index to retrieve.
+     * @param cascadeDrop
+     *            Flag, indicating whether a deletion of index should trigger deletion of axillary index info
      * @throws MetadataException
      *             For example, if the index does not exist.
      */
@@ -642,6 +646,18 @@ public interface IMetadataManager extends IMetadataBootstrap {
      */
     ExternalFile getExternalFile(MetadataTransactionContext mdTxnCtx, String dataverseName, String datasetName,
             Integer fileNumber) throws MetadataException;
+
+    List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+            String indexName) throws MetadataException;
+
+    List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+            String indexName, boolean isAntimatter) throws MetadataException;
+
+    void addStatistics(MetadataTransactionContext mdTxnCtx, Statistics statistics) throws MetadataException;
+
+    void dropStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+            String indexName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws MetadataException;
 
     /**
      * update an existing dataset in metadata.

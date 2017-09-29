@@ -21,7 +21,6 @@ package org.apache.asterix.om.pointables.nonvisitor;
 
 import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.EnumDeserializer;
-import org.apache.asterix.om.util.container.IObjectFactory;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.data.std.api.AbstractPointable;
@@ -30,6 +29,7 @@ import org.apache.hyracks.data.std.api.IPointableFactory;
 import org.apache.hyracks.data.std.primitive.BytePointable;
 import org.apache.hyracks.data.std.primitive.IntegerPointable;
 import org.apache.hyracks.data.std.primitive.LongPointable;
+import org.apache.hyracks.util.objectpool.IObjectFactory;
 
 /*
  * This class interprets the binary data representation of an interval.

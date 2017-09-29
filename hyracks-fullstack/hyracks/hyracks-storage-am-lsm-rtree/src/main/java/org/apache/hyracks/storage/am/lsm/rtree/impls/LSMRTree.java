@@ -142,7 +142,7 @@ public class LSMRTree extends AbstractLSMRTree {
         }
 
         ILSMDiskComponentBulkLoader componentBulkLoader =
-                component.createBulkLoader(1.0f, false, numBTreeTuples, false, false, false);
+                component.createBulkLoader(1.0f, false, numBTreeTuples, 0L, false, false, false);
 
         ITreeIndexCursor cursor;
         IBinaryComparatorFactory[] linearizerArray = { linearizer };
@@ -228,7 +228,7 @@ public class LSMRTree extends AbstractLSMRTree {
                 numElements += ((LSMRTreeDiskComponent) mergeOp.getMergingComponents().get(i)).getBloomFilter()
                         .getNumElements();
             }
-            componentBulkLoader = mergedComponent.createBulkLoader(1.0f, false, numElements, false, false, false);
+            componentBulkLoader = mergedComponent.createBulkLoader(1.0f, false, numElements, 0L, false, false, false);
 
             LSMRTreeDeletedKeysBTreeMergeCursor btreeCursor = new LSMRTreeDeletedKeysBTreeMergeCursor(opCtx);
             search(opCtx, btreeCursor, rtreeSearchPred);
@@ -243,7 +243,7 @@ public class LSMRTree extends AbstractLSMRTree {
             }
         } else {
             //no buddy-btree needed
-            componentBulkLoader = mergedComponent.createBulkLoader(1.0f, false, 0L, false, false, false);
+            componentBulkLoader = mergedComponent.createBulkLoader(1.0f, false, 0L, 0L, false, false, false);
         }
 
         //search old rtree components

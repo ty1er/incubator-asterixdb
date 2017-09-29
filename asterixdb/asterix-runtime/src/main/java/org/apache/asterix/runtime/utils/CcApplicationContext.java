@@ -34,6 +34,7 @@ import org.apache.asterix.common.config.MetadataProperties;
 import org.apache.asterix.common.config.NodeProperties;
 import org.apache.asterix.common.config.PropertiesAccessor;
 import org.apache.asterix.common.config.ReplicationProperties;
+import org.apache.asterix.common.config.StatisticsProperties;
 import org.apache.asterix.common.config.StorageProperties;
 import org.apache.asterix.common.config.TransactionProperties;
 import org.apache.asterix.common.context.IStorageComponentProvider;
@@ -75,6 +76,7 @@ public class CcApplicationContext implements ICcApplicationContext {
     private MessagingProperties messagingProperties;
     private NodeProperties nodeProperties;
     private Supplier<IMetadataBootstrap> metadataBootstrapSupplier;
+    private StatisticsProperties statisticsProperties;
     private IHyracksClientConnection hcc;
     private Object extensionManager;
     private IFaultToleranceStrategy ftStrategy;
@@ -102,6 +104,7 @@ public class CcApplicationContext implements ICcApplicationContext {
         activeProperties = new ActiveProperties(propertiesAccessor);
         extensionProperties = new ExtensionProperties(propertiesAccessor);
         replicationProperties = new ReplicationProperties(propertiesAccessor);
+        statisticsProperties = new StatisticsProperties(propertiesAccessor);
         this.ftStrategy = ftStrategy;
         this.hcc = hcc;
         this.buildProperties = new BuildProperties(propertiesAccessor);
@@ -248,5 +251,9 @@ public class CcApplicationContext implements ICcApplicationContext {
     @Override
     public IClusterStateManager getClusterStateManager() {
         return clusterStateManager;
+    }
+
+    @Override public StatisticsProperties getStatisticsProperties() {
+        return statisticsProperties;
     }
 }

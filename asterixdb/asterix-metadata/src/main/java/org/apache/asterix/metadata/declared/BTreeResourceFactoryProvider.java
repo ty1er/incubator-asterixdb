@@ -26,6 +26,7 @@ import org.apache.asterix.common.context.AsterixVirtualBufferCacheProvider;
 import org.apache.asterix.common.context.IStorageComponentProvider;
 import org.apache.asterix.common.exceptions.CompilationException;
 import org.apache.asterix.common.exceptions.ErrorCode;
+import org.apache.asterix.dataflow.data.nontagged.valueproviders.AqlOrdinalPrimitiveValueProviderFactory;
 import org.apache.asterix.external.indexing.FilesIndexDescription;
 import org.apache.asterix.external.indexing.IndexingConstants;
 import org.apache.asterix.metadata.api.IResourceFactoryProvider;
@@ -48,6 +49,9 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallbackFacto
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationSchedulerProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.statistics.common.StatisticsCollectorFactory;
 import org.apache.hyracks.storage.common.IResourceFactory;
 import org.apache.hyracks.storage.common.IStorageManager;
 
@@ -94,11 +98,22 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             case INTERNAL:
                 AsterixVirtualBufferCacheProvider vbcProvider =
                         new AsterixVirtualBufferCacheProvider(dataset.getDatasetId());
+                int[] btreeKeys = IndexUtil.getBtreeKeys(dataset, index);
+                ISynopsis.SynopsisType statsType =
+                        mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType();
+                IStatisticsFactory statisticsFactory = null;
+                if (statsType != null && statsType != ISynopsis.SynopsisType.None) {
+                    statisticsFactory = new StatisticsCollectorFactory(statsType, btreeKeys,
+                            mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
+                            typeTraits,
+                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider());
+                }
                 return new LSMBTreeLocalResourceFactory(storageManager, typeTraits, cmpFactories, filterTypeTraits,
                         filterCmpFactories, filterFields, opTrackerFactory, ioOpCallbackFactory,
                         metadataPageManagerFactory, vbcProvider, ioSchedulerProvider, mergePolicyFactory,
                         mergePolicyProperties, durable, bloomFilterFields, bloomFilterFalsePositiveRate,
-                        index.isPrimaryIndex(), btreeFields);
+                        index.isPrimaryIndex(), btreeFields, statisticsFactory,
+                        mdProvider.getStorageComponentProvider().getStatisticsManagerProvider());
             default:
                 throw new CompilationException(ErrorCode.COMPILATION_UNKNOWN_DATASET_TYPE,
                         dataset.getDatasetType().toString());

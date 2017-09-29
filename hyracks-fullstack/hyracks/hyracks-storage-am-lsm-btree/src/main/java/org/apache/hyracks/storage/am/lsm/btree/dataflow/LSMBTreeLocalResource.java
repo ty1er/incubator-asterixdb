@@ -34,6 +34,8 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationSchedulerProv
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManagerProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.IVirtualBufferCache;
 import org.apache.hyracks.storage.am.lsm.common.api.IVirtualBufferCacheProvider;
 import org.apache.hyracks.storage.am.lsm.common.dataflow.LsmResource;
@@ -47,6 +49,8 @@ public class LSMBTreeLocalResource extends LsmResource {
     protected final double bloomFilterFalsePositiveRate;
     protected final boolean isPrimary;
     protected final int[] btreeFields;
+    private final IStatisticsFactory statisticsFactory;
+    private final IStatisticsManagerProvider statisticsManagerProvider;
 
     public LSMBTreeLocalResource(ITypeTraits[] typeTraits, IBinaryComparatorFactory[] cmpFactories,
             int[] bloomFilterKeyFields, double bloomFilterFalsePositiveRate, boolean isPrimary, String path,
@@ -55,7 +59,8 @@ public class LSMBTreeLocalResource extends LsmResource {
             IBinaryComparatorFactory[] filterCmpFactories, int[] btreeFields, int[] filterFields,
             ILSMOperationTrackerFactory opTrackerProvider, ILSMIOOperationCallbackFactory ioOpCallbackFactory,
             IMetadataPageManagerFactory metadataPageManagerFactory, IVirtualBufferCacheProvider vbcProvider,
-            ILSMIOOperationSchedulerProvider ioSchedulerProvider, boolean durable) {
+            ILSMIOOperationSchedulerProvider ioSchedulerProvider, boolean durable, IStatisticsFactory statisticsFactory,
+            IStatisticsManagerProvider statisticsMessageProvider) {
         super(path, storageManager, typeTraits, cmpFactories, filterTypeTraits, filterCmpFactories, filterFields,
                 opTrackerProvider, ioOpCallbackFactory, metadataPageManagerFactory, vbcProvider, ioSchedulerProvider,
                 mergePolicyFactory, mergePolicyProperties, durable);
@@ -63,6 +68,8 @@ public class LSMBTreeLocalResource extends LsmResource {
         this.bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate;
         this.isPrimary = isPrimary;
         this.btreeFields = btreeFields;
+        this.statisticsFactory = statisticsFactory;
+        this.statisticsManagerProvider = statisticsMessageProvider;
     }
 
     @Override
@@ -70,13 +77,16 @@ public class LSMBTreeLocalResource extends LsmResource {
         IIOManager ioManager = serviceCtx.getIoManager();
         FileReference file = ioManager.resolve(path);
         List<IVirtualBufferCache> vbcs = vbcProvider.getVirtualBufferCaches(serviceCtx, file);
-        //TODO: enable updateAwareness for secondary LSMBTree indexes
-        boolean updateAware = false;
+        //only secondary indexes are allowed to mark entries as updated-in-place
+        boolean updateAware = !isPrimary;
+        boolean hasStatistics = !isPrimary && statisticsFactory != null && statisticsManagerProvider != null
+                && statisticsFactory.canCollectStats();
         return LSMBTreeUtil.createLSMTree(ioManager, vbcs, file, storageManager.getBufferCache(serviceCtx), typeTraits,
                 cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate,
                 mergePolicyFactory.createMergePolicy(mergePolicyProperties, serviceCtx),
                 opTrackerProvider.getOperationTracker(serviceCtx), ioSchedulerProvider.getIoScheduler(serviceCtx),
                 ioOpCallbackFactory.createIoOpCallback(), isPrimary, filterTypeTraits, filterCmpFactories, btreeFields,
-                filterFields, durable, metadataPageManagerFactory, updateAware, serviceCtx.getTracer());
+                filterFields, durable, metadataPageManagerFactory, updateAware, serviceCtx.getTracer(),
+                statisticsFactory, hasStatistics ? statisticsManagerProvider.getStatisticsManager(serviceCtx) : null);
     }
 }
