@@ -109,4 +109,25 @@
     <value>INFO</value>
     <description>foo</description>
   </property>
+  <property>
+    <name>statistics.synopsis.type</name>
+    <value>None</value>
+    <description>The type of synopsis used for collecting dataset statistics.
+      (Default = None)
+    </description>
+  </property>
+  <property>
+    <name>statistics.synopsis.size</name>
+    <value>20</value>
+    <description>The size of synopsis (for wavelets-based synopses the number of
+      persisted coefficients in wavelet transform). (Default = 100)
+    </description>
+  </property>
+  <property>
+    <name>statistics.merge.strategy.timeout</name>
+    <value>5000</value>
+    <description>The timeout in milliseconds between the statistics merge operation invocations.
+      (Default = 60000)
+    </description>
+  </property>
 </asterixConfiguration>

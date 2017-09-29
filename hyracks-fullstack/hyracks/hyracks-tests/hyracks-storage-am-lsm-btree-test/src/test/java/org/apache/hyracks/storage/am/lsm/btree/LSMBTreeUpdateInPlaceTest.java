@@ -75,7 +75,7 @@ public class LSMBTreeUpdateInPlaceTest extends AbstractOperationCallbackTest {
                 harness.getBoomFilterFalsePositiveRate(), harness.getMergePolicy(),
                 NoOpOperationTrackerFactory.INSTANCE.getOperationTracker(null), harness.getIOScheduler(),
                 harness.getIOOperationCallback(), true, null, null, null, null, true,
-                harness.getMetadataPageManagerFactory(), true, ITracer.NONE);
+                harness.getMetadataPageManagerFactory(), true, ITracer.NONE, null, null);
     }
 
     @Override

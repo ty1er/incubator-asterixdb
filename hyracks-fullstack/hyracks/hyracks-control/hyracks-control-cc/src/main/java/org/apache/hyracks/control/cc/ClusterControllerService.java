@@ -512,4 +512,8 @@ public class ClusterControllerService implements IControllerService {
     public Object getApplicationContext() {
         return application.getApplicationContext();
     }
+
+    public Timer getTimer() {
+        return timer;
+    }
 }

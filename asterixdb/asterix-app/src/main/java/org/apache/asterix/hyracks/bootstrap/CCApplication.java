@@ -27,6 +27,7 @@ import static org.apache.asterix.common.api.IClusterManagementWork.ClusterState.
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,11 +63,13 @@ import org.apache.asterix.common.config.AsterixExtension;
 import org.apache.asterix.common.config.ClusterProperties;
 import org.apache.asterix.common.config.ExternalProperties;
 import org.apache.asterix.common.config.MetadataProperties;
+import org.apache.asterix.common.config.StatisticsProperties;
 import org.apache.asterix.common.context.IStorageComponentProvider;
 import org.apache.asterix.common.dataflow.ICcApplicationContext;
 import org.apache.asterix.common.library.ILibraryManager;
 import org.apache.asterix.common.replication.IFaultToleranceStrategy;
 import org.apache.asterix.common.replication.IReplicationStrategy;
+import org.apache.asterix.common.statistics.SynopsisMergeStrategy;
 import org.apache.asterix.common.utils.Servlets;
 import org.apache.asterix.external.library.ExternalLibraryManager;
 import org.apache.asterix.file.StorageComponentProvider;
@@ -78,6 +81,7 @@ import org.apache.asterix.metadata.cluster.ClusterManagerProvider;
 import org.apache.asterix.metadata.lock.MetadataLockManager;
 import org.apache.asterix.runtime.job.resource.JobCapacityController;
 import org.apache.asterix.runtime.utils.CcApplicationContext;
+import org.apache.asterix.statistics.common.StatisticsMerger;
 import org.apache.asterix.translator.IStatementExecutorContext;
 import org.apache.asterix.translator.IStatementExecutorFactory;
 import org.apache.hyracks.api.application.ICCServiceContext;
@@ -106,6 +110,7 @@ public class CCApplication extends BaseCCApplication {
     protected CcApplicationContext appCtx;
     private IJobCapacityController jobCapacityController;
     private IHyracksClientConnection hcc;
+    private StatisticsMerger merger;
 
     @Override
     public void init(IServiceContext serviceCtx) throws Exception {
@@ -165,6 +170,20 @@ public class CCApplication extends BaseCCApplication {
         ccServiceCtx.addClusterLifecycleListener(new ClusterLifecycleListener(appCtx));
 
         jobCapacityController = new JobCapacityController(controllerService.getResourceManager());
+
+        StatisticsProperties statisticsProperties = appCtx.getStatisticsProperties();
+        if (statisticsProperties.getStatisticsSynopsisType() != null) {
+            merger = new StatisticsMerger();
+            statsMergeRoutine(merger, statisticsProperties.getStatisticsMergeStrategy(), controllerService.getTimer(),
+                    statisticsProperties.getStatisticsMergeTimeout());
+        }
+    }
+
+    private static void statsMergeRoutine(StatisticsMerger merger, SynopsisMergeStrategy mergeStrategy, Timer timer,
+            int mergeTimeout) {
+        if (mergeStrategy == SynopsisMergeStrategy.TimeBased) {
+            timer.scheduleAtFixedRate(merger, mergeTimeout, mergeTimeout);
+        }
     }
 
     protected GlobalRecoveryManager createGlobalRecoveryManager() throws Exception {
@@ -199,6 +218,9 @@ public class CCApplication extends BaseCCApplication {
         }
         AsterixStateProxy.unregisterRemoteObject();
         webManager.stop();
+        if (appCtx.getStatisticsProperties().getStatisticsSynopsisType() != null) {
+            merger.cancel();
+        }
     }
 
     protected HttpServer setupWebServer(ExternalProperties externalProperties) throws Exception {

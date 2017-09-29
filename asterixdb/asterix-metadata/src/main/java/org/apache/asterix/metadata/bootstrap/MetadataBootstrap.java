@@ -113,7 +113,8 @@ public class MetadataBootstrap {
                     MetadataPrimaryIndexes.FUNCTION_DATASET, MetadataPrimaryIndexes.DATASOURCE_ADAPTER_DATASET,
                     MetadataPrimaryIndexes.FEED_DATASET, MetadataPrimaryIndexes.FEED_POLICY_DATASET,
                     MetadataPrimaryIndexes.LIBRARY_DATASET, MetadataPrimaryIndexes.COMPACTION_POLICY_DATASET,
-                    MetadataPrimaryIndexes.EXTERNAL_FILE_DATASET, MetadataPrimaryIndexes.FEED_CONNECTION_DATASET };
+                    MetadataPrimaryIndexes.EXTERNAL_FILE_DATASET, MetadataPrimaryIndexes.FEED_CONNECTION_DATASET,
+                    MetadataPrimaryIndexes.STATISTICS_DATASET };
 
     private MetadataBootstrap() {
     }
@@ -328,7 +329,7 @@ public class MetadataBootstrap {
                     new AsterixVirtualBufferCacheProvider(index.getDatasetId().getId()),
                     storageComponentProvider.getIoOperationSchedulerProvider(),
                     appContext.getMetadataMergePolicyFactory(), GlobalConfig.DEFAULT_COMPACTION_POLICY_PROPERTIES, true,
-                    bloomFilterKeyFields, appContext.getBloomFilterFalsePositiveRate(), true, null);
+                    bloomFilterKeyFields, appContext.getBloomFilterFalsePositiveRate(), true, null, null, null);
             DatasetLocalResourceFactory dsLocalResourceFactory =
                     new DatasetLocalResourceFactory(index.getDatasetId().getId(), lsmBtreeFactory);
             // TODO(amoudi) Creating the index should be done through the same code path as other indexes

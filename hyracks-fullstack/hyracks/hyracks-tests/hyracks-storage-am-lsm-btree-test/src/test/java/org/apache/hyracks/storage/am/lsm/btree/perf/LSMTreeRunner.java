@@ -110,7 +110,7 @@ public class LSMTreeRunner implements IExperimentRunner {
                 cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate, new NoMergePolicy(),
                 new ThreadCountingTracker(), ioScheduler, NoOpIOOperationCallbackFactory.INSTANCE.createIoOpCallback(),
                 true, null, null, null, null, true, TestStorageManagerComponentHolder.getMetadataPageManagerFactory(),
-                false, ITracer.NONE);
+                false, ITracer.NONE, null, null);
     }
 
     @Override

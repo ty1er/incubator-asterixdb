@@ -101,7 +101,7 @@ public class LSMRTreeWithAntiMatterTuples extends AbstractLSMRTree {
         memRTreeAccessor.search(rtreeScanCursor, rtreeNullPredicate);
         ILSMDiskComponent component = createDiskComponent(componentFactory, flushOp.getTarget(), null, null, true);
         ILSMDiskComponentBulkLoader componentBulkLoader =
-                component.createBulkLoader(1.0f, false, 0L, false, false, false);
+                component.createBulkLoader(1.0f, false, 0L, 0L, false, false, false);
 
         // Since the LSM-RTree is used as a secondary assumption, the
         // primary key will be the last comparator in the BTree comparators
@@ -187,7 +187,7 @@ public class LSMRTreeWithAntiMatterTuples extends AbstractLSMRTree {
         ILSMDiskComponent component = createDiskComponent(componentFactory, mergeOp.getTarget(), null, null, true);
 
         ILSMDiskComponentBulkLoader componentBulkLoader =
-                component.createBulkLoader(1.0f, false, 0L, false, false, false);
+                component.createBulkLoader(1.0f, false, 0L, 0L, false, false, false);
         try {
             while (cursor.hasNext()) {
                 cursor.next();

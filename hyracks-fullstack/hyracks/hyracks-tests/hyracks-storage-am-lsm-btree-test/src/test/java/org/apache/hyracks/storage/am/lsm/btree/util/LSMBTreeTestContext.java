@@ -99,13 +99,13 @@ public final class LSMBTreeTestContext extends OrderedIndexTestContext {
             lsmTree = LSMBTreeUtil.createLSMTree(ioManager, virtualBufferCaches, file, diskBufferCache, typeTraits,
                     cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate, mergePolicy, opTracker,
                     ioScheduler, ioOpCallback, needKeyDupCheck, filterTypeTraits, filterCmp, btreefields, filterfields,
-                    true, metadataPageManagerFactory, updateAware, ITracer.NONE);
+                    true, metadataPageManagerFactory, updateAware, ITracer.NONE, null, null);
         } else {
             lsmTree = LSMBTreeUtil.createLSMTree(ioManager, virtualBufferCaches, file, diskBufferCache, typeTraits,
                     cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate, mergePolicy, opTracker,
                     ioScheduler, ioOpCallback, needKeyDupCheck, null, null, null, null, true,
                     metadataPageManagerFactory, updateAware, new Tracer(LSMBTreeTestContext.class.getSimpleName(),
-                            ITraceCategoryRegistry.CATEGORIES_ALL, new TraceCategoryRegistry()));
+                            ITraceCategoryRegistry.CATEGORIES_ALL, new TraceCategoryRegistry()), null, null);
         }
         LSMBTreeTestContext testCtx = new LSMBTreeTestContext(fieldSerdes, lsmTree, filtered);
         return testCtx;

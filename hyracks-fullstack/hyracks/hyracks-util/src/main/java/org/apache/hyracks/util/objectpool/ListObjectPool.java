@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.asterix.om.util.container;
+package org.apache.hyracks.util.objectpool;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -27,7 +27,7 @@ import java.util.List;
  * Object pool backed by a list.
  * The argument for creating E instances could be different. This class also
  * considers arguments in object reusing, e.g., it reuses an E instances ONLY
- * when the construction argument is "equal".
+ * when the construction argument is "equal" and instance of E is marked as unused.
  */
 public class ListObjectPool<E, T> implements IObjectPool<E, T> {
 

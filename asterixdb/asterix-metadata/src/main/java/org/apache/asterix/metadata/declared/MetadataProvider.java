@@ -72,6 +72,7 @@ import org.apache.asterix.metadata.entities.Feed;
 import org.apache.asterix.metadata.entities.FeedConnection;
 import org.apache.asterix.metadata.entities.FeedPolicyEntity;
 import org.apache.asterix.metadata.entities.Index;
+import org.apache.asterix.metadata.entities.Statistics;
 import org.apache.asterix.metadata.feeds.FeedMetadataUtil;
 import org.apache.asterix.metadata.lock.ExternalDatasetsRegistry;
 import org.apache.asterix.metadata.utils.DatasetUtil;
@@ -355,6 +356,15 @@ public class MetadataProvider implements IMetadataProvider<DataSourceId, String>
 
     public List<Index> getDatasetIndexes(String dataverseName, String datasetName) throws AlgebricksException {
         return MetadataManagerUtil.getDatasetIndexes(mdTxnCtx, dataverseName, datasetName);
+    }
+
+    public List<Statistics> getIndexStatistics(String dataverseName, String datasetName, String indexName)
+            throws AlgebricksException {
+        try {
+            return MetadataManager.INSTANCE.getIndexStatistics(mdTxnCtx, dataverseName, datasetName, indexName);
+        } catch (MetadataException e) {
+            throw new AlgebricksException(e);
+        }
     }
 
     @Override
@@ -1450,7 +1460,7 @@ public class MetadataProvider implements IMetadataProvider<DataSourceId, String>
         String itemTypeName = dataset.getItemTypeName();
         IAType itemType;
         try {
-            itemType = MetadataManager.INSTANCE.getDatatype(mdTxnCtx, dataset.getItemTypeDataverseName(), itemTypeName)
+            itemType = MetadataManager.INSTANCE.getDatatype(mdTxnCtx, dataset.getDataverseName(), itemTypeName)
                     .getDatatype();
 
             if (itemType.getTypeTag() != ATypeTag.OBJECT) {

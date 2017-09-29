@@ -666,6 +666,7 @@
     <module>asterix-active</module>
     <module>asterix-client-helper</module>
     <module>asterix-license</module>
+    <module>asterix-statistics</module>
   </modules>
 
   <dependencyManagement>
@@ -963,6 +964,11 @@
         <artifactId>hyracks-hdfs-2.x</artifactId>
         <version>${hyracks.version}</version>
         <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hyracks</groupId>
+        <artifactId>hyracks-storage-am-statistics</artifactId>
+        <version>${hyracks.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hyracks</groupId>

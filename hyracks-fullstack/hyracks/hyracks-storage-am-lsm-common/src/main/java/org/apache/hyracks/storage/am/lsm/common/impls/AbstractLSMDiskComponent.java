@@ -186,8 +186,8 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
 
     @Override
     public ChainedLSMDiskComponentBulkLoader createBulkLoader(float fillFactor, boolean verifyInput,
-            long numElementsHint, boolean checkIfEmptyIndex, boolean withFilter, boolean cleanupEmptyComponent)
-            throws HyracksDataException {
+            long numElementsHint, long numAntimatterElementsHint, boolean checkIfEmptyIndex, boolean withFilter,
+            boolean cleanupEmptyComponent) throws HyracksDataException {
         ChainedLSMDiskComponentBulkLoader chainedBulkLoader =
                 new ChainedLSMDiskComponentBulkLoader(this, cleanupEmptyComponent);
         if (withFilter && getLsmIndex().getFilterFields() != null) {

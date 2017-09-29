@@ -17,18 +17,8 @@
  * under the License.
  */
 
-package org.apache.asterix.om.util.container;
+package org.apache.hyracks.storage.am.common.api;
 
-/**
- * A factory interface to create objects.
- */
-public interface IObjectFactory<E, T> {
-
-    /**
-     * create an element of type E
-     *
-     * @param arg
-     * @return an E element
-     */
-    public E create(T arg);
+public interface IBTreeIndexTupleWriter extends ITreeIndexTupleWriter {
+    void setUpdated(boolean isUpdated);
 }

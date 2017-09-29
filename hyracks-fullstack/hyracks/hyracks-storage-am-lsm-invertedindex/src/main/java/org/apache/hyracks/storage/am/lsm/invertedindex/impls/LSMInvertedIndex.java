@@ -297,7 +297,7 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
         }
 
         ILSMDiskComponentBulkLoader componentBulkLoader =
-                component.createBulkLoader(1.0f, false, numBTreeTuples, false, false, false);
+                component.createBulkLoader(1.0f, false, numBTreeTuples, 0L, false, false, false);
 
         // Create a scan cursor on the deleted keys BTree underlying the in-memory inverted index.
         IIndexCursor deletedKeysScanCursor = deletedKeysBTreeAccessor.createSearchCursor(false);
@@ -374,7 +374,7 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
                         .getNumElements();
             }
 
-            componentBulkLoader = component.createBulkLoader(1.0f, false, numElements, false, false, false);
+            componentBulkLoader = component.createBulkLoader( 1.0f, false, numElements, 0L,false, false, false);
             try {
                 while (btreeCursor.hasNext()) {
                     btreeCursor.next();
@@ -385,7 +385,7 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
                 btreeCursor.close();
             }
         } else {
-            componentBulkLoader = component.createBulkLoader(1.0f, false, 0L, false, false, false);
+            componentBulkLoader = component.createBulkLoader(1.0f, false, 0L, 0L, false, false, false);
         }
 
         try {

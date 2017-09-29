@@ -42,6 +42,8 @@ import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.metadata.entities.Library;
 import org.apache.asterix.metadata.entities.Node;
 import org.apache.asterix.metadata.entities.NodeGroup;
+import org.apache.asterix.metadata.entities.Statistics;
+import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
 
 /**
  * A metadata node stores metadata in its local storage structures (currently
@@ -656,6 +658,37 @@ public interface IMetadataNode extends Remote, Serializable {
             throws MetadataException, RemoteException;
 
     /**
+     * Retrieves statistics for a given index.
+     *
+     * @param jobId
+     * @param dataverse
+     * @param dataset
+     * @param index
+     * @return
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+
+    List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index)
+            throws MetadataException, RemoteException;
+
+    /**
+     * Retrieves statistics for a given index.
+     *
+     * @param jobId
+     * @param dataverse
+     * @param dataset
+     * @param index
+     * @param isAntimatter
+     * @return
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+
+    List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index,
+            boolean isAntimatter) throws MetadataException, RemoteException;
+
+    /**
      * @param jobId
      *            A globally unique id for an active metadata transaction.
      * @param externalFile
@@ -795,4 +828,73 @@ public interface IMetadataNode extends Remote, Serializable {
     List<FeedConnection> getFeedConnections(JobId jobId, String dataverseName, String feedName)
             throws MetadataException, RemoteException;
 
+    /**
+     * Adds a statistics, acquiring local locks on behalf of the given
+     * transaction id.
+     *
+     * @param jobId
+     *            A globally unique id for an active metadata transaction.
+     * @param statistics
+     *            Statistics to be added
+     * @throws MetadataException
+     *             for example, if the library is already added.
+     * @throws RemoteException
+     */
+    void addStatistics(JobId jobId, Statistics statistics) throws MetadataException, RemoteException;
+
+    /**
+     * Retrieves the statistics for a given component in given dataverse and dataset,
+     * acquiring local locks on behalf of the given transaction id.
+     *
+     * @param jobId
+     *            A globally unique id for an active metadata transaction.
+     * @param dataverseName
+     *            Name of the dataverse, holding the stat.
+     * @param datasetName
+     *            Name of the dataset, holding the stat.
+     * @param indexName
+     *            Name of the index, holding the stat
+     * @param node
+     *            Name of the node, holding the stat
+     * @param partition
+     *            Name of the partition, holding the stat
+     * @param componentId
+     *            ID of the component associated with the stat
+     * @param isAntimatter
+     *            True if the stat describes an anti-matter records, false otherwise
+     * @return A Statistics instance.
+     * @throws MetadataException
+     *             For example, if the statistics does not exist.
+     * @throws RemoteException
+     */
+    Statistics getStatistics(JobId jobId, String dataverseName, String datasetName, String indexName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws MetadataException, RemoteException;
+
+    /**
+     * Deletes a statistics from a particular index component, acquiring local locks on behalf of the given
+     * transaction id.
+     *
+     * @param jobId
+     *            A globally unique id for an active metadata transaction.
+     * @param dataverseName
+     *            Name of the dataverse holding the given dataset.
+     * @param datasetName
+     *            Name of the dataset holding the index.
+     * @param indexName
+     *            the name of the index holding the component statistics.
+     * @param node
+     *            the name of the node holding the component statistics.
+     * @param partition
+     *            the name of the partition holding the component statistics.
+     * @param componentId
+     *            the Id of the component containing appropriate statistics
+     * @param isAntimatter
+     *            true if statistics represent data about anti-matter records
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+    void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName, String node,
+            String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws MetadataException, RemoteException;
 }

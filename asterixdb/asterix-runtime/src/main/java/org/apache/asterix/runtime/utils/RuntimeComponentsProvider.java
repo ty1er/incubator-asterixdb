@@ -21,6 +21,8 @@ package org.apache.asterix.runtime.utils;
 import org.apache.asterix.common.api.IDatasetLifecycleManager;
 import org.apache.asterix.common.api.INcApplicationContext;
 import org.apache.hyracks.api.application.INCServiceContext;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManagerProvider;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationSchedulerProvider;
 import org.apache.hyracks.storage.common.ILocalResourceRepository;
@@ -28,7 +30,8 @@ import org.apache.hyracks.storage.common.IStorageManager;
 import org.apache.hyracks.storage.common.buffercache.IBufferCache;
 import org.apache.hyracks.storage.common.file.IResourceIdFactory;
 
-public class RuntimeComponentsProvider implements IStorageManager, ILSMIOOperationSchedulerProvider {
+public class RuntimeComponentsProvider
+        implements IStorageManager, ILSMIOOperationSchedulerProvider, IStatisticsManagerProvider {
 
     private static final long serialVersionUID = 1L;
 
@@ -62,4 +65,8 @@ public class RuntimeComponentsProvider implements IStorageManager, ILSMIOOperati
         return ((INcApplicationContext) ctx.getApplicationContext()).getResourceIdFactory();
     }
 
+    @Override
+    public IStatisticsManager getStatisticsManager(INCServiceContext ctx) {
+        return ((INcApplicationContext) ctx.getApplicationContext()).getStatisticsManager();
+    }
 }

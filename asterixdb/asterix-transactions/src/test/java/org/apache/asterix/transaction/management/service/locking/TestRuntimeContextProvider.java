@@ -28,6 +28,7 @@ import org.apache.asterix.common.api.INcApplicationContext;
 import org.apache.asterix.common.transactions.IAppRuntimeContextProvider;
 import org.apache.asterix.common.transactions.ITransactionSubsystem;
 import org.apache.hyracks.api.io.IIOManager;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTracker;
 import org.apache.hyracks.storage.common.ILocalResourceRepository;
@@ -56,6 +57,11 @@ class TestRuntimeContextProvider implements IAppRuntimeContextProvider {
     @Override
     public IDatasetLifecycleManager getDatasetLifecycleManager() {
         return dlcm;
+    }
+
+    @Override
+    public IStatisticsManager getStatisticsManager() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

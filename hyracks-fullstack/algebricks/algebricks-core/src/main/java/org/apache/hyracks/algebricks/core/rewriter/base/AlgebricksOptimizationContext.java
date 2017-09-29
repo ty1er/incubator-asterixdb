@@ -87,21 +87,22 @@ public class AlgebricksOptimizationContext implements IOptimizationContext {
     private final INodeDomain defaultNodeDomain;
     private final LogicalOperatorPrettyPrintVisitor prettyPrintVisitor;
     private final IConflictingTypeResolver conflictingTypeResovler;
+    private final ICardinalityEstimator cardinalityEstimator;
 
     public AlgebricksOptimizationContext(int varCounter, IExpressionEvalSizeComputer expressionEvalSizeComputer,
             IMergeAggregationExpressionFactory mergeAggregationExpressionFactory,
             IExpressionTypeComputer expressionTypeComputer, IMissableTypeComputer missableTypeComputer,
-            IConflictingTypeResolver conflictingTypeResovler, PhysicalOptimizationConfig physicalOptimizationConfig,
+            IConflictingTypeResolver conflictingTypeResovler, ICardinalityEstimator cardinalityEstimator, PhysicalOptimizationConfig physicalOptimizationConfig,
             AlgebricksPartitionConstraint clusterLocations) {
         this(varCounter, expressionEvalSizeComputer, mergeAggregationExpressionFactory, expressionTypeComputer,
-                missableTypeComputer, conflictingTypeResovler, physicalOptimizationConfig, clusterLocations,
+                missableTypeComputer, conflictingTypeResovler, cardinalityEstimator, physicalOptimizationConfig, clusterLocations,
                 new LogicalOperatorPrettyPrintVisitor());
     }
 
     public AlgebricksOptimizationContext(int varCounter, IExpressionEvalSizeComputer expressionEvalSizeComputer,
             IMergeAggregationExpressionFactory mergeAggregationExpressionFactory,
             IExpressionTypeComputer expressionTypeComputer, IMissableTypeComputer nullableTypeComputer,
-            IConflictingTypeResolver conflictingTypeResovler, PhysicalOptimizationConfig physicalOptimizationConfig,
+            IConflictingTypeResolver conflictingTypeResovler, ICardinalityEstimator cardinalityEstimator, PhysicalOptimizationConfig physicalOptimizationConfig,
             AlgebricksPartitionConstraint clusterLocations, LogicalOperatorPrettyPrintVisitor prettyPrintVisitor) {
         this.varCounter = varCounter;
         this.expressionEvalSizeComputer = expressionEvalSizeComputer;
@@ -112,6 +113,7 @@ public class AlgebricksOptimizationContext implements IOptimizationContext {
         this.defaultNodeDomain = new DefaultNodeGroupDomain(clusterLocations);
         this.prettyPrintVisitor = prettyPrintVisitor;
         this.conflictingTypeResovler = conflictingTypeResovler;
+        this.cardinalityEstimator = cardinalityEstimator;
     }
 
     @Override
@@ -337,5 +339,10 @@ public class AlgebricksOptimizationContext implements IOptimizationContext {
     @Override
     public IConflictingTypeResolver getConflictingTypeResolver() {
         return conflictingTypeResovler;
+    }
+
+    @Override
+    public ICardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
     }
 }

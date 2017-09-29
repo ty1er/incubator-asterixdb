@@ -16,25 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.asterix.om.base;
 
-package org.apache.asterix.om.util.container;
+public interface IAIntegerObject extends IAObject {
+    long minDomainValue();
 
-/**
- * A reusable object pool interface.
- */
-public interface IObjectPool<E, T> {
+    long maxDomainValue();
 
-    /**
-     * Give client an E instance
-     *
-     * @param arg
-     *            the argument to create E
-     * @return an E instance
-     */
-    public E allocate(T arg);
+    int maxLevel();
 
-    /**
-     * Mark all instances in the pool as unused
-     */
-    public void reset();
+    long longValue();
 }

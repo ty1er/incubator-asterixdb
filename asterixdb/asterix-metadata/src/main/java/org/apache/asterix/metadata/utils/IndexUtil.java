@@ -76,6 +76,19 @@ public class IndexUtil {
         return btreeFields;
     }
 
+    public static int[] getBtreeKeys(Dataset dataset, Index index) throws AlgebricksException {
+        int[] btreeKeys;
+        if (index.isPrimaryIndex()) {
+            btreeKeys = new int[dataset.getPrimaryKeys().size()];
+        } else {
+            btreeKeys = new int[index.getKeyFieldNames().size()];
+        }
+        for (int k = 0; k < btreeKeys.length; k++) {
+            btreeKeys[k] = k;
+        }
+        return btreeKeys;
+    }
+
     private static int[] secondaryFilterFields(Dataset dataset, Index index, ITypeTraits[] filterTypeTraits)
             throws CompilationException {
         if (filterTypeTraits == null) {

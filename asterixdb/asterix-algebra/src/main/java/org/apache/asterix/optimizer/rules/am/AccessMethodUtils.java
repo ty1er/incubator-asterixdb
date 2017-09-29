@@ -440,7 +440,7 @@ public class AccessMethodUtils {
             ILogicalExpression probeExpr = new VariableReferenceExpression(probeVar);
 
             ATypeTag indexedFieldTypeTag = TypeComputeUtils.getActualType(indexedFieldType).getTypeTag();
-            if (ATypeHierarchy.getTypeDomain(indexedFieldTypeTag) == ATypeHierarchy.Domain.NUMERIC) {
+            if (ATypeHierarchy.belongsToDomain(indexedFieldTypeTag, ATypeHierarchy.Domain.NUMERIC)) {
                 IAType probeType = TypeComputeUtils.getActualType(optFuncExpr.getFieldType(probeVarIndex));
                 ATypeTag probeTypeTypeTag = probeType.getTypeTag();
                 if (probeTypeTypeTag != indexedFieldTypeTag) {

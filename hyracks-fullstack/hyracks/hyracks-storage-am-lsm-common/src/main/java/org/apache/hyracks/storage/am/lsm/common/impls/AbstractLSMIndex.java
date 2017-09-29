@@ -396,7 +396,7 @@ public abstract class AbstractLSMIndex implements ILSMIndex {
 
     public IIndexBulkLoader createBulkLoader(float fillLevel, boolean verifyInput, long numElementsHint)
             throws HyracksDataException {
-        return new LSMIndexDiskComponentBulkLoader(this, fillLevel, verifyInput, numElementsHint);
+        return new LSMIndexDiskComponentBulkLoader(this, ioOpCallback, fillLevel, verifyInput, numElementsHint);
     }
 
     @Override

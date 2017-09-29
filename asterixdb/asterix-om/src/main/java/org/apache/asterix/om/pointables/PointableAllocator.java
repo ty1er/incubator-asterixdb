@@ -27,9 +27,9 @@ import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.EnumDeserializer;
 import org.apache.asterix.om.types.IAType;
 import org.apache.asterix.om.types.TypeTagUtil;
-import org.apache.asterix.om.util.container.IObjectFactory;
-import org.apache.asterix.om.util.container.IObjectPool;
-import org.apache.asterix.om.util.container.ListObjectPool;
+import org.apache.hyracks.util.objectpool.IObjectFactory;
+import org.apache.hyracks.util.objectpool.IObjectPool;
+import org.apache.hyracks.util.objectpool.ListObjectPool;
 
 /**
  * This class is the ONLY place to create IVisitablePointable object instances,

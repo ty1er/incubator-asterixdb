@@ -2005,11 +2005,12 @@ public class QueryTranslator extends AbstractLangTranslator implements IStatemen
         try {
             Feed feed = MetadataManager.INSTANCE.getFeed(mdTxnCtx, dataverseName, feedName);
             if (feed == null) {
-                if (!stmtFeedDrop.getIfExists()) {
+                if (stmtFeedDrop.getIfExists()) {
+                    MetadataManager.INSTANCE.commitTransaction(mdTxnCtx);
+                    return;
+                } else {
                     throw new AlgebricksException("There is no feed with this name " + feedName + ".");
                 }
-                MetadataManager.INSTANCE.commitTransaction(mdTxnCtx);
-                return;
             }
             doDropFeed(hcc, metadataProvider, feed);
             MetadataManager.INSTANCE.commitTransaction(mdTxnCtx);

@@ -19,9 +19,9 @@
 package org.apache.asterix.builders;
 
 import org.apache.asterix.om.types.ATypeTag;
-import org.apache.asterix.om.util.container.IObjectFactory;
 import org.apache.hyracks.data.std.api.IMutableValueStorage;
 import org.apache.hyracks.data.std.util.ArrayBackedValueStorage;
+import org.apache.hyracks.util.objectpool.IObjectFactory;
 
 public class AbvsBuilderFactory implements IObjectFactory<IMutableValueStorage, ATypeTag> {
 
