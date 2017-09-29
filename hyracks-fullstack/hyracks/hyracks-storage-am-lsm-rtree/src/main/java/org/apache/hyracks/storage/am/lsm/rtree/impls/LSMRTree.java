@@ -136,7 +136,7 @@ public class LSMRTree extends AbstractLSMRTree {
                 component = createDiskComponent(componentFactory, flushOp.getTarget(), flushOp.getBTreeTarget(),
                         flushOp.getBloomFilterTarget(), true);
                 componentBulkLoader = component.createBulkLoader(LSMIOOperationType.FLUSH, 1.0f, false,
-                        numBTreeTuples.longValue(), false, false, false);
+                        numBTreeTuples.longValue(), 0L, false, false, false);
                 flushLoadRTree(isEmpty, rTreeTupleSorter, componentBulkLoader);
                 // scan the memory BTree and bulk load delete tuples
                 flushLoadBtree(memBTreeAccessor, componentBulkLoader, btreeNullPredicate);
@@ -333,12 +333,12 @@ public class LSMRTree extends AbstractLSMRTree {
                                 .getNumElements();
                     }
                     componentBulkLoader = mergedComponent.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false,
-                            numElements, false, false, false);
+                            numElements, 0L, false, false, false);
                     mergeLoadBTree(opCtx, rtreeSearchPred, componentBulkLoader);
                 } else {
                     //no buddy-btree needed
                     componentBulkLoader = mergedComponent.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false, 0L,
-                            false, false, false);
+                            0L, false, false, false);
                 }
                 //search old rtree components
                 while (cursor.hasNext()) {

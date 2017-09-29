@@ -31,6 +31,7 @@ public class TypeTraitProvider implements ITypeTraitProvider {
     private static final ITypeTraits TWOBYTETYPETRAIT = new TypeTrait(2 + 1);
     private static final ITypeTraits FOURBYTETYPETRAIT = new TypeTrait(4 + 1);
     private static final ITypeTraits EIGHTBYTETYPETRAIT = new TypeTrait(8 + 1);
+    private static final ITypeTraits TWELVEBYTETYPETRAIT = new TypeTrait(12 + 1);
     private static final ITypeTraits SIXTEENBYTETYPETRAIT = new TypeTrait(16 + 1);
     private static final ITypeTraits SEVENTEENBYTETYPETRAIT = new TypeTrait(17 + 1);
     private static final ITypeTraits THIRTYTWOBYTETYPETRAIT = new TypeTrait(32 + 1);
@@ -60,8 +61,9 @@ public class TypeTraitProvider implements ITypeTraitProvider {
             case BIGINT:
             case DOUBLE:
             case DATETIME:
-            case DURATION:
                 return EIGHTBYTETYPETRAIT;
+            case DURATION:
+                return TWELVEBYTETYPETRAIT;
             case POINT:
             case UUID:
                 return SIXTEENBYTETYPETRAIT;

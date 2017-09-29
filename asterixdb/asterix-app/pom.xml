@@ -427,6 +427,11 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+      <dependency>
+      <groupId>org.apache.asterix</groupId>
+      <artifactId>asterix-statistics</artifactId>
+      <version>${project.version}</version>
+      </dependency>
     <dependency>
       <groupId>org.apache.asterix</groupId>
       <artifactId>asterix-external-data</artifactId>
@@ -654,6 +659,11 @@
       <artifactId>asterix-geo</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>2.5</version>
     </dependency>
   </dependencies>
 </project>

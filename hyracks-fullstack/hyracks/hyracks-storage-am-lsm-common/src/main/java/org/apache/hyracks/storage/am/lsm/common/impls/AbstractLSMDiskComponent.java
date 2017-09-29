@@ -25,6 +25,8 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentFilter;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentId;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.LSMOperationType;
 import org.apache.hyracks.storage.am.lsm.common.util.ComponentUtils;
 import org.apache.hyracks.storage.am.lsm.common.util.LSMComponentIdUtils;
@@ -44,12 +46,24 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
     // since componentId is immutable, we do not want to read from metadata every time the componentId
     // is requested.
     private ILSMComponentId componentId;
+    private final IStatisticsFactory statisticsFactory;
+    private final IStatisticsManager statisticsManager;
+    private ComponentStatistics statistics;
 
     public AbstractLSMDiskComponent(AbstractLSMIndex lsmIndex, IMetadataPageManager mdPageManager,
-            ILSMComponentFilter filter) {
+            ILSMComponentFilter filter, IStatisticsFactory statisticsFactory, IStatisticsManager statisticsManager) {
         super(lsmIndex, filter);
         state = ComponentState.READABLE_UNWRITABLE;
         metadata = new DiskComponentMetadata(mdPageManager);
+        this.statisticsFactory = statisticsFactory;
+        this.statisticsManager = statisticsManager;
+        if (statisticsFactory != null && statisticsManager != null) {
+            this.statistics = new ComponentStatistics(-1L, -1L);
+        }
+    }
+
+    public ComponentStatistics getStatistics() {
+        return statistics;
     }
 
     @Override
@@ -161,6 +175,9 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
         if (getLSMComponentFilter() != null && !createNewComponent) {
             getLsmIndex().getFilterManager().readFilter(getLSMComponentFilter(), getMetadataHolder());
         }
+        if (statistics != null && !createNewComponent) {
+            statistics.readTuplesNum(getMetadata());
+        }
     }
 
     @Override
@@ -214,16 +231,24 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
 
     @Override
     public ChainedLSMDiskComponentBulkLoader createBulkLoader(LSMIOOperationType opType, float fillFactor,
-            boolean verifyInput, long numElementsHint, boolean checkIfEmptyIndex, boolean withFilter,
-            boolean cleanupEmptyComponent) throws HyracksDataException {
+            boolean verifyInput, long numElementsHint, long numAntimatterElementsHint, boolean checkIfEmptyIndex,
+            boolean withFilter, boolean cleanupEmptyComponent) throws HyracksDataException {
         ChainedLSMDiskComponentBulkLoader chainedBulkLoader =
                 new ChainedLSMDiskComponentBulkLoader(this, cleanupEmptyComponent);
         if (withFilter && getLsmIndex().getFilterFields() != null) {
             chainedBulkLoader.addBulkLoader(createFilterBulkLoader());
         }
+        if (statistics != null) {
+            statistics = new ComponentStatistics(numElementsHint, numAntimatterElementsHint);
+            // utilizing that cleanupEmptyComponent == true for bulkloaded component to distinguish it from flush\merge
+            chainedBulkLoader.addBulkLoader(new StatisticsBulkLoader(
+                    statisticsFactory.createStatistics(statistics, cleanupEmptyComponent), statisticsManager, this));
+        }
         IChainedComponentBulkLoader indexBulkloader = opType == LSMIOOperationType.MERGE
-                ? createMergeIndexBulkLoader(fillFactor, verifyInput, numElementsHint, checkIfEmptyIndex)
-                : createIndexBulkLoader(fillFactor, verifyInput, numElementsHint, checkIfEmptyIndex);
+                ? createMergeIndexBulkLoader(fillFactor, verifyInput, numElementsHint + numAntimatterElementsHint,
+                        checkIfEmptyIndex)
+                : createIndexBulkLoader(fillFactor, verifyInput, numElementsHint + numAntimatterElementsHint,
+                        checkIfEmptyIndex);
         chainedBulkLoader.addBulkLoader(indexBulkloader);
         return chainedBulkLoader;
     }

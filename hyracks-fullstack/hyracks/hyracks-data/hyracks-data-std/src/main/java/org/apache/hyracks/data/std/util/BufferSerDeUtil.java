@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.asterix.runtime.aggregates.serializable.std;
+package org.apache.hyracks.data.std.util;
 
 public class BufferSerDeUtil {
 

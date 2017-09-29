@@ -103,4 +103,8 @@ public interface ILogicalOperator {
      * Indicates whether the expressions used by this operator must be variable reference expressions.
      */
     public boolean requiresVariableReferenceExpressions();
+
+    long getCardinality();
+
+    void setCardinality(long cardinality);
 }

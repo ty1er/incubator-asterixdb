@@ -295,8 +295,8 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
             btreeCountingCursor.destroy();
         }
 
-        ILSMDiskComponentBulkLoader componentBulkLoader =
-                component.createBulkLoader(LSMIOOperationType.FLUSH, 1.0f, false, numBTreeTuples, false, false, false);
+        ILSMDiskComponentBulkLoader componentBulkLoader = component.createBulkLoader(LSMIOOperationType.FLUSH, 1.0f,
+                false, numBTreeTuples, 0L, false, false, false);
 
         // Create a scan cursor on the deleted keys BTree underlying the in-memory inverted index.
         IIndexCursor deletedKeysScanCursor = deletedKeysBTreeAccessor.createSearchCursor(false);
@@ -349,6 +349,7 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
         LSMInvertedIndexMergeOperation mergeOp = (LSMInvertedIndexMergeOperation) operation;
         RangePredicate mergePred = new RangePredicate(null, null, true, true, null, null);
         IIndexCursor cursor = mergeOp.getCursor();
+
         ILSMIndexOperationContext opCtx = ((LSMInvertedIndexMergeCursor) cursor).getOpCtx();
         // Scan diskInvertedIndexes ignoring the memoryInvertedIndex.
         // Create an inverted index instance.
@@ -368,7 +369,7 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
                     numElements += ((LSMInvertedIndexDiskComponent) mergeOp.getMergingComponents().get(i))
                             .getBloomFilter().getNumElements();
                 }
-                componentBulkLoader = component.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false, numElements,
+                componentBulkLoader = component.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false, numElements, 0L,
                         false, false, false);
                 loadDeleteTuples(opCtx, btreeCursor, mergePred, componentBulkLoader);
             } finally {
@@ -376,13 +377,14 @@ public class LSMInvertedIndex extends AbstractLSMIndex implements IInvertedIndex
             }
         } else {
             componentBulkLoader =
-                    component.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false, 0L, false, false, false);
+                    component.createBulkLoader(LSMIOOperationType.MERGE, 1.0f, false, 0L, 0L, false, false, false);
         }
         search(opCtx, cursor, mergePred);
         try {
             while (cursor.hasNext()) {
                 cursor.next();
                 componentBulkLoader.add(cursor.getTuple());
+
             }
         } finally {
             try {

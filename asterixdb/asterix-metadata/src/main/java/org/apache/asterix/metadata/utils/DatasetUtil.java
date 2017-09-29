@@ -21,6 +21,7 @@ package org.apache.asterix.metadata.utils;
 import java.io.DataOutput;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -561,5 +562,16 @@ public class DatasetUtil {
             second = datasetArg;
         }
         return new Pair<>(first, second);
+    }
+
+    public static List<ITypeTraits> computeFieldTypeTraits(String[] fields, ARecordType itemType)
+            throws AlgebricksException {
+
+        List<ITypeTraits> typeTraits = new ArrayList<>(fields.length);
+        for (String field : fields) {
+            IAType type = itemType.getSubFieldType(Arrays.asList(field.split("\\.")));
+            typeTraits.add(TypeTraitProvider.INSTANCE.getTypeTrait(type));
+        }
+        return typeTraits;
     }
 }

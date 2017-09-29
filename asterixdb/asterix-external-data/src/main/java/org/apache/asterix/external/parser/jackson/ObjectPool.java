@@ -21,7 +21,7 @@ package org.apache.asterix.external.parser.jackson;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-import org.apache.asterix.om.util.container.IObjectFactory;
+import org.apache.hyracks.util.objectpool.IObjectFactory;
 
 /**
  * Object pool for DFS traversal mode, which allows to recycle objects

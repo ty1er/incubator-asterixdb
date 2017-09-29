@@ -185,6 +185,7 @@ public class LSMSecondaryIndexBulkLoadNodePushable extends AbstractLSMSecondaryI
 
         int numTuples = getNumDeletedTuples(componentPos);
         ILSMDiskComponent primaryComponent = primaryIndex.getDiskComponents().get(componentPos);
+        //TODO:figure out how to pass hint about anti-matter tuples
         componentBulkLoader =
                 (LSMIndexDiskComponentBulkLoader) secondaryIndex.createBulkLoader(1.0f, false, numTuples, false);
         ILSMDiskComponent diskComponent = componentBulkLoader.getComponent();

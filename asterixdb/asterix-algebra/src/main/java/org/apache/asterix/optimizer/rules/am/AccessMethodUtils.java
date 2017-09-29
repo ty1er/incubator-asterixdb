@@ -462,7 +462,7 @@ public class AccessMethodUtils {
      *
      * @throws AlgebricksException
      */
-    public static Triple<ILogicalExpression, ILogicalExpression, Boolean> createSearchKeyExpr(Index index,
+    public static Triple<ILogicalExpression, ILogicalExpression, Boolean> createSearchKeyExpr(boolean isEnforcedIndex,
             IOptimizableFuncExpr optFuncExpr, IAType indexedFieldType, OptimizableOperatorSubTree probeSubTree)
             throws AlgebricksException {
         if (probeSubTree == null) {
@@ -541,23 +541,23 @@ public class AccessMethodUtils {
                             // round-up
                             replacedConstantValue =
                                     getReplacedConstantValue(constantValue.getObject(), constantValueTag,
-                                            indexedFieldTypeTag, index.isEnforced(), TypeCastingMathFunctionType.CEIL);
+                                            indexedFieldTypeTag, isEnforcedIndex, TypeCastingMathFunctionType.CEIL);
                             break;
                         case LE:
                         case GT:
                             // round-down
                             replacedConstantValue =
                                     getReplacedConstantValue(constantValue.getObject(), constantValueTag,
-                                            indexedFieldTypeTag, index.isEnforced(), TypeCastingMathFunctionType.FLOOR);
+                                            indexedFieldTypeTag, isEnforcedIndex, TypeCastingMathFunctionType.FLOOR);
                             break;
                         case EQ:
                             // equality case - both CEIL and FLOOR need to be applied.
                             replacedConstantValue =
                                     getReplacedConstantValue(constantValue.getObject(), constantValueTag,
-                                            indexedFieldTypeTag, index.isEnforced(), TypeCastingMathFunctionType.FLOOR);
+                                            indexedFieldTypeTag, isEnforcedIndex, TypeCastingMathFunctionType.FLOOR);
                             replacedConstantValueForEQCase =
                                     getReplacedConstantValue(constantValue.getObject(), constantValueTag,
-                                            indexedFieldTypeTag, index.isEnforced(), TypeCastingMathFunctionType.CEIL);
+                                            indexedFieldTypeTag, isEnforcedIndex, TypeCastingMathFunctionType.CEIL);
                             break;
                         default:
                             // NEQ should not be a case.
@@ -566,7 +566,7 @@ public class AccessMethodUtils {
                 } else {
                     // Type conversion only case: (e.g., INT -> BIGINT)
                     replacedConstantValue = getReplacedConstantValue(constantValue.getObject(), constantValueTag,
-                            indexedFieldTypeTag, index.isEnforced(), TypeCastingMathFunctionType.NONE);
+                            indexedFieldTypeTag, isEnforcedIndex, TypeCastingMathFunctionType.NONE);
                 }
             }
             // No type-casting at all
@@ -589,7 +589,7 @@ public class AccessMethodUtils {
             ILogicalExpression probeExpr = new VariableReferenceExpression(probeVar);
 
             ATypeTag indexedFieldTypeTag = TypeComputeUtils.getActualType(indexedFieldType).getTypeTag();
-            if (ATypeHierarchy.getTypeDomain(indexedFieldTypeTag) == ATypeHierarchy.Domain.NUMERIC) {
+            if (ATypeHierarchy.belongsToDomain(indexedFieldTypeTag, ATypeHierarchy.Domain.NUMERIC)) {
                 IAType probeType = TypeComputeUtils.getActualType(optFuncExpr.getFieldType(probeVarIndex));
                 ATypeTag probeTypeTypeTag = probeType.getTypeTag();
                 if (probeTypeTypeTag != indexedFieldTypeTag) {

@@ -22,12 +22,11 @@ package org.apache.hyracks.storage.am.lsm.common.impls;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.text.Format;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
@@ -79,6 +78,8 @@ public abstract class AbstractLSMIndexFileManager implements ILSMIndexFileManage
 
     public static final String COMPONENT_TIMESTAMP_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 
+    public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(COMPONENT_TIMESTAMP_FORMAT);
+
     public static final FilenameFilter COMPONENT_FILES_FILTER = (dir, name) -> !name.startsWith(".");
     protected static final FilenameFilter txnFileNameFilter = (dir, name) -> name.startsWith(TXN_PREFIX);
     protected static FilenameFilter bloomFilterFilter =
@@ -89,7 +90,6 @@ public abstract class AbstractLSMIndexFileManager implements ILSMIndexFileManage
     protected final IIOManager ioManager;
     // baseDir should reflect dataset name and partition name and be absolute
     protected final FileReference baseDir;
-    protected final Format formatter = new SimpleDateFormat(COMPONENT_TIMESTAMP_FORMAT);
     protected final Comparator<ComparableFileName> recencyCmp = new RecencyComparator();
     protected final TreeIndexFactory<? extends ITreeIndex> treeFactory;
     private String prevTimestamp = null;
@@ -396,16 +396,16 @@ public abstract class AbstractLSMIndexFileManager implements ILSMIndexFileManage
      *         The returned results of this method are guaranteed to not have duplicates.
      */
     protected String getCurrentTimestamp() {
-        Date date = new Date();
-        String ts = formatter.format(date);
+        LocalDateTime date = LocalDateTime.now();
+        String ts = FORMATTER.format(date);
         /**
          * prevent a corner case where the same timestamp can be given.
          */
         while (prevTimestamp != null && ts.compareTo(prevTimestamp) == 0) {
             try {
                 Thread.sleep(1);
-                date = new Date();
-                ts = formatter.format(date);
+                date = LocalDateTime.now();
+                ts = FORMATTER.format(date);
             } catch (InterruptedException e) {
                 //ignore
             }

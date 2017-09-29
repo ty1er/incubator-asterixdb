@@ -146,8 +146,8 @@ public class EmptyComponent implements ILSMDiskComponent {
 
     @Override
     public ChainedLSMDiskComponentBulkLoader createBulkLoader(LSMIOOperationType opType, float fillFactor,
-            boolean verifyInput, long numElementsHint, boolean checkIfEmptyIndex, boolean withFilter,
-            boolean cleanupEmptyComponent) throws HyracksDataException {
+            boolean verifyInput, long numElementsHint, long numAntimatterElementsHint, boolean checkIfEmptyIndex,
+            boolean withFilter, boolean cleanupEmptyComponent) throws HyracksDataException {
         return null;
     }
 }

@@ -20,6 +20,7 @@ package org.apache.asterix.metadata.utils;
 
 import static org.apache.hyracks.storage.am.common.dataflow.IndexDropOperatorDescriptor.DropOption;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -77,6 +78,28 @@ public class IndexUtil {
             btreeFields[k] = k;
         }
         return btreeFields;
+    }
+
+    public static int[] getSecondaryKeys(Dataset dataset, Index index) throws AlgebricksException {
+        int[] keys;
+        if (index.isPrimaryIndex()) {
+            keys = new int[dataset.getPrimaryKeys().size()];
+        } else {
+            keys = new int[index.getKeyFieldNames().size()];
+        }
+        for (int k = 0; k < keys.length; k++) {
+            keys[k] = k;
+        }
+        return keys;
+    }
+
+    public static List<ITypeTraits> getSecondaryKeyTypeTraits(int[] keyPositions, ITypeTraits[] recordTypeTraits)
+            throws AlgebricksException {
+        List<ITypeTraits> keyTypeTraits = new ArrayList<>(keyPositions.length);
+        for (int i = 0; i < keyPositions.length; i++) {
+            keyTypeTraits.add(recordTypeTraits[keyPositions[i]]);
+        }
+        return keyTypeTraits;
     }
 
     private static int[] secondaryFilterFields(Dataset dataset, Index index, ITypeTraits[] filterTypeTraits)

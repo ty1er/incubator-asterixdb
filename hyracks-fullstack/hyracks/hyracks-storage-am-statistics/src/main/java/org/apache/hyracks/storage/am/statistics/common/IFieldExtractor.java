@@ -16,25 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.hyracks.storage.am.statistics.common;
 
-package org.apache.asterix.om.util.container;
+import java.io.Serializable;
 
-/**
- * A reusable object pool interface.
- */
-public interface IObjectPool<E, T> {
+import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 
-    /**
-     * Give client an E instance
-     *
-     * @param arg
-     *            the argument to create E
-     * @return an E instance
-     */
-    public E allocate(T arg);
-
-    /**
-     * Mark all instances in the pool as unused
-     */
-    public void reset();
+public interface IFieldExtractor extends Serializable {
+    long extractFieldValue(ITupleReference tuple) throws HyracksDataException;
 }

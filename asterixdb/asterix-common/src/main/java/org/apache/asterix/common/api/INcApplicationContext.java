@@ -33,6 +33,7 @@ import org.apache.hyracks.api.application.INCServiceContext;
 import org.apache.hyracks.api.control.CcId;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.api.io.IIOManager;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.common.ILocalResourceRepository;
@@ -120,4 +121,6 @@ public interface INcApplicationContext extends IApplicationContext {
     IReplicaManager getReplicaManager();
 
     long getMaxTxnId();
+
+    IStatisticsManager getStatisticsManager();
 }

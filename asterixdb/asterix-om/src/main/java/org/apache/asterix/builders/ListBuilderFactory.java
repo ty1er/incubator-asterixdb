@@ -19,7 +19,7 @@
 package org.apache.asterix.builders;
 
 import org.apache.asterix.om.types.ATypeTag;
-import org.apache.asterix.om.util.container.IObjectFactory;
+import org.apache.hyracks.util.objectpool.IObjectFactory;
 
 public class ListBuilderFactory implements IObjectFactory<IAsterixListBuilder, ATypeTag> {
 

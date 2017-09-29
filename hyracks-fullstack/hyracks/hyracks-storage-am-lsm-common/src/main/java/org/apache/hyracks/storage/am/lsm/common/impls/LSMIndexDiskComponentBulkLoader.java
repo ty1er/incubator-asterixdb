@@ -39,7 +39,7 @@ public class LSMIndexDiskComponentBulkLoader implements IIndexBulkLoader {
         // new bulk loaded component is "newer" than any other merged component.
         opCtx.setNewComponent(lsmIndex.createBulkLoadTarget());
         this.componentBulkLoader = opCtx.getNewComponent().createBulkLoader(LSMIOOperationType.LOAD, fillFactor,
-                verifyInput, numElementsHint, false, true, true);
+                verifyInput, numElementsHint, 0L, false, true, true);
     }
 
     public ILSMDiskComponent getComponent() {

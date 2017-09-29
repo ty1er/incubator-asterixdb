@@ -23,6 +23,7 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentIdGeneratorFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallback;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 
 public class LSMInvertedIndexIOOperationCallbackFactory extends AbstractLSMIndexIOOperationCallbackFactory {
 
@@ -33,7 +34,8 @@ public class LSMInvertedIndexIOOperationCallbackFactory extends AbstractLSMIndex
     }
 
     @Override
-    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index) throws HyracksDataException {
+    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index, IStatisticsManager statisticsManager)
+            throws HyracksDataException {
         return new LSMInvertedIndexIOOperationCallback(index, getComponentIdGenerator(),
                 getIndexCheckpointManagerProvider());
     }

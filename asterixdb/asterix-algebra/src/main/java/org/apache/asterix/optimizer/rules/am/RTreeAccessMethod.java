@@ -247,8 +247,8 @@ public class RTreeAccessMethod implements IAccessMethod {
         ArrayList<LogicalVariable> keyVarList = new ArrayList<>();
         // List of expressions for the assign.
         ArrayList<Mutable<ILogicalExpression>> keyExprList = new ArrayList<>();
-        ILogicalExpression returnedSearchKeyExpr =
-                AccessMethodUtils.createSearchKeyExpr(chosenIndex, optFuncExpr, optFieldType, probeSubTree).first;
+        ILogicalExpression returnedSearchKeyExpr = AccessMethodUtils.createSearchKeyExpr(chosenIndex.isEnforced(),
+                optFuncExpr, optFieldType, probeSubTree).first;
 
         for (int i = 0; i < numSecondaryKeys; i++) {
             // The create MBR function "extracts" one field of an MBR around the given spatial object.
