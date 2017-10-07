@@ -35,69 +35,68 @@ public class AqlOrdinalPrimitiveValueProviderFactory implements IOrdinalPrimitiv
     public static final AqlOrdinalPrimitiveValueProviderFactory INSTANCE =
             new AqlOrdinalPrimitiveValueProviderFactory();
 
+    private static final IOrdinalPrimitiveValueProvider byteProvider =
+            BytePrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider shortProvider =
+            ShortPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider intProvider =
+            IntegerPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider longProvider =
+            LongPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider dateTimeProvider =
+            DateTimePrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider dateProvider =
+            DatePrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider timeProvider =
+            TimePrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider dayTimeDurationProvider =
+            DayTimeDurationPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+    private static final IOrdinalPrimitiveValueProvider yearMonthDurationProvider =
+            YearMonthDurationPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
+
     private AqlOrdinalPrimitiveValueProviderFactory() {
     }
 
     @Override
     public IOrdinalPrimitiveValueProvider createOrdinalPrimitiveValueProvider() {
-        return new IOrdinalPrimitiveValueProvider() {
-            final IOrdinalPrimitiveValueProvider byteProvider = BytePrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider shortProvider = ShortPrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider intProvider = IntegerPrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider longProvider = LongPrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider dateTimeProvider = DateTimePrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider dateProvider = DatePrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider timeProvider =
-                    TimePrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider dayTimeDurationProvider =
-                    DayTimeDurationPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider();
-            final IOrdinalPrimitiveValueProvider yearMonthDurationProvider =
-                    YearMonthDurationPrimitiveValueProviderFactory.INSTANCE
-                    .createOrdinalPrimitiveValueProvider();
-
-            @Override
-            public long getOrdinalValue(byte[] bytes, int offset) {
-
-                ATypeTag tag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(bytes[offset]);
-                switch (tag) {
-                    case TINYINT: {
-                        return byteProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case SMALLINT: {
-                        return shortProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case INTEGER: {
-                        return intProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case BIGINT: {
-                        return longProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case DATETIME: {
-                        return dateTimeProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case DATE: {
-                        return dateProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case TIME: {
-                        return timeProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case DAYTIMEDURATION: {
-                        return dayTimeDurationProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    case YEARMONTHDURATION: {
-                        return yearMonthDurationProvider.getOrdinalValue(bytes, offset + 1);
-                    }
-                    default: {
-                        throw new NotImplementedException("Value provider for type " + tag + " is not implemented");
-                    }
-                }
-            }
+        return (IOrdinalPrimitiveValueProvider) (bytes, offset) -> {
+            ATypeTag tag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(bytes[offset]);
+            return getTaggedOrdinalValue(tag, bytes, offset + 1);
         };
+    }
+
+    public static long getTaggedOrdinalValue(ATypeTag tag, byte[] bytes, int offset) {
+        switch (tag) {
+            case TINYINT: {
+                return byteProvider.getOrdinalValue(bytes, offset);
+            }
+            case SMALLINT: {
+                return shortProvider.getOrdinalValue(bytes, offset);
+            }
+            case INTEGER: {
+                return intProvider.getOrdinalValue(bytes, offset);
+            }
+            case BIGINT: {
+                return longProvider.getOrdinalValue(bytes, offset);
+            }
+            case DATETIME: {
+                return dateTimeProvider.getOrdinalValue(bytes, offset);
+            }
+            case DATE: {
+                return dateProvider.getOrdinalValue(bytes, offset);
+            }
+            case TIME: {
+                return timeProvider.getOrdinalValue(bytes, offset);
+            }
+            case DAYTIMEDURATION: {
+                return dayTimeDurationProvider.getOrdinalValue(bytes, offset);
+            }
+            case YEARMONTHDURATION: {
+                return yearMonthDurationProvider.getOrdinalValue(bytes, offset);
+            }
+            default: {
+                throw new NotImplementedException("Value provider for type " + tag + " is not implemented");
+            }
+        }
     }
 }

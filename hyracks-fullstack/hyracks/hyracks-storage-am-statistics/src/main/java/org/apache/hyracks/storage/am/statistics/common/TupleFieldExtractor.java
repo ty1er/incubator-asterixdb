@@ -20,21 +20,22 @@
  */
 package org.apache.hyracks.storage.am.statistics.common;
 
+import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProvider;
 
-public class FirstKeyFieldExtractor implements IFieldExtractor {
+public class TupleFieldExtractor implements IFieldExtractor {
 
     private final IOrdinalPrimitiveValueProvider fieldValueProvider;
-    private final int[] fields;
+    private final int field;
 
-    public FirstKeyFieldExtractor(IOrdinalPrimitiveValueProvider fieldValueProvider, int[] fields) {
+    public TupleFieldExtractor(IOrdinalPrimitiveValueProvider fieldValueProvider, int field) {
         this.fieldValueProvider = fieldValueProvider;
-        this.fields = fields;
+        this.field = field;
     }
 
     @Override
-    public long extractFieldValue(ITupleReference tuple) {
-        return fieldValueProvider.getOrdinalValue(tuple.getFieldData(fields[0]), tuple.getFieldStart(fields[0]));
+    public long extractFieldValue(ITupleReference tuple) throws HyracksDataException {
+        return fieldValueProvider.getOrdinalValue(tuple.getFieldData(field), tuple.getFieldStart(field));
     }
 }

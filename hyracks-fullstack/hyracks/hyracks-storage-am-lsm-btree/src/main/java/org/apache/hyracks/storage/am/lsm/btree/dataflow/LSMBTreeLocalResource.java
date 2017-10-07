@@ -79,8 +79,8 @@ public class LSMBTreeLocalResource extends LsmResource {
         List<IVirtualBufferCache> vbcs = vbcProvider.getVirtualBufferCaches(serviceCtx, file);
         //only secondary indexes are allowed to mark entries as updated-in-place
         boolean updateAware = !isPrimary;
-        boolean hasStatistics = !isPrimary && statisticsFactory != null && statisticsManagerProvider != null
-                && statisticsFactory.canCollectStats();
+        boolean hasStatistics = statisticsFactory != null && statisticsManagerProvider != null
+                && statisticsFactory.canCollectStats(isPrimary);
         return LSMBTreeUtil.createLSMTree(ioManager, vbcs, file, storageManager.getBufferCache(serviceCtx), typeTraits,
                 cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate,
                 mergePolicyFactory.createMergePolicy(mergePolicyProperties, serviceCtx),

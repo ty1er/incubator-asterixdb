@@ -33,8 +33,8 @@ import org.apache.hyracks.storage.common.buffercache.IBufferCache;
 
 public abstract class AbstractLSMWithBloomFilterDiskComponent extends AbstractLSMDiskComponent {
     public AbstractLSMWithBloomFilterDiskComponent(AbstractLSMIndex lsmIndex, IMetadataPageManager mdPageManager,
-            ILSMComponentFilter filter) {
-        super(lsmIndex, mdPageManager, filter);
+            ILSMComponentFilter filter, IStatisticsFactory statisticsFactory, IStatisticsManager statisticsManager) {
+        super(lsmIndex, mdPageManager, filter, statisticsFactory, statisticsManager);
     }
 
     public abstract BloomFilter getBloomFilter();

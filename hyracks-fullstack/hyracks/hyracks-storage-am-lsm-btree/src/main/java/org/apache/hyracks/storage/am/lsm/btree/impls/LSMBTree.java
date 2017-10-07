@@ -55,6 +55,7 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTracker;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.IVirtualBufferCache;
 import org.apache.hyracks.storage.am.lsm.common.freepage.VirtualFreePageManager;
+import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndexOperationContext;
 import org.apache.hyracks.storage.am.lsm.common.impls.LSMComponentFileReferences;
@@ -344,9 +345,9 @@ public class LSMBTree extends AbstractLSMIndex implements ITreeIndex {
         if (hasStatistics) {
             numElements = 0L;
             for (ILSMComponent component : mergedComponents) {
-                numElements += ((LSMBTreeWithStatisticsDiskComponent) component).getStatistics().getNumTuples();
+                numElements += ((AbstractLSMDiskComponent) component).getStatistics().getNumTuples();
                 numAntimatterElements +=
-                        ((LSMBTreeWithStatisticsDiskComponent) component).getStatistics().getNumAntimatterTuples();
+                        ((AbstractLSMDiskComponent) component).getStatistics().getNumAntimatterTuples();
             }
         }
         ILSMDiskComponent mergedComponent =

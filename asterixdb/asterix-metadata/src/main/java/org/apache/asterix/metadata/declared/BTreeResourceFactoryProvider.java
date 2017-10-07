@@ -30,10 +30,14 @@ import org.apache.asterix.dataflow.data.nontagged.valueproviders.AqlOrdinalPrimi
 import org.apache.asterix.external.indexing.FilesIndexDescription;
 import org.apache.asterix.external.indexing.IndexingConstants;
 import org.apache.asterix.metadata.api.IResourceFactoryProvider;
+import org.apache.asterix.metadata.dataset.hints.DatasetHints.DatasetStatisticsHint;
 import org.apache.asterix.metadata.entities.Dataset;
 import org.apache.asterix.metadata.entities.Index;
+import org.apache.asterix.metadata.utils.DatasetUtil;
 import org.apache.asterix.metadata.utils.IndexUtil;
+import org.apache.asterix.om.pointables.nonvisitor.ARecordPointable;
 import org.apache.asterix.om.types.ARecordType;
+import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.IAType;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
@@ -41,6 +45,7 @@ import org.apache.hyracks.algebricks.data.IBinaryComparatorFactoryProvider;
 import org.apache.hyracks.algebricks.data.ITypeTraitProvider;
 import org.apache.hyracks.api.dataflow.value.IBinaryComparatorFactory;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
+import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.common.api.IMetadataPageManagerFactory;
 import org.apache.hyracks.storage.am.lsm.btree.dataflow.ExternalBTreeLocalResourceFactory;
 import org.apache.hyracks.storage.am.lsm.btree.dataflow.ExternalBTreeWithBuddyLocalResourceFactory;
@@ -51,7 +56,9 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.common.StatisticsCollectorFactory;
+import org.apache.hyracks.storage.am.statistics.common.TupleFieldExtractor;
 import org.apache.hyracks.storage.common.IResourceFactory;
 import org.apache.hyracks.storage.common.IStorageManager;
 
@@ -98,15 +105,37 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             case INTERNAL:
                 AsterixVirtualBufferCacheProvider vbcProvider =
                         new AsterixVirtualBufferCacheProvider(dataset.getDatasetId());
-                int[] btreeKeys = IndexUtil.getBtreeKeys(dataset, index);
                 ISynopsis.SynopsisType statsType =
                         mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType();
                 IStatisticsFactory statisticsFactory = null;
                 if (statsType != null && statsType != ISynopsis.SynopsisType.None) {
-                    statisticsFactory = new StatisticsCollectorFactory(statsType, btreeKeys,
+                    // check statistics hint
+                    String statisticsFieldNames = dataset.getHints().get(DatasetStatisticsHint.NAME);
+                    int[] statisticsFields;
+                    ITypeTraits[] statisticsTypeTraits;
+                    IFieldExtractor[] statisticsFieldExtractors;
+                    if (!statsType.needsSortedOrder() && statisticsFieldNames != null) {
+                        statisticsFields = getStatisticsFields(recordType, statisticsFieldNames);
+                        statisticsFieldExtractors = new IFieldExtractor[statisticsFields.length];
+                        for (int i = 0; i < statisticsFields.length; i++) {
+                            statisticsFieldExtractors[i] = getFieldExtractor(recordType, statisticsFields[i]);
+                        }
+                        statisticsTypeTraits =
+                                DatasetUtil.computeStatisticsTypeTraits(statisticsFieldNames, recordType);
+                    } else {
+                        // if hint is not specified collect statistics on index key, which is always the first field
+                        statisticsFields = IndexUtil.getSecondaryKeys(dataset, index);
+                        statisticsFieldExtractors = new IFieldExtractor[statisticsFields.length];
+                        for (int i = 0; i < statisticsFields.length; i++) {
+                            statisticsFieldExtractors[i] =
+                                    new TupleFieldExtractor(AqlOrdinalPrimitiveValueProviderFactory.INSTANCE
+                                            .createOrdinalPrimitiveValueProvider(), statisticsFields[i]);
+                        }
+                        statisticsTypeTraits = IndexUtil.getSecondaryKeyTypeTraits(statisticsFields, typeTraits);
+                    }
+                    statisticsFactory = new StatisticsCollectorFactory(statsType, statisticsFields,
                             mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
-                            typeTraits,
-                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider(),
+                            statisticsTypeTraits, statisticsFieldExtractors,
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchAccuracy(),
@@ -209,5 +238,35 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             bloomFilterKeyFields[i] = i;
         }
         return bloomFilterKeyFields;
+    }
+
+    private static int[] getStatisticsFields(ARecordType recordType, String statisticsHint) {
+        String[] hintFields = statisticsHint.split(",");
+        int[] res = new int[hintFields.length];
+        int i = 0;
+        for (String field : hintFields) {
+            int fieldIdx = recordType.getFieldIndex(field);
+            if (fieldIdx != -1) {
+                res[i++] = fieldIdx;
+            }
+        }
+        return res;
+
+    }
+
+    private IFieldExtractor getFieldExtractor(ARecordType recordType, int statisticsField) {
+        final int hyracksFieldIdx = 1;
+        return tuple -> {
+            ARecordPointable recPointable = ARecordPointable.FACTORY.createPointable();
+            ATypeTag tag = recPointable.getClosedFieldType(recordType, statisticsField).getTypeTag();
+            if (tuple.getFieldCount() < hyracksFieldIdx) {
+                throw new HyracksDataException(
+                        "Cannot extract field " + hyracksFieldIdx + " from incoming hyracks tuple");
+            }
+            recPointable.set(tuple.getFieldData(hyracksFieldIdx), tuple.getFieldStart(hyracksFieldIdx),
+                    tuple.getFieldLength(hyracksFieldIdx));
+            return AqlOrdinalPrimitiveValueProviderFactory.getTaggedOrdinalValue(tag, recPointable.getByteArray(),
+                    recPointable.getClosedFieldOffset(recordType, statisticsField));
+        };
     }
 }

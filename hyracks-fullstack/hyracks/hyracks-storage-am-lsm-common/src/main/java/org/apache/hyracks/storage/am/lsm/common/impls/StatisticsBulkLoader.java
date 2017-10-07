@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.lsm.btree.impls;
+package org.apache.hyracks.storage.am.lsm.common.impls;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
-import org.apache.hyracks.storage.am.lsm.common.impls.IChainedComponentBulkLoader;
 
 public class StatisticsBulkLoader implements IChainedComponentBulkLoader {
 
     protected final ISynopsisBuilder statisticsBuilder;
-    private final LSMBTreeWithStatisticsDiskComponent component;
+    private final AbstractLSMDiskComponent component;
     protected final IStatisticsManager statisticsManager;
 
     public StatisticsBulkLoader(ISynopsisBuilder statisticsBuilder, IStatisticsManager statisticsManager,
-            LSMBTreeWithStatisticsDiskComponent component) {
+            AbstractLSMDiskComponent component) {
         this.statisticsBuilder = statisticsBuilder;
         this.statisticsManager = statisticsManager;
         this.component = component;

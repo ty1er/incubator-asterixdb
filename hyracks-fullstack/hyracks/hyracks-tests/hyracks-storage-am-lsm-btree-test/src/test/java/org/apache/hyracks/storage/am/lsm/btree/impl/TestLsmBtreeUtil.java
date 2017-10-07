@@ -100,10 +100,10 @@ public class TestLsmBtreeUtil {
         ILSMDiskComponentFactory bulkLoadComponentFactory;
         if (needKeyDupCheck) {
             BloomFilterFactory bloomFilterFactory = new BloomFilterFactory(diskBufferCache, bloomFilterKeyFields);
-            componentFactory =
-                    new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory, filterHelper);
+            componentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory,
+                    filterHelper, null, null);
             bulkLoadComponentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(bulkLoadBTreeFactory,
-                    bloomFilterFactory, filterHelper);
+                    bloomFilterFactory, filterHelper, null, null);
         } else {
             componentFactory = new LSMBTreeDiskComponentFactory(diskBTreeFactory, filterHelper, null, null);
             bulkLoadComponentFactory = new LSMBTreeDiskComponentFactory(bulkLoadBTreeFactory, filterHelper, null, null);

@@ -114,10 +114,10 @@ public class LSMBTreeUtil {
         ILSMDiskComponentFactory bulkLoadComponentFactory;
         if (needKeyDupCheck) {
             BloomFilterFactory bloomFilterFactory = new BloomFilterFactory(diskBufferCache, bloomFilterKeyFields);
-            componentFactory =
-                    new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory, filterHelper);
+            componentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory,
+                    filterHelper, statisticsFactory, statisticsManager);
             bulkLoadComponentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(bulkLoadBTreeFactory,
-                    bloomFilterFactory, filterHelper);
+                    bloomFilterFactory, filterHelper, statisticsFactory, statisticsManager);
         } else {
             componentFactory = new LSMBTreeDiskComponentFactory(diskBTreeFactory, filterHelper, statisticsFactory,
                     statisticsManager);
@@ -170,11 +170,11 @@ public class LSMBTreeUtil {
         ILSMIndexFileManager fileNameManager = new LSMBTreeFileManager(ioManager, file, diskBTreeFactory, true);
 
         ILSMDiskComponentFactory componentFactory =
-                new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory, null);
-        ILSMDiskComponentFactory bulkLoadComponentFactory =
-                new LSMBTreeWithBloomFilterDiskComponentFactory(bulkLoadBTreeFactory, bloomFilterFactory, null);
-        ILSMDiskComponentFactory transactionComponentFactory =
-                new LSMBTreeWithBloomFilterDiskComponentFactory(transactionBTreeFactory, bloomFilterFactory, null);
+                new LSMBTreeWithBloomFilterDiskComponentFactory(diskBTreeFactory, bloomFilterFactory, null, null, null);
+        ILSMDiskComponentFactory bulkLoadComponentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(
+                bulkLoadBTreeFactory, bloomFilterFactory, null, null, null);
+        ILSMDiskComponentFactory transactionComponentFactory = new LSMBTreeWithBloomFilterDiskComponentFactory(
+                transactionBTreeFactory, bloomFilterFactory, null, null, null);
 
         // the disk only index uses an empty ArrayList for virtual buffer caches
         return new ExternalBTree(ioManager, interiorFrameFactory, insertLeafFrameFactory, deleteLeafFrameFactory,

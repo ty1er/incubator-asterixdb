@@ -29,11 +29,10 @@ import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 
 public class CombinedSynopsisBuilder implements ISynopsisBuilder {
 
-    private final AbstractSynopsisBuilder synopsisBuilder;
-    private final AbstractSynopsisBuilder antimatterSynopsisBuilder;
+    private final ISynopsisBuilder synopsisBuilder;
+    private final ISynopsisBuilder antimatterSynopsisBuilder;
 
-    public CombinedSynopsisBuilder(AbstractSynopsisBuilder synopsisBuilder,
-            AbstractSynopsisBuilder antimatterSynopsisBuilder) {
+    public CombinedSynopsisBuilder(ISynopsisBuilder synopsisBuilder, ISynopsisBuilder antimatterSynopsisBuilder) {
         this.synopsisBuilder = synopsisBuilder;
         this.antimatterSynopsisBuilder = antimatterSynopsisBuilder;
     }
