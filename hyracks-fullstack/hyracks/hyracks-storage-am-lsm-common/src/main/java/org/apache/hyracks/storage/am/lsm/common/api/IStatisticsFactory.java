@@ -26,7 +26,8 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
 public interface IStatisticsFactory extends Serializable {
-    boolean canCollectStats();
+    boolean canCollectStats(boolean unorderedTuples);
 
-    ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload) throws HyracksDataException;
+    ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
+            throws HyracksDataException;
 }

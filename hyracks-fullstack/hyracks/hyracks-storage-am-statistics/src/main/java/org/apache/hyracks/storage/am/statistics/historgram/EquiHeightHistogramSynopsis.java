@@ -38,11 +38,6 @@ public abstract class EquiHeightHistogramSynopsis<T extends HistogramBucket> ext
     }
 
     @Override
-    public boolean isMergeable() {
-        return false;
-    }
-
-    @Override
     public void merge(ISynopsis<T> mergeSynopsis) {
         throw new UnsupportedOperationException();
     }

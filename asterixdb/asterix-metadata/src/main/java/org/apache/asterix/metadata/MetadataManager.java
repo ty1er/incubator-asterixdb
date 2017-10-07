@@ -523,7 +523,7 @@ public class MetadataManager implements IMetadataManager {
             //TODO : proactively merge only stats only within a node/partition?
             for (Statistics stat : indexStats) {
                 type = stat.getSynopsis().getType();
-                isMergeable &= stat.getSynopsis().isMergeable();
+                isMergeable &= stat.getSynopsis().getType().isMergeable();
                 // Check whether the latest statistic is the merged one
                 if (stat.getNode().equals(Statistics.MERGED_STATS_ID)
                         && stat.getPartition().equals(Statistics.MERGED_STATS_ID)) {

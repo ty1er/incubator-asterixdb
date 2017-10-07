@@ -188,11 +188,6 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
     }
 
     @Override
-    public boolean isMergeable() {
-        return true;
-    }
-
-    @Override
     public void merge(List<ISynopsis<WaveletCoefficient>> synopsisList) throws HyracksDataException {
         super.merge(synopsisList);
         createBinaryPreorder();

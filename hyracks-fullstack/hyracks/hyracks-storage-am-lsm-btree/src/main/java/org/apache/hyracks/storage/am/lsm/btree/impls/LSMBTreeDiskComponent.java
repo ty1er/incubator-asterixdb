@@ -25,14 +25,17 @@ import org.apache.hyracks.storage.am.btree.impls.BTree;
 import org.apache.hyracks.storage.am.common.api.IMetadataPageManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentFilter;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndex;
 
 public class LSMBTreeDiskComponent extends AbstractLSMDiskComponent implements ILSMDiskComponent {
     protected final BTree btree;
 
-    public LSMBTreeDiskComponent(AbstractLSMIndex lsmIndex, BTree btree, ILSMComponentFilter filter) {
-        super(lsmIndex, getMetadataPageManager(btree), filter);
+    public LSMBTreeDiskComponent(AbstractLSMIndex lsmIndex, BTree btree, ILSMComponentFilter filter,
+            IStatisticsFactory statisticsFactory, IStatisticsManager statisticsManager) {
+        super(lsmIndex, getMetadataPageManager(btree), filter, statisticsFactory, statisticsManager);
         this.btree = btree;
     }
 

@@ -25,7 +25,6 @@ import java.util.logging.Logger;
 
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
@@ -50,19 +49,19 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     private final ITypeTraits[] fieldTypeTraits;
     private final double energyAccuracy;
     private final SynopsisType type;
-    private final IFieldExtractor fieldExtractor;
-    private int fanout;
+    private final IFieldExtractor[] fieldValueExtractors;
+    private final int fanout;
     private double failureProbability;
     private double accuracy;
 
     public StatisticsCollectorFactory(SynopsisType type, int[] fields, int size, ITypeTraits[] fieldTypeTraits,
-            IOrdinalPrimitiveValueProvider fieldValueProvider, int fanout, double failureProbability, double accuracy,
+            IFieldExtractor[] fieldValueExtractors, int fanout, double failureProbability, double accuracy,
             double energyAccuracy) {
         this.type = type;
         this.fields = fields;
         this.size = size;
         this.fieldTypeTraits = fieldTypeTraits;
-        this.fieldExtractor = new FirstKeyFieldExtractor(fieldValueProvider, fields);
+        this.fieldValueExtractors = fieldValueExtractors;
         this.fanout = fanout;
         this.failureProbability = failureProbability;
         this.accuracy = accuracy;
@@ -70,26 +69,31 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     }
 
     @Override
-    public boolean canCollectStats() {
-        if (fields.length > 1) {
+    public boolean canCollectStats(boolean unorderedTuples) {
+        if (unorderedTuples && type.needsSortedOrder()) {
+            return false;
+        }
+        if (!unorderedTuples && fields.length > 1) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.warning("Unable to collect statistics on composite keys");
             }
             return false;
         }
-        if (!fieldTypeTraits[fields[0]].isFixedLength()) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Unable to collect statistics for non-fixed length keys");
+        for (int i = 0; i < fieldTypeTraits.length; i++) {
+            if (!fieldTypeTraits[i].isFixedLength()) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning("Unable to collect statistics for non-fixed length keys");
+                }
+                return false;
             }
-            return false;
-        }
-        //check if the key can be mapped on long domain, i.e. key length  <= 8 bytes. 1 byte is reserved for typeTag
-        if (fieldTypeTraits[fields[0]].getFixedLength() > (8 + 1)) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
-                        + fieldTypeTraits[fields[0]]);
+            //check if the key can be mapped on long domain, i.e. key length  <= 8 bytes. 1 byte is reserved for typeTag
+            if (fieldTypeTraits[i].getFixedLength() > (8 + 1)) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
+                            + fieldTypeTraits[i]);
+                }
+                return false;
             }
-            return false;
         }
         return true;
     }
@@ -97,20 +101,28 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        AbstractSynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false);
-        if (isBulkload) {
-            return synopsisBuilder;
-        } else {
-            AbstractSynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true);
-            return new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
+        ISynopsisBuilder[] builders = new ISynopsisBuilder[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            AbstractSynopsisBuilder synopsisBuilder =
+                    createSynopsisBuilder(componentStatistics, false, fieldTypeTraits[i], fieldValueExtractors[i]);
+            if (isBulkload) {
+                builders[i] = synopsisBuilder;
+            } else {
+                AbstractSynopsisBuilder antimatterSynopsisBuilder =
+                        createSynopsisBuilder(componentStatistics, true, fieldTypeTraits[i], fieldValueExtractors[i]);
+                builders[i] = new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
+            }
         }
+        return new DelegatingSynopsisBuilder(builders);
     }
 
-    private AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics, boolean isAntimatter)
+    private AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics, boolean isAntimatter,
+            ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
             throws HyracksDataException {
-        ISynopsis synopsis = SynopsisFactory.createSynopsis(type, fieldTypeTraits[0],
-                SynopsisElementFactory.createSynopsisElementsCollection(type, size),
-                isAntimatter ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples(), size);
+        long numElements =
+                isAntimatter ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples();
+        ISynopsis synopsis = SynopsisFactory.createSynopsis(type, fieldTraits,
+                SynopsisElementFactory.createSynopsisElementsCollection(type, size), numElements, size);
         switch (type) {
             case UniformHistogram:
             case ContinuousHistogram:
@@ -126,9 +138,7 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
             case GroupCountSketch:
                 return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
                         componentStatistics, fanout,
-                        failureProbability, accuracy, energyAccuracy, isAntimatter
-                                ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples(),
-                        (int) System.currentTimeMillis());
+                        failureProbability, accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
             case QuantileSketch:
                 return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, isAntimatter, fieldExtractor,
                         componentStatistics, accuracy);

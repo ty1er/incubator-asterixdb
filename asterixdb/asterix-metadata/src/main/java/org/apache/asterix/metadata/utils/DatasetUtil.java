@@ -21,6 +21,7 @@ package org.apache.asterix.metadata.utils;
 import java.io.DataOutput;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -558,5 +559,28 @@ public class DatasetUtil {
         }
         MetadataManager.INSTANCE.addNodegroup(mdTxnCtx, new NodeGroup(nodeGroup, new ArrayList<>(ncNames)));
         return nodeGroup;
+    }
+
+    public static ITypeTraits[] computeStatisticsTypeTraits(String statisticsHint, ARecordType itemType)
+            throws AlgebricksException {
+        List<List<String>> statisticsFields = getStatisticsFields(statisticsHint);
+
+        ITypeTraits[] typeTraits = new ITypeTraits[statisticsFields.size()];
+        int i = 0;
+        for (List<String> field : statisticsFields) {
+            IAType type = itemType.getSubFieldType(field);
+            typeTraits[i++] = TypeTraitProvider.INSTANCE.getTypeTrait(type);
+        }
+        return typeTraits;
+    }
+
+    public static List<List<String>> getStatisticsFields(String statisticsHint) {
+        String[] hintFields = statisticsHint.split(",");
+        List<List<String>> res = new ArrayList<>(hintFields.length);
+        for (String field : hintFields) {
+            res.add(new ArrayList<>(Arrays.asList(field.split("\\."))));
+        }
+        return res;
+
     }
 }

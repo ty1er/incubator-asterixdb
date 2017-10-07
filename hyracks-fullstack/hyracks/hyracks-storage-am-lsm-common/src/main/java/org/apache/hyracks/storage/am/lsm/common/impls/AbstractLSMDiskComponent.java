@@ -23,6 +23,8 @@ import org.apache.hyracks.storage.am.common.api.IMetadataPageManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentFilter;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponentId;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.LSMOperationType;
 import org.apache.hyracks.storage.am.lsm.common.util.ComponentUtils;
 import org.apache.hyracks.storage.common.MultiComparator;
@@ -31,18 +33,30 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
 
     private final DiskComponentMetadata metadata;
     private final AbstractLSMIndex lsmIndex;
+    private final IStatisticsFactory statisticsFactory;
+    private final IStatisticsManager statisticsManager;
+    private ComponentStatistics statistics;
 
     public AbstractLSMDiskComponent(AbstractLSMIndex lsmIndex, IMetadataPageManager mdPageManager,
-            ILSMComponentFilter filter) {
+            ILSMComponentFilter filter, IStatisticsFactory statisticsFactory, IStatisticsManager statisticsManager) {
         super(filter);
         this.lsmIndex = lsmIndex;
         state = ComponentState.READABLE_UNWRITABLE;
         metadata = new DiskComponentMetadata(mdPageManager);
+        this.statisticsFactory = statisticsFactory;
+        this.statisticsManager = statisticsManager;
+        if (statisticsFactory != null && statisticsManager != null) {
+            this.statistics = new ComponentStatistics(-1L, -1L);
+        }
     }
 
     @Override
     public AbstractLSMIndex getLsmIndex() {
         return lsmIndex;
+    }
+
+    public ComponentStatistics getStatistics() {
+        return statistics;
     }
 
     @Override
@@ -141,6 +155,9 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
         if (getLSMComponentFilter() != null && !createNewComponent) {
             getLsmIndex().getFilterManager().readFilter(getLSMComponentFilter(), getMetadataHolder());
         }
+        if (statistics != null && !createNewComponent) {
+            statistics.readTuplesNum(getMetadata());
+        }
     }
 
     @Override
@@ -192,6 +209,12 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
                 new ChainedLSMDiskComponentBulkLoader(this, cleanupEmptyComponent);
         if (withFilter && getLsmIndex().getFilterFields() != null) {
             chainedBulkLoader.addBulkLoader(createFilterBulkLoader());
+        }
+        if (statistics != null) {
+            statistics = new ComponentStatistics(numElementsHint, numAntimatterElementsHint);
+            // using the fact that cleanupEmptyComponent == true for component bulkload to distinguish it from flush\merge
+            chainedBulkLoader.addBulkLoader(new StatisticsBulkLoader(
+                    statisticsFactory.createStatistics(statistics, cleanupEmptyComponent), statisticsManager, this));
         }
         chainedBulkLoader.addBulkLoader(createIndexBulkLoader(fillFactor, verifyInput,
                 numElementsHint + numAntimatterElementsHint, checkIfEmptyIndex));

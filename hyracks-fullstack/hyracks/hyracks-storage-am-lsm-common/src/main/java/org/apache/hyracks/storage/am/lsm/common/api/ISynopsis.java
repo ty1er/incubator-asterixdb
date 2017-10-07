@@ -29,14 +29,36 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 public interface ISynopsis<T extends ISynopsisElement> extends Serializable {
 
     enum SynopsisType {
-        None,
-        GroupCountSketch,
-        PrefixSumWavelet,
-        Wavelet,
-        EquiWidthHistogram,
-        UniformHistogram,
-        ContinuousHistogram,
-        QuantileSketch;
+        None(false, false, false),
+        GroupCountSketch(true, false, false),
+        PrefixSumWavelet(true, false, true),
+        Wavelet(true, true, true),
+        EquiWidthHistogram(true, true, true),
+        UniformHistogram(false, false, true),
+        ContinuousHistogram(false, false, true),
+        QuantileSketch(true, false, false);
+
+        private boolean isMergeable;
+        private final boolean isJoinable;
+        private boolean needsSortedOrder;
+
+        SynopsisType(boolean isMergeable, boolean isJoinable, boolean needsSortedOrder) {
+            this.isMergeable = isMergeable;
+            this.isJoinable = isJoinable;
+            this.needsSortedOrder = needsSortedOrder;
+        }
+
+        public boolean isMergeable() {
+            return isMergeable;
+        }
+
+        public boolean isJoinable() {
+            return isJoinable;
+        }
+
+        public boolean needsSortedOrder() {
+            return needsSortedOrder;
+        }
     }
 
     SynopsisType getType();
@@ -44,8 +66,6 @@ public interface ISynopsis<T extends ISynopsisElement> extends Serializable {
     int getSize();
 
     Collection<T> getElements();
-
-    boolean isMergeable();
 
     void merge(ISynopsis<T> mergeSynopsis) throws HyracksDataException;
 

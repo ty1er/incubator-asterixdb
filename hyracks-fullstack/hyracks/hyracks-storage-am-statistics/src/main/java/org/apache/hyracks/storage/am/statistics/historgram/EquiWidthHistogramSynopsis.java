@@ -40,11 +40,6 @@ public class EquiWidthHistogramSynopsis extends HistogramSynopsis<HistogramBucke
     }
 
     @Override
-    public boolean isMergeable() {
-        return true;
-    }
-
-    @Override
     public void appendToBucket(int bucketId, int bucketNum, long tuplePos, double frequency) {
         getBuckets().get(bucketId).appendToValue(frequency);
     }

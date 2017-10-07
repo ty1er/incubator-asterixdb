@@ -49,10 +49,8 @@ public class StatisticsMerger extends TimerTask {
                     List<Index> indexes = MetadataManager.INSTANCE.getDatasetIndexes(mdTxnCtx, dv.getDataverseName(),
                             ds.getDatasetName());
                     for (Index idx : indexes) {
-                        if (!idx.isPrimaryIndex()) {
-                            MetadataManager.INSTANCE.getMergedStatistics(mdTxnCtx, dv.getDataverseName(),
-                                    ds.getDatasetName(), idx.getIndexName());
-                        }
+                        MetadataManager.INSTANCE.getMergedStatistics(mdTxnCtx, dv.getDataverseName(),
+                                ds.getDatasetName(), idx.getIndexName());
                     }
                 }
             }
