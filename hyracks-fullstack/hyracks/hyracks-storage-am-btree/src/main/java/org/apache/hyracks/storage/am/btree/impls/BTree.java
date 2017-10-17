@@ -897,6 +897,13 @@ public class BTree extends AbstractTreeIndex {
         }
 
         @Override
+        public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+                byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+            // This method is only valid for the LSM indexes.
+            return createSearchCursor(exclusive);
+        }
+
+        @Override
         public void search(IIndexCursor cursor, ISearchPredicate searchPred) throws HyracksDataException {
             ctx.setOperation(IndexOperation.SEARCH);
             btree.search((ITreeIndexCursor) cursor, searchPred, ctx);
@@ -990,6 +997,7 @@ public class BTree extends AbstractTreeIndex {
                 throw HyracksDataException.create(ErrorCode.OPERATION_EXCEEDED_MAX_RESTARTS, MAX_RESTARTS);
             }
         }
+
     }
 
     @Override

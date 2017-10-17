@@ -153,4 +153,35 @@ public abstract class AbstractLSMIndexOperationContext implements ILSMIndexOpera
     public ISearchPredicate getSearchPredicate() {
         return searchPredicate;
     }
+
+    @Override
+    public void setUseOpCallbackProceedResult(boolean useOperationCallbackProceedReturnResult) {
+        // Not applicable for this class.
+    }
+
+    @Override
+    public boolean getUseOpCallbackProceedResult() {
+        return false;
+    }
+
+    @Override
+    public void setFirstValueForUseProceedResult(byte[] firstValuesForUseProceedResult) {
+        // Not applicable for this class.
+    }
+
+    @Override
+    public byte[] getFirstValueForUseProceedResult() {
+        return new byte[0];
+    }
+
+    @Override
+    public void setSecondValueForUseProceedResult(byte[] secondValueForUseProceedResult) {
+        // Not applicable for this class.
+    }
+
+    @Override
+    public byte[] getSecondValueForUseProceedResult() {
+        return new byte[0];
+    }
+
 }

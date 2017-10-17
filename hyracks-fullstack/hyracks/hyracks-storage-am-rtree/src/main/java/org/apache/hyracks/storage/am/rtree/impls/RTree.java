@@ -813,6 +813,13 @@ public class RTree extends AbstractTreeIndex {
         }
 
         @Override
+        public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+                byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+            // This method is not applicable for this class.
+            return createSearchCursor(exclusive);
+        }
+
+        @Override
         public void search(IIndexCursor cursor, ISearchPredicate searchPred) throws HyracksDataException {
             ctx.setOperation(IndexOperation.SEARCH);
             rtree.search((ITreeIndexCursor) cursor, searchPred, ctx);

@@ -133,6 +133,8 @@ public class ErrorCode {
     public static final int ILLEGAL_ATTEMPT_TO_EXIT_EMPTY_COMPONENT = 97;
     public static final int A_FLUSH_OPERATION_HAS_FAILED = 98;
     public static final int A_MERGE_OPERATION_HAS_FAILED = 99;
+    public static final int PREDICATE_CANNOT_BE_NULL = 100;
+    public static final int FULLTEXT_ONLY_EXECUTABLE_FOR_STRING_OR_LIST = 101;
 
     // Compilation error codes.
     public static final int RULECOLLECTION_NOT_INSTANCE_OF_LIST = 10000;

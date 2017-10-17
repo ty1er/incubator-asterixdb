@@ -132,6 +132,11 @@ public class ErrorCode {
     public static final int CANNOT_CREATE_SEC_PRIMARY_IDX_ON_EXT_DATASET = 1053;
     public static final int COMPILATION_FAILED_DUE_TO_REPLICATE_OP = 1054;
     public static final int COMPILATION_INCOMPATIBLE_FUNCTION_LANGUAGE = 1055;
+    public static final int CANNOT_GET_FIELD_TYPE_FOR_FIELD_NAME = 1056;
+    public static final int CANNOT_GENERATE_RESULT_VALUE_FOR_INSTANT_TRYLOCK_FOR_INDEX_ONLY_PLAN = 1057;
+    public static final int ERROR_OCCURRED_BETWEEN_TWO_TYPES_CONVERSION = 1058;
+    public static final int NO_RETAIN_INPUT_IN_LEFT_OUTER_JOIN = 1059;
+    public static final int CHOSEN_INDEX_COUNT_SHOULD_BE_GREATER_THAN_ONE = 1060;
 
     // Feed errors
     public static final int DATAFLOW_ILLEGAL_STATE = 3001;

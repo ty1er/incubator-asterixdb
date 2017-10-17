@@ -44,12 +44,26 @@ public class RTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
     protected final boolean retainMissing;
     protected final IMissingWriterFactory missingWriterFactory;
     protected final ISearchOperationCallbackFactory searchCallbackFactory;
+    protected boolean useOpCallbackProceedResult;
+    protected byte[] firstValueForUseOpCallbackProceedResult;
+    protected byte[] secondValueForUseOpCallbackProceedResult;
 
     public RTreeSearchOperatorDescriptor(IOperatorDescriptorRegistry spec, RecordDescriptor outRecDesc, int[] keyFields,
             boolean lowKeyInclusive, boolean highKeyInclusive, IIndexDataflowHelperFactory indexHelperFactory,
             boolean retainInput, boolean retainMissing, IMissingWriterFactory missingWriterFactory,
             ISearchOperationCallbackFactory searchCallbackFactory, int[] minFilterFieldIndexes,
             int[] maxFilterFieldIndexes, boolean appendIndexFilter) {
+        this(spec, outRecDesc, keyFields, lowKeyInclusive, highKeyInclusive, indexHelperFactory, retainInput,
+                retainMissing, missingWriterFactory, searchCallbackFactory, minFilterFieldIndexes,
+                maxFilterFieldIndexes, appendIndexFilter, false, null, null);
+    }
+
+    public RTreeSearchOperatorDescriptor(IOperatorDescriptorRegistry spec, RecordDescriptor outRecDesc, int[] keyFields,
+            boolean lowKeyInclusive, boolean highKeyInclusive, IIndexDataflowHelperFactory indexHelperFactory,
+            boolean retainInput, boolean retainMissing, IMissingWriterFactory missingWriterFactory,
+            ISearchOperationCallbackFactory searchCallbackFactory, int[] minFilterFieldIndexes,
+            int[] maxFilterFieldIndexes, boolean appendIndexFilter, boolean useOpCallbackProceedResult,
+            byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
         super(spec, 1, 1);
         this.indexHelperFactory = indexHelperFactory;
         this.retainInput = retainInput;
@@ -63,6 +77,9 @@ public class RTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
         this.maxFilterFieldIndexes = maxFilterFieldIndexes;
         this.appendIndexFilter = appendIndexFilter;
         this.outRecDescs[0] = outRecDesc;
+        this.useOpCallbackProceedResult = useOpCallbackProceedResult;
+        this.firstValueForUseOpCallbackProceedResult = firstValueForUseOpCallbackProceedResult;
+        this.secondValueForUseOpCallbackProceedResult = secondValueForUseOpCallbackProceedResult;
     }
 
     @Override
@@ -71,6 +88,7 @@ public class RTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
         return new RTreeSearchOperatorNodePushable(ctx, partition,
                 recordDescProvider.getInputRecordDescriptor(getActivityId(), 0), keyFields, minFilterFieldIndexes,
                 maxFilterFieldIndexes, indexHelperFactory, retainInput, retainMissing, missingWriterFactory,
-                searchCallbackFactory, appendIndexFilter);
+                searchCallbackFactory, appendIndexFilter, useOpCallbackProceedResult,
+                firstValueForUseOpCallbackProceedResult, secondValueForUseOpCallbackProceedResult);
     }
 }

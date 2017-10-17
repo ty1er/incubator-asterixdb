@@ -535,6 +535,54 @@ public class Dataset implements IMetadataEntity<Dataset>, IDataset {
     /**
      * Get search callback factory for this dataset with the passed index and operation
      *
+     * @param storageComponentProvider
+     *            storage component provider
+     * @param index
+     *            the index
+     * @param jobId
+     *            the job id being compiled
+     * @param op
+     *            the operation this search is part of
+     * @param primaryKeyFields
+     *            the primary key fields indexes for locking purposes
+     * @param primaryKeyFieldsInSecondaryIndex
+     *            the primary key fields indexes in the given secondary index (used for index-only plan)
+     * @param proceedIndexOnlyPlan
+     *            the given plan is an index-only plan? (used for index-only plan)
+     * @return
+     *         an instance of {@link org.apache.hyracks.storage.am.common.api.ISearchOperationCallbackFactory}
+     * @throws AlgebricksException
+     *             if the callback factory could not be created
+     */
+    public ISearchOperationCallbackFactory getSearchCallbackFactory(IStorageComponentProvider storageComponentProvider,
+            Index index, JobId jobId, IndexOperation op, int[] primaryKeyFields, int[] primaryKeyFieldsInSecondaryIndex,
+            boolean proceedIndexOnlyPlan) throws AlgebricksException {
+        if (getDatasetDetails().isTemp()) {
+            return NoOpOperationCallbackFactory.INSTANCE;
+        } else if (index.isPrimaryIndex()) {
+            /**
+             * Due to the read-committed isolation level,
+             * we may acquire very short duration lock(i.e., instant lock) for readers.
+             */
+            return (op == IndexOperation.UPSERT)
+                    ? new LockThenSearchOperationCallbackFactory(jobId, getDatasetId(), primaryKeyFields,
+                            storageComponentProvider.getTransactionSubsystemProvider(), ResourceType.LSM_BTREE)
+                    : new PrimaryIndexInstantSearchOperationCallbackFactory(jobId, getDatasetId(), primaryKeyFields,
+                            storageComponentProvider.getTransactionSubsystemProvider(), ResourceType.LSM_BTREE);
+        } else if (proceedIndexOnlyPlan) {
+            // Index-only plan case: we need to execute instantTryLock on PK during a secondary-index search.
+            return new SecondaryIndexSearchOperationCallbackFactory(jobId, getDatasetId(),
+                    primaryKeyFieldsInSecondaryIndex, storageComponentProvider.getTransactionSubsystemProvider(),
+                    ResourceType.LSM_BTREE, proceedIndexOnlyPlan);
+        }
+        return new SecondaryIndexSearchOperationCallbackFactory();
+    }
+
+    /**
+     * Get search callback factory for this dataset with the passed index and operation
+     *
+     * @param storageComponentProvider
+     *            storage component provider
      * @param index
      *            the index
      * @param jobId
@@ -550,20 +598,7 @@ public class Dataset implements IMetadataEntity<Dataset>, IDataset {
      */
     public ISearchOperationCallbackFactory getSearchCallbackFactory(IStorageComponentProvider storageComponentProvider,
             Index index, JobId jobId, IndexOperation op, int[] primaryKeyFields) throws AlgebricksException {
-        if (getDatasetDetails().isTemp()) {
-            return NoOpOperationCallbackFactory.INSTANCE;
-        } else if (index.isPrimaryIndex()) {
-            /**
-             * Due to the read-committed isolation level,
-             * we may acquire very short duration lock(i.e., instant lock) for readers.
-             */
-            return (op == IndexOperation.UPSERT)
-                    ? new LockThenSearchOperationCallbackFactory(jobId, getDatasetId(), primaryKeyFields,
-                            storageComponentProvider.getTransactionSubsystemProvider(), ResourceType.LSM_BTREE)
-                    : new PrimaryIndexInstantSearchOperationCallbackFactory(jobId, getDatasetId(), primaryKeyFields,
-                            storageComponentProvider.getTransactionSubsystemProvider(), ResourceType.LSM_BTREE);
-        }
-        return new SecondaryIndexSearchOperationCallbackFactory();
+        return getSearchCallbackFactory(storageComponentProvider, index, jobId, op, primaryKeyFields, null, false);
     }
 
     /**

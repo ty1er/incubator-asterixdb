@@ -36,6 +36,8 @@ public abstract class AbstractUnnestMapOperator extends AbstractUnnestOperator {
     protected List<LogicalVariable> maxFilterVars;
 
     protected boolean propagateIndexFilter;
+    // Used when the result of a searchCallBack.proceed() is required afterwards.
+    protected boolean generateConditionalSplitVar;
 
     public AbstractUnnestMapOperator(List<LogicalVariable> variables, Mutable<ILogicalExpression> expression,
             List<Object> variableTypes, boolean propagateInput) {
@@ -44,6 +46,7 @@ public abstract class AbstractUnnestMapOperator extends AbstractUnnestOperator {
         this.variableTypes = variableTypes;
         this.propagateInput = propagateInput;
         this.propagateIndexFilter = false;
+        this.generateConditionalSplitVar = false;
     }
 
     @Override
@@ -133,4 +136,13 @@ public abstract class AbstractUnnestMapOperator extends AbstractUnnestOperator {
             return null;
         }
     }
+
+    public void setGenerateConditionalSplitVar(boolean generateConditionalSplitVar) {
+        this.generateConditionalSplitVar = generateConditionalSplitVar;
+    }
+
+    public boolean getGenerateConditionalSplitVar() {
+        return this.generateConditionalSplitVar;
+    }
+
 }

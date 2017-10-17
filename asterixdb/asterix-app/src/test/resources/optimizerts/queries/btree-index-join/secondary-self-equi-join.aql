@@ -20,6 +20,8 @@
  * Description    : Self-equi joins on a dataset using two fields - countA and countB.
  *                  TweetMessages has a secondary btree index on countB, and given the 'indexnl' hint
  *                  we expect the join to be transformed into an indexed nested-loop join.
+ *                  In fact, this is an index-only plan from the inner branch's perspective since only PK and SK
+ *                  variables are used and returned.
  * Success        : Yes
  */
 
@@ -54,8 +56,6 @@ create index twmSndLocIx on TweetMessages(sender-location) type rtree;
 create index msgCountAIx on TweetMessages(countA) type btree;
 create index msgCountBIx on TweetMessages(countB) type btree;
 create index msgTextIx on TweetMessages(message-text) type keyword;
-
-write output to asterix_nc1:"rttest/btree-index-join_self-secondary-equi-join.adm";
 
 for $t1 in dataset('TweetMessages')
 for $t2 in dataset('TweetMessages')

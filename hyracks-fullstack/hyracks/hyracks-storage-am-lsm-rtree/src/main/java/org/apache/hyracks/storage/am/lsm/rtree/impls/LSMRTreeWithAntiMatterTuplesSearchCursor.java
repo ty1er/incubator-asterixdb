@@ -20,7 +20,10 @@
 package org.apache.hyracks.storage.am.lsm.rtree.impls;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.dataflow.common.comm.io.ArrayTupleBuilder;
+import org.apache.hyracks.dataflow.common.comm.io.ArrayTupleReference;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
+import org.apache.hyracks.dataflow.common.utils.TupleUtils;
 import org.apache.hyracks.storage.am.btree.api.IBTreeLeafFrame;
 import org.apache.hyracks.storage.am.btree.impls.BTree;
 import org.apache.hyracks.storage.am.btree.impls.BTreeRangeSearchCursor;
@@ -60,6 +63,16 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
     private boolean open;
     protected ISearchOperationCallback searchCallback;
 
+    // If we need to use the result of search operation call back, then this cursor
+    // needs to return a searched tuple with that result value added (i.e. one more field added to the original tuple).
+    private boolean useProceedResult = false;
+    private byte[] firstReturnValueArrayForProccedResult = new byte[5];
+    private byte[] secondReturnValueArrayForProccedResult = new byte[5];
+    private boolean resultOfsearchCallBackProceed = false;
+    private int numberOfFieldFromIndex = 0;
+    private ArrayTupleBuilder tupleBuilderForProceedResult;
+    private ArrayTupleReference copyTuple = null;
+
     public LSMRTreeWithAntiMatterTuplesSearchCursor(ILSMIndexOperationContext opCtx) {
         this(opCtx, false);
     }
@@ -67,6 +80,9 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
     public LSMRTreeWithAntiMatterTuplesSearchCursor(ILSMIndexOperationContext opCtx, boolean returnDeletedTuples) {
         super(opCtx, returnDeletedTuples);
         currentCursor = 0;
+        this.useProceedResult = opCtx.getUseOpCallbackProceedResult();
+        this.firstReturnValueArrayForProccedResult = opCtx.getFirstValueForUseProceedResult();
+        this.secondReturnValueArrayForProccedResult = opCtx.getSecondValueForUseProceedResult();
     }
 
     @Override
@@ -79,6 +95,14 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
         operationalComponents = lsmInitialState.getOperationalComponents();
         rtreeSearchPredicate = (SearchPredicate) searchPred;
         searchCallback = lsmInitialState.getSearchOperationCallback();
+        //a buddy-btree entry consists of key and value fields
+        numberOfFieldFromIndex = btreeCmp.getKeyFieldCount();
+        // If it is required to use the result of searchCallback.proceed(),
+        // we need to initialize the tuple builder that will add one more field to the original searched result.
+        if (useProceedResult) {
+            tupleBuilderForProceedResult = new ArrayTupleBuilder(numberOfFieldFromIndex + 1);
+            copyTuple = new ArrayTupleReference();
+        }
 
         includeMutableComponent = false;
         numMutableComponents = 0;
@@ -155,7 +179,7 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
                     // reconcile() and complete() can be added later after considering the semantics.
 
                     // Call proceed() to do necessary operations before returning this tuple.
-                    searchCallback.proceed(currentTuple);
+                    resultOfsearchCallBackProceed = searchCallback.proceed(currentTuple);
                     if (searchMemBTrees(currentTuple, currentCursor)) {
                         // anti-matter tuple is NOT found
                         foundNext = true;
@@ -174,7 +198,7 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
                 // reconcile() and complete() can be added later after considering the semantics.
 
                 // Call proceed() to do necessary operations before returning this tuple.
-                searchCallback.proceed(diskRTreeTuple);
+                resultOfsearchCallBackProceed = searchCallback.proceed(diskRTreeTuple);
                 if (searchMemBTrees(diskRTreeTuple, numMutableComponents)) {
                     // anti-matter tuple is NOT found
                     foundNext = true;
@@ -192,7 +216,7 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
 
                 // Call proceed() to do necessary operations before returning this tuple.
                 // Since in-memory components don't exist, we can skip searching in-memory B-Trees.
-                searchCallback.proceed(diskRTreeTuple);
+                resultOfsearchCallBackProceed = searchCallback.proceed(diskRTreeTuple);
                 foundNext = true;
                 frameTuple = diskRTreeTuple;
                 return true;
@@ -222,6 +246,23 @@ public class LSMRTreeWithAntiMatterTuplesSearchCursor extends LSMIndexSearchCurs
     @Override
     public void next() throws HyracksDataException {
         foundNext = false;
+        //  If useProceedResult is set to true and the result of searchCallback.proceed() is
+        //     fail: zero (default value) will be added as a field.
+        //  success: one (default value) will be added as a field.
+        if (useProceedResult) {
+            tupleBuilderForProceedResult.reset();
+            TupleUtils.copyTuple(tupleBuilderForProceedResult, frameTuple, numberOfFieldFromIndex);
+            if (!resultOfsearchCallBackProceed) {
+                // fail case - add the value that indicates failure.
+                tupleBuilderForProceedResult.addField(firstReturnValueArrayForProccedResult, 0, 5);
+            } else {
+                // success case - add the value that indicates success.
+                tupleBuilderForProceedResult.addField(secondReturnValueArrayForProccedResult, 0, 5);
+            }
+            copyTuple.reset(tupleBuilderForProceedResult.getFieldEndOffsets(),
+                    tupleBuilderForProceedResult.getByteArray());
+            frameTuple = copyTuple;
+        }
     }
 
     @Override

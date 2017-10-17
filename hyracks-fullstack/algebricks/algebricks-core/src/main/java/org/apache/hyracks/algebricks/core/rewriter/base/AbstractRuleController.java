@@ -93,6 +93,7 @@ public abstract class AbstractRuleController {
             printRuleApplication(rule, preBeforePlan, preAfterPlan);
             return true;
         }
+
         boolean rewritten = false;
         AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
 

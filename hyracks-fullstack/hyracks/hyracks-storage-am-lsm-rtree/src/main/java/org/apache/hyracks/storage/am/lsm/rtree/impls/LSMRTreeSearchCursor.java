@@ -19,8 +19,12 @@
 
 package org.apache.hyracks.storage.am.lsm.rtree.impls;
 
+import org.apache.hyracks.api.exceptions.ErrorCode;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.dataflow.common.comm.io.ArrayTupleBuilder;
+import org.apache.hyracks.dataflow.common.comm.io.ArrayTupleReference;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
+import org.apache.hyracks.dataflow.common.utils.TupleUtils;
 import org.apache.hyracks.storage.am.common.tuples.PermutingTupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentFilter;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndexOperationContext;
@@ -31,11 +35,19 @@ public class LSMRTreeSearchCursor extends LSMRTreeAbstractCursor {
 
     private int currentCursor;
     private final PermutingTupleReference btreeTuple;
+    private boolean resultOfsearchCallBackProceed = false;
+    private boolean useProceedResult = false;
+    private byte[] valuesForOperationCallbackProceedReturnResult;
+    private int numberOfFieldFromIndex = 0;
+    private ArrayTupleBuilder tupleBuilderForProceedResult;
+    private ArrayTupleReference copyTuple = null;
 
     public LSMRTreeSearchCursor(ILSMIndexOperationContext opCtx, int[] buddyBTreeFields) {
         super(opCtx);
         currentCursor = 0;
         this.btreeTuple = new PermutingTupleReference(buddyBTreeFields);
+        this.useProceedResult = opCtx.getUseOpCallbackProceedResult();
+        this.valuesForOperationCallbackProceedReturnResult = opCtx.getFirstValueForUseProceedResult();
     }
 
     @Override
@@ -96,6 +108,8 @@ public class LSMRTreeSearchCursor extends LSMRTreeAbstractCursor {
             while (rtreeCursors[currentCursor].hasNext()) {
                 rtreeCursors[currentCursor].next();
                 ITupleReference currentTuple = rtreeCursors[currentCursor].getTuple();
+                // Call proceed() to do necessary operations before returning this tuple.
+                resultOfsearchCallBackProceed = searchCallback.proceed(currentTuple);
                 btreeTuple.reset(rtreeCursors[currentCursor].getTuple());
                 boolean killerTupleFound = false;
                 for (int i = 0; i < currentCursor && !killerTupleFound; i++) {
@@ -130,12 +144,43 @@ public class LSMRTreeSearchCursor extends LSMRTreeAbstractCursor {
     @Override
     public void next() throws HyracksDataException {
         foundNext = false;
+        //  If useProceedResult is set to true and the result of searchCallback.proceed() is
+        //     fail: zero (default value) will be added as a field.
+        //  success: one (default value) will be added as a field.
+        if (useProceedResult) {
+            tupleBuilderForProceedResult.reset();
+            TupleUtils.copyTuple(tupleBuilderForProceedResult, frameTuple, numberOfFieldFromIndex);
+
+            if (!resultOfsearchCallBackProceed) {
+                // fail case
+                tupleBuilderForProceedResult.addField(valuesForOperationCallbackProceedReturnResult, 0, 5);
+            } else {
+                // success case
+                tupleBuilderForProceedResult.addField(valuesForOperationCallbackProceedReturnResult, 5, 5);
+            }
+            copyTuple.reset(tupleBuilderForProceedResult.getFieldEndOffsets(),
+                    tupleBuilderForProceedResult.getByteArray());
+            frameTuple = copyTuple;
+        }
     }
 
     @Override
     public void open(ICursorInitialState initialState, ISearchPredicate searchPred) throws HyracksDataException {
         super.open(initialState, searchPred);
         searchNextCursor();
+        // If it is required to use the result of searchCallback.proceed(),
+        // we need to initialize the byte array that contains fail and success result.
+        if (useProceedResult) {
+            if (rtreeSearchPredicate.getLowKeyComparator() != null) {
+                numberOfFieldFromIndex =
+                        btreeCmp.getKeyFieldCount() + rtreeSearchPredicate.getLowKeyComparator().getKeyFieldCount();
+            } else {
+                throw HyracksDataException.create(ErrorCode.PREDICATE_CANNOT_BE_NULL);
+            }
+            tupleBuilderForProceedResult = new ArrayTupleBuilder(numberOfFieldFromIndex + 1);
+            copyTuple = new ArrayTupleReference();
+        }
+
     }
 
 }

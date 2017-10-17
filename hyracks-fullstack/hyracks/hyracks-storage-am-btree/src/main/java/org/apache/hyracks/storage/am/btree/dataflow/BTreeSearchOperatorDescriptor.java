@@ -37,20 +37,35 @@ public class BTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
     protected final int[] highKeyFields;
     protected final boolean lowKeyInclusive;
     protected final boolean highKeyInclusive;
-    protected final int[] minFilterFieldIndexes;
-    protected final int[] maxFilterFieldIndexes;
+    private final int[] minFilterFieldIndexes;
+    private final int[] maxFilterFieldIndexes;
     protected final IIndexDataflowHelperFactory indexHelperFactory;
     protected final boolean retainInput;
     protected final boolean retainMissing;
     protected final IMissingWriterFactory missingWriterFactory;
     protected final ISearchOperationCallbackFactory searchCallbackFactory;
     protected final boolean appendIndexFilter;
+    protected boolean useOpCallbackProceedResult;
+    protected byte[] firstValueForUseOpCallbackProceedResult;
+    protected byte[] secondValueForUseOpCallbackProceedResult;
 
     public BTreeSearchOperatorDescriptor(IOperatorDescriptorRegistry spec, RecordDescriptor outRecDesc,
             int[] lowKeyFields, int[] highKeyFields, boolean lowKeyInclusive, boolean highKeyInclusive,
             IIndexDataflowHelperFactory indexHelperFactory, boolean retainInput, boolean retainMissing,
             IMissingWriterFactory missingWriterFactory, ISearchOperationCallbackFactory searchCallbackFactory,
             int[] minFilterFieldIndexes, int[] maxFilterFieldIndexes, boolean appendIndexFilter) {
+        this(spec, outRecDesc, lowKeyFields, highKeyFields, lowKeyInclusive, highKeyInclusive, indexHelperFactory,
+                retainInput, retainMissing, missingWriterFactory, searchCallbackFactory, minFilterFieldIndexes,
+                maxFilterFieldIndexes, appendIndexFilter, false, null, null);
+    }
+
+    public BTreeSearchOperatorDescriptor(IOperatorDescriptorRegistry spec, RecordDescriptor outRecDesc,
+            int[] lowKeyFields, int[] highKeyFields, boolean lowKeyInclusive, boolean highKeyInclusive,
+            IIndexDataflowHelperFactory indexHelperFactory, boolean retainInput, boolean retainMissing,
+            IMissingWriterFactory missingWriterFactory, ISearchOperationCallbackFactory searchCallbackFactory,
+            int[] minFilterFieldIndexes, int[] maxFilterFieldIndexes, boolean appendIndexFilter,
+            boolean useOpCallbackProceedResult, byte[] firstValueForUseOpCallbackProceedResult,
+            byte[] secondValueForUseOpCallbackProceedResult) {
         super(spec, 1, 1);
         this.indexHelperFactory = indexHelperFactory;
         this.retainInput = retainInput;
@@ -65,6 +80,9 @@ public class BTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
         this.maxFilterFieldIndexes = maxFilterFieldIndexes;
         this.appendIndexFilter = appendIndexFilter;
         this.outRecDescs[0] = outRecDesc;
+        this.useOpCallbackProceedResult = useOpCallbackProceedResult;
+        this.firstValueForUseOpCallbackProceedResult = firstValueForUseOpCallbackProceedResult;
+        this.secondValueForUseOpCallbackProceedResult = secondValueForUseOpCallbackProceedResult;
     }
 
     @Override
@@ -73,6 +91,9 @@ public class BTreeSearchOperatorDescriptor extends AbstractSingleActivityOperato
         return new BTreeSearchOperatorNodePushable(ctx, partition,
                 recordDescProvider.getInputRecordDescriptor(getActivityId(), 0), lowKeyFields, highKeyFields,
                 lowKeyInclusive, highKeyInclusive, minFilterFieldIndexes, maxFilterFieldIndexes, indexHelperFactory,
-                retainInput, retainMissing, missingWriterFactory, searchCallbackFactory, appendIndexFilter);
+                retainInput, retainMissing, missingWriterFactory, searchCallbackFactory, appendIndexFilter,
+                useOpCallbackProceedResult, firstValueForUseOpCallbackProceedResult,
+                secondValueForUseOpCallbackProceedResult);
     }
+
 }

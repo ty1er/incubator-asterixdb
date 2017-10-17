@@ -32,11 +32,11 @@ import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractUnne
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AggregateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.DelegateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistinctOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DistributeResultOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.EmptyTupleSourceOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.ExchangeOperator;
-import org.apache.hyracks.algebricks.core.algebra.operators.logical.DelegateOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.GroupByOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IndexInsertDeleteUpsertOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.InnerJoinOperator;
@@ -372,7 +372,7 @@ public class LogicalOperatorPrettyPrintVisitor implements ILogicalOperatorVisito
     @Override
     public Void visitSplitOperator(SplitOperator op, Integer indent) throws AlgebricksException {
         Mutable<ILogicalExpression> branchingExpression = op.getBranchingExpression();
-        addIndent(indent).append("split " + branchingExpression.getValue().accept(exprVisitor, indent));
+        addIndent(indent).append("split (" + branchingExpression.getValue().accept(exprVisitor, indent) + ")");
         return null;
     }
 

@@ -82,6 +82,13 @@ public class InMemoryInvertedIndexAccessor implements IInvertedIndexAccessor {
     }
 
     @Override
+    public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+            byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+        // This method is not applicable for the inverted index.
+        return createSearchCursor(exclusive);
+    }
+
+    @Override
     public void search(IIndexCursor cursor, ISearchPredicate searchPred) throws HyracksDataException {
         searcher.search((OnDiskInvertedIndexSearchCursor) cursor, (InvertedIndexSearchPredicate) searchPred, opCtx);
     }

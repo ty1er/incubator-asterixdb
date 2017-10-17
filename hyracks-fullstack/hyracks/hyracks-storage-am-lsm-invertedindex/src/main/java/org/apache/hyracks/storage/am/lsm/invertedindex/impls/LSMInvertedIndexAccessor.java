@@ -85,6 +85,13 @@ public class LSMInvertedIndexAccessor implements ILSMIndexAccessor, IInvertedInd
     }
 
     @Override
+    public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+            byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+        // This method is not applicable for the inverted index.
+        return createSearchCursor(exclusive);
+    }
+
+    @Override
     public void scheduleFlush(ILSMIOOperationCallback callback) throws HyracksDataException {
         ctx.setOperation(IndexOperation.FLUSH);
         lsmHarness.scheduleFlush(ctx, callback);
