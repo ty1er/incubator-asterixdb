@@ -83,11 +83,27 @@ public abstract class IndexSearchOperatorNodePushable extends AbstractUnaryInput
     protected boolean failed = false;
     private final IOperatorStats stats;
 
+    // Used when the result of the search operation callback needs to be passed.
+    protected boolean useOpCallbackProceedResult;
+    protected byte[] firstValueForUseOpCallbackProceedResult;
+    protected byte[] secondValueForUseOpCallbackProceedResult;
+
     public IndexSearchOperatorNodePushable(IHyracksTaskContext ctx, RecordDescriptor inputRecDesc, int partition,
             int[] minFilterFieldIndexes, int[] maxFilterFieldIndexes, IIndexDataflowHelperFactory indexHelperFactory,
             boolean retainInput, boolean retainMissing, IMissingWriterFactory missingWriterFactory,
             ISearchOperationCallbackFactory searchCallbackFactory, boolean appendIndexFilter)
             throws HyracksDataException {
+        this(ctx, inputRecDesc, partition, minFilterFieldIndexes, maxFilterFieldIndexes, indexHelperFactory,
+                retainInput, retainMissing, missingWriterFactory, searchCallbackFactory, appendIndexFilter, false,
+                null, null);
+    }
+
+    public IndexSearchOperatorNodePushable(IHyracksTaskContext ctx, RecordDescriptor inputRecDesc, int partition,
+            int[] minFilterFieldIndexes, int[] maxFilterFieldIndexes, IIndexDataflowHelperFactory indexHelperFactory,
+            boolean retainInput, boolean retainMissing, IMissingWriterFactory missingWriterFactory,
+            ISearchOperationCallbackFactory searchCallbackFactory, boolean appendIndexFilter,
+            boolean useOpCallbackProceedResult, byte[] firstValueForUseOpCallbackProceedResult,
+            byte[] secondValueForUseOpCallbackProceedResult) throws HyracksDataException {
         this.ctx = ctx;
         this.indexHelper = indexHelperFactory.create(ctx.getJobletContext().getServiceContext(), partition);
         this.retainInput = retainInput;
@@ -108,6 +124,9 @@ public abstract class IndexSearchOperatorNodePushable extends AbstractUnaryInput
             maxFilterKey = new PermutingFrameTupleReference();
             maxFilterKey.setFieldPermutation(maxFilterFieldIndexes);
         }
+        this.useOpCallbackProceedResult = useOpCallbackProceedResult;
+        this.firstValueForUseOpCallbackProceedResult = firstValueForUseOpCallbackProceedResult;
+        this.secondValueForUseOpCallbackProceedResult = secondValueForUseOpCallbackProceedResult;
         stats = new OperatorStats(getDisplayName());
         if (ctx.getStatsCollector() != null) {
             ctx.getStatsCollector().add(stats);
@@ -119,7 +138,8 @@ public abstract class IndexSearchOperatorNodePushable extends AbstractUnaryInput
     protected abstract void resetSearchPredicate(int tupleIndex);
 
     protected IIndexCursor createCursor() {
-        return indexAccessor.createSearchCursor(false);
+        return indexAccessor.createSearchCursor(false, useOpCallbackProceedResult,
+                firstValueForUseOpCallbackProceedResult, secondValueForUseOpCallbackProceedResult);
     }
 
     protected abstract int getFieldCount();
@@ -132,6 +152,10 @@ public abstract class IndexSearchOperatorNodePushable extends AbstractUnaryInput
         accessor = new FrameTupleAccessor(inputRecDesc);
         if (retainMissing) {
             int fieldCount = getFieldCount();
+            // If we need to write down the result of searchOperationCallback.proceed(), one more field is required.
+            if (useOpCallbackProceedResult) {
+                fieldCount++;
+            }
             nonMatchTupleBuild = new ArrayTupleBuilder(fieldCount);
             buildMissingTuple(fieldCount, nonMatchTupleBuild, nonMatchWriter);
         } else {
@@ -290,15 +314,22 @@ public abstract class IndexSearchOperatorNodePushable extends AbstractUnaryInput
         }
     }
 
-    private static void buildMissingTuple(int numFields, ArrayTupleBuilder nullTuple, IMissingWriter nonMatchWriter) {
+    private void buildMissingTuple(int numFields, ArrayTupleBuilder nullTuple, IMissingWriter nonMatchWriter) {
         DataOutput out = nullTuple.getDataOutput();
         for (int i = 0; i < numFields; i++) {
             try {
-                nonMatchWriter.writeMissing(out);
+                if (i == (numFields - 1) && useOpCallbackProceedResult) {
+                    // We write the success result in the last field in case
+                    // we need to write down the result of searchOperationCallback.proceed().
+                    // This value can't be null.
+                    nullTuple.addField(secondValueForUseOpCallbackProceedResult, 0, 5);
+                } else {
+                    nonMatchWriter.writeMissing(out);
+                    nullTuple.addFieldEndOffset();
+                }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, e.getMessage(), e);
             }
-            nullTuple.addFieldEndOffset();
         }
     }
 

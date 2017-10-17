@@ -44,6 +44,20 @@ public interface ILSMIndexOperationContext extends IIndexOperationContext {
 
     List<ILSMDiskComponent> getComponentsToBeReplicated();
 
+    // If set to true, a search operation will generate one more field in addition to the index search output.
+    // That is, the result of SearchOperationCallback.proceed() will be recorded.
+    public void setUseOpCallbackProceedResult(boolean useOpCallbackProceedResult);
+
+    public boolean getUseOpCallbackProceedResult();
+
+    public void setFirstValueForUseProceedResult(byte[] firstValueForUseOpCallbackProceedResult);
+
+    public byte[] getFirstValueForUseProceedResult();
+
+    public void setSecondValueForUseProceedResult(byte[] secondValueForUseOpCallbackProceedResult);
+
+    public byte[] getSecondValueForUseProceedResult();
+
     /**
      * @return true if this operation entered the components. Otherwise false.
      */

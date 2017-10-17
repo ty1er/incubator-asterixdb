@@ -59,6 +59,9 @@ public final class LSMBTreeOpContext extends AbstractLSMIndexOperationContext {
      */
     private BTree.BTreeAccessor currentMutableBTreeAccessor;
     private BTreeOpContext currentMutableBTreeOpCtx;
+    private boolean useOperationCallbackProceedReturnResult;
+    private byte[] firstReturnValueArrayForProccedResult;
+    private byte[] secondReturnValueArrayForProccedResult;
 
     public LSMBTreeOpContext(List<ILSMMemoryComponent> mutableComponents, ITreeIndexFrameFactory insertLeafFrameFactory,
             ITreeIndexFrameFactory deleteLeafFrameFactory, IModificationOperationCallback modificationCallback,
@@ -107,6 +110,9 @@ public final class LSMBTreeOpContext extends AbstractLSMIndexOperationContext {
         searchInitialState = new LSMBTreeCursorInitialState(insertLeafFrameFactory, getCmp(), bloomFilterCmp,
                 lsmHarness, null, searchCallback, null);
         insertSearchCursor = new LSMBTreePointSearchCursor(this);
+        this.useOperationCallbackProceedReturnResult = false;
+        this.firstReturnValueArrayForProccedResult = null;
+        this.secondReturnValueArrayForProccedResult = null;
     }
 
     @Override
@@ -171,4 +177,35 @@ public final class LSMBTreeOpContext extends AbstractLSMIndexOperationContext {
     public MultiComparator getCmp() {
         return cmp;
     }
+
+    @Override
+    public void setUseOpCallbackProceedResult(boolean useOperationCallbackProceedReturnResult) {
+        this.useOperationCallbackProceedReturnResult = useOperationCallbackProceedReturnResult;
+    }
+
+    @Override
+    public void setFirstValueForUseProceedResult(byte[] firstReturnValueArrayForProccedResult) {
+        this.firstReturnValueArrayForProccedResult = firstReturnValueArrayForProccedResult;
+    }
+
+    @Override
+    public void setSecondValueForUseProceedResult(byte[] secondReturnValueArrayForProccedResult) {
+        this.secondReturnValueArrayForProccedResult = secondReturnValueArrayForProccedResult;
+    }
+
+    @Override
+    public boolean getUseOpCallbackProceedResult() {
+        return useOperationCallbackProceedReturnResult;
+    }
+
+    @Override
+    public byte[] getFirstValueForUseProceedResult() {
+        return firstReturnValueArrayForProccedResult;
+    }
+
+    @Override
+    public byte[] getSecondValueForUseProceedResult() {
+        return secondReturnValueArrayForProccedResult;
+    }
+
 }

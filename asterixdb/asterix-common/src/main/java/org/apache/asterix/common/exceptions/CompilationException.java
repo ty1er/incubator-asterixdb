@@ -34,6 +34,10 @@ public class CompilationException extends AlgebricksException {
         super(ErrorCode.ASTERIX, errorCode, ErrorCode.getErrorMessage(errorCode), cause, params);
     }
 
+    public CompilationException(int errorCode, Throwable cause) {
+        super(ErrorCode.ASTERIX, errorCode, ErrorCode.getErrorMessage(errorCode), cause);
+    }
+
     /**
      * @deprecated (Don't use this and provide an error code. This exists for the current exceptions and
      *             those exceptions need to adopt error code as well.)

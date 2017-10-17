@@ -438,6 +438,13 @@ public class OnDiskInvertedIndex implements IInPlaceInvertedIndex {
         }
 
         @Override
+        public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+                byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+            // This method is not applicable for the inverted index.
+            return createSearchCursor(exclusive);
+        }
+
+        @Override
         public void search(IIndexCursor cursor, ISearchPredicate searchPred) throws HyracksDataException {
             searcher.search((OnDiskInvertedIndexSearchCursor) cursor, (InvertedIndexSearchPredicate) searchPred, opCtx);
         }
@@ -483,6 +490,7 @@ public class OnDiskInvertedIndex implements IInPlaceInvertedIndex {
         public void upsert(ITupleReference tuple) throws HyracksDataException {
             throw new UnsupportedOperationException("Upsert not supported by inverted index.");
         }
+
     }
 
     @Override

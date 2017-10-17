@@ -63,6 +63,7 @@ import org.apache.hyracks.algebricks.core.algebra.operators.logical.AssignOperat
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.IntersectOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.SelectOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.SplitOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.UnnestMapOperator;
 import org.apache.hyracks.algebricks.core.algebra.util.OperatorPropertiesUtil;
 import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
@@ -72,6 +73,7 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
     static final Logger LOGGER = Logger.getLogger(IntroduceLSMComponentFilterRule.class.getName());
 
     protected IVariableTypeEnvironment typeEnvironment = null;
+    protected boolean isIndexOnlyPlan = false;
 
     @Override
     public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
@@ -82,7 +84,7 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
     @Override
     public boolean rewritePost(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
             throws AlgebricksException {
-
+        isIndexOnlyPlan = false;
         if (!checkIfRuleIsApplicable(opRef, context)) {
             return false;
         }
@@ -243,15 +245,15 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
             IOptimizationContext context) throws AlgebricksException {
         for (UnnestMapOperator primaryOp : primaryUnnestMapOps) {
             Mutable<ILogicalOperator> assignOrOrderOrIntersect = primaryOp.getInputs().get(0);
-            Mutable<ILogicalOperator> intersectOrSort = assignOrOrderOrIntersect;
+            Mutable<ILogicalOperator> intersectOrSortOrSplit = assignOrOrderOrIntersect;
 
             if (assignOrOrderOrIntersect.getValue().getOperatorTag() == LogicalOperatorTag.ASSIGN) {
-                intersectOrSort = assignOrOrderOrIntersect.getValue().getInputs().get(0);
+                intersectOrSortOrSplit = assignOrOrderOrIntersect.getValue().getInputs().get(0);
             }
 
-            switch (intersectOrSort.getValue().getOperatorTag()) {
+            switch (intersectOrSortOrSplit.getValue().getOperatorTag()) {
                 case INTERSECT:
-                    IntersectOperator intersect = (IntersectOperator) (intersectOrSort.getValue());
+                    IntersectOperator intersect = (IntersectOperator) (intersectOrSortOrSplit.getValue());
                     List<List<LogicalVariable>> filterVars = new ArrayList<>(intersect.getInputs().size());
                     for (Mutable<ILogicalOperator> mutableOp : intersect.getInputs()) {
                         ILogicalOperator child = mutableOp.getValue();
@@ -270,13 +272,30 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
                         IntersectOperator intersectWithFilter =
                                 createIntersectWithFilter(outputFilterVars, filterVars, intersect);
 
-                        intersectOrSort.setValue(intersectWithFilter);
+                        intersectOrSortOrSplit.setValue(intersectWithFilter);
                         context.computeAndSetTypeEnvironmentForOperator(intersectWithFilter);
                         setPrimaryFilterVar(primaryOp, outputFilterVars.get(0), outputFilterVars.get(1), context);
                     }
                     break;
+                case SPLIT:
+                    if (!isIndexOnlyPlan) {
+                        throw new CompilationException(ErrorCode.COMPILATION_ILLEGAL_STATE,
+                                intersectOrSortOrSplit.getValue().getOperatorTag().toString());
+                    }
+                    SplitOperator split = (SplitOperator) (intersectOrSortOrSplit.getValue());
+                    for (Mutable<ILogicalOperator> childOp : split.getInputs()) {
+                        ILogicalOperator child = childOp.getValue();
+                        while (!child.getOperatorTag().equals(LogicalOperatorTag.UNNEST_MAP)) {
+                            child = child.getInputs().get(0).getValue();
+                        }
+                        UnnestMapOperator unnestMap = (UnnestMapOperator) child;
+                        propagateFilterInSecondaryUnnsetMap(unnestMap, filterType, context);
+                        setPrimaryFilterVar(primaryOp, unnestMap.getPropagateIndexMinFilterVar(),
+                                unnestMap.getPropagateIndexMaxFilterVar(), context);
+                    }
+                    break;
                 case ORDER:
-                    ILogicalOperator child = intersectOrSort.getValue().getInputs().get(0).getValue();
+                    ILogicalOperator child = intersectOrSortOrSplit.getValue().getInputs().get(0).getValue();
                     if (child.getOperatorTag().equals(LogicalOperatorTag.UNNEST_MAP)) {
                         UnnestMapOperator secondaryMap = (UnnestMapOperator) child;
 
@@ -286,9 +305,10 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
                                 secondaryMap.getPropagateIndexMaxFilterVar(), context);
                     }
                     break;
+
                 default:
                     throw new CompilationException(ErrorCode.COMPILATION_ILLEGAL_STATE,
-                            intersectOrSort.getValue().getOperatorTag().toString());
+                            intersectOrSortOrSplit.getValue().getOperatorTag().toString());
             }
         }
     }
@@ -359,6 +379,7 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
                             primaryUnnestMapOps.add(unnestMapOp);
                         } else {
                             hasSecondaryIndexMap = true;
+                            isIndexOnlyPlan = unnestMapOp.getGenerateConditionalSplitVar();
                         }
                     }
                 }

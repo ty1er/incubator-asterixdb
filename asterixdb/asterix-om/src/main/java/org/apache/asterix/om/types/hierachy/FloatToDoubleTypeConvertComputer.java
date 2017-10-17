@@ -25,6 +25,7 @@ import org.apache.asterix.om.base.ADouble;
 import org.apache.asterix.om.base.AFloat;
 import org.apache.asterix.om.base.IAObject;
 import org.apache.asterix.om.types.ATypeTag;
+import org.apache.asterix.om.types.hierachy.ATypeHierarchy.TypeCastingMathFunctionType;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.data.std.primitive.FloatPointable;
 import org.apache.hyracks.dataflow.common.data.marshalling.DoubleSerializerDeserializer;
@@ -48,7 +49,8 @@ public class FloatToDoubleTypeConvertComputer implements ITypeConvertComputer {
     }
 
     @Override
-    public IAObject convertType(IAObject sourceObject) throws HyracksDataException {
+    public IAObject convertType(IAObject sourceObject, TypeCastingMathFunctionType mathFunction)
+            throws HyracksDataException {
         double targetValue = ((AFloat) sourceObject).getFloatValue();
         return new ADouble(targetValue);
     }

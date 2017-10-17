@@ -50,6 +50,11 @@ public class LSMBTreeRangeSearchCursor extends LSMIndexSearchCursor {
     private BTreeAccessor[] btreeAccessors;
     private ArrayTupleBuilder tupleBuilder;
     private boolean canCallProceed = true;
+    private boolean resultOfSearchCallBackProceed = false;
+    private boolean useProceedResult = false;
+    private byte[] firstReturnValueArrayForProccedResult = new byte[5];
+    private byte[] secondReturnValueArrayForProccedResult = new byte[5];
+    private ArrayTupleBuilder tupleBuilderForProceedResult;
 
     public LSMBTreeRangeSearchCursor(ILSMIndexOperationContext opCtx) {
         this(opCtx, false);
@@ -59,6 +64,9 @@ public class LSMBTreeRangeSearchCursor extends LSMIndexSearchCursor {
         super(opCtx, returnDeletedTuples);
         this.copyTuple = new ArrayTupleReference();
         this.reusablePred = new RangePredicate(null, null, true, true, null, null);
+        this.useProceedResult = opCtx.getUseOpCallbackProceedResult();
+        this.firstReturnValueArrayForProccedResult = opCtx.getFirstValueForUseProceedResult();
+        this.secondReturnValueArrayForProccedResult = opCtx.getSecondValueForUseProceedResult();
     }
 
     @Override
@@ -70,6 +78,23 @@ public class LSMBTreeRangeSearchCursor extends LSMIndexSearchCursor {
     @Override
     public void next() throws HyracksDataException {
         outputElement = outputPriorityQueue.poll();
+        //  If useProceedResult is set to true and the result of searchCallback.proceed() is
+        //     fail: zero (default value) will be added as a field.
+        //  success: one (default value) will be added as a field.
+        if (useProceedResult) {
+            tupleBuilderForProceedResult.reset();
+            TupleUtils.copyTuple(tupleBuilderForProceedResult, outputElement.getTuple(), cmp.getKeyFieldCount());
+            if (!resultOfSearchCallBackProceed) {
+                // fail case - add the value that indicates fail.
+                tupleBuilderForProceedResult.addField(firstReturnValueArrayForProccedResult, 0, 5);
+            } else {
+                // success case - add the value that indicates success.
+                tupleBuilderForProceedResult.addField(secondReturnValueArrayForProccedResult, 0, 5);
+            }
+            copyTuple.reset(tupleBuilderForProceedResult.getFieldEndOffsets(),
+                    tupleBuilderForProceedResult.getByteArray());
+            outputElement.reset(copyTuple);
+        }
         needPushElementIntoQueue = true;
         canCallProceed = false;
     }
@@ -248,5 +273,12 @@ public class LSMBTreeRangeSearchCursor extends LSMIndexSearchCursor {
         setPriorityQueueComparator();
         initPriorityQueue();
         canCallProceed = true;
+        // If it is required to use the result of searchCallback.proceed(),
+        // we need to initialize the byte array that contains the fail and success value.
+        if (useProceedResult) {
+            tupleBuilderForProceedResult = new ArrayTupleBuilder(cmp.getKeyFieldCount() + 1);
+            firstReturnValueArrayForProccedResult = opCtx.getFirstValueForUseProceedResult();
+            secondReturnValueArrayForProccedResult = opCtx.getSecondValueForUseProceedResult();
+        }
     }
 }

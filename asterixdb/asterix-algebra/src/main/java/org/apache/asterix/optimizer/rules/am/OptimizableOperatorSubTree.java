@@ -19,13 +19,16 @@
 package org.apache.asterix.optimizer.rules.am;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.asterix.common.exceptions.CompilationException;
 import org.apache.asterix.common.exceptions.ErrorCode;
 import org.apache.asterix.metadata.declared.DataSource;
 import org.apache.asterix.metadata.declared.MetadataProvider;
 import org.apache.asterix.metadata.entities.Dataset;
+import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.om.functions.BuiltinFunctions;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.ATypeTag;
@@ -36,10 +39,12 @@ import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
+import org.apache.hyracks.algebricks.core.algebra.base.IOptimizationContext;
 import org.apache.hyracks.algebricks.core.algebra.base.LogicalExpressionTag;
 import org.apache.hyracks.algebricks.core.algebra.base.LogicalOperatorTag;
 import org.apache.hyracks.algebricks.core.algebra.base.LogicalVariable;
 import org.apache.hyracks.algebricks.core.algebra.expressions.AbstractFunctionCallExpression;
+import org.apache.hyracks.algebricks.core.algebra.functions.FunctionIdentifier;
 import org.apache.hyracks.algebricks.core.algebra.metadata.IDataSource;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractLogicalOperator.ExecutionMode;
@@ -47,6 +52,8 @@ import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractScan
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractUnnestMapOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractUnnestOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.DataSourceScanOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.LeftOuterUnnestMapOperator;
+import org.apache.hyracks.algebricks.core.algebra.operators.logical.UnionAllOperator;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.UnnestMapOperator;
 import org.apache.hyracks.algebricks.core.algebra.util.OperatorPropertiesUtil;
 
@@ -61,6 +68,7 @@ public class OptimizableOperatorSubTree {
         EXTERNAL_SCAN,
         PRIMARY_INDEX_LOOKUP,
         COLLECTION_SCAN,
+        INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP,
         NO_DATASOURCE
     }
 
@@ -75,6 +83,9 @@ public class OptimizableOperatorSubTree {
     private Dataset dataset = null;
     private ARecordType recordType = null;
     private ARecordType metaRecordType = null;
+    // Contains the field names for all assign operations in this sub-tree.
+    // This will be used for the index-only plan check.
+    private Map<LogicalVariable, List<String>> varsTofieldNameMap = new HashMap<>();
 
     // Additional datasources can exist if IntroduceJoinAccessMethodRule has been applied.
     // (E.g. There are index-nested-loop-joins in the plan.)
@@ -83,17 +94,53 @@ public class OptimizableOperatorSubTree {
     private List<Dataset> ixJoinOuterAdditionalDatasets = null;
     private List<ARecordType> ixJoinOuterAdditionalRecordTypes = null;
 
-    public boolean initFromSubTree(Mutable<ILogicalOperator> subTreeOpRef) throws AlgebricksException {
+    /**
+     * Identifies the root of the subtree and initializes the data-source, assign, and unnest information.
+     */
+    public boolean initFromSubTree(Mutable<ILogicalOperator> subTreeOpRef, IOptimizationContext context)
+            throws AlgebricksException {
         reset();
         rootRef = subTreeOpRef;
         root = subTreeOpRef.getValue();
+
         boolean passedSource = false;
         boolean result = false;
         Mutable<ILogicalOperator> searchOpRef = subTreeOpRef;
         // Examine the op's children to match the expected patterns.
         AbstractLogicalOperator subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
+        MetadataProvider metadataProvider = (MetadataProvider) context.getMetadataProvider();
+
         do {
-            // Skip select operator.
+            // Skips the limit operator.
+            if (subTreeOp.getOperatorTag() == LogicalOperatorTag.LIMIT) {
+                searchOpRef = subTreeOp.getInputs().get(0);
+                subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
+            }
+            // Match (assign | unnest)*.
+            while (subTreeOp.getOperatorTag() == LogicalOperatorTag.ASSIGN
+                    || subTreeOp.getOperatorTag() == LogicalOperatorTag.UNNEST) {
+                assignsAndUnnestsRefs.add(searchOpRef);
+                assignsAndUnnests.add(subTreeOp);
+                searchOpRef = subTreeOp.getInputs().get(0);
+                subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
+            }
+            // Skips Order by information.
+            if (subTreeOp.getOperatorTag() == LogicalOperatorTag.ORDER) {
+                searchOpRef = subTreeOp.getInputs().get(0);
+                subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
+            }
+            // If this is an index-only plan, then we have UNIONALL operator.
+            if (subTreeOp.getOperatorTag() == LogicalOperatorTag.UNIONALL) {
+                // If this plan has a UNIONALL operator and turns out to be a non-index only plan,
+                // then we try to initialize data source and return to the caller.
+                if (!initFromIndexOnlyPlan(searchOpRef)) {
+                    return initializeDataSource(searchOpRef);
+                } else {
+                    // Done initializing the data source in an index-only plan.
+                    return true;
+                }
+            }
+            // Skips select operator.
             if (subTreeOp.getOperatorTag() == LogicalOperatorTag.SELECT) {
                 searchOpRef = subTreeOp.getInputs().get(0);
                 subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
@@ -124,6 +171,23 @@ public class OptimizableOperatorSubTree {
                 searchOpRef = subTreeOp.getInputs().get(0);
                 subTreeOp = (AbstractLogicalOperator) searchOpRef.getValue();
             }
+            // Gathers the variable to field-name mapping information for (unnest-map)?
+            // This information is used to decide whether the given plan is an index-only plan or not.
+            // We do not change the given subTreeOpRef at this point to properly setup the data-source.
+            Mutable<ILogicalOperator> additionalSubTreeOpRef;
+            while (subTreeOp.getOperatorTag() != LogicalOperatorTag.EMPTYTUPLESOURCE) {
+                if (subTreeOp.getOperatorTag() == LogicalOperatorTag.UNNEST_MAP
+                        || subTreeOp.getOperatorTag() == LogicalOperatorTag.LEFT_OUTER_UNNEST_MAP) {
+                    gatherAccessMethodJobGenParamAndSetFieldNameForIndexSearch(subTreeOp, metadataProvider);
+                }
+                additionalSubTreeOpRef = subTreeOp.getInputs().get(0);
+                subTreeOp = (AbstractLogicalOperator) additionalSubTreeOpRef.getValue();
+
+                if (subTreeOp.getInputs().isEmpty()) {
+                    break;
+                }
+            }
+
             if (passedSource) {
                 return result;
             }
@@ -131,6 +195,45 @@ public class OptimizableOperatorSubTree {
 
         // Match data source (datasource scan or primary index search).
         return initializeDataSource(searchOpRef);
+    }
+
+    /**
+     * Gather AccessMethodJobGenParam for unnest-map (or left-outer-unnest-map) operator and
+     * call setVarToFieldNameMappingFromUnnestMap to set variable to field name mapping from this operator.
+     * This information is used to decide whether the given plan is an index-only plan or not.
+     */
+    private void gatherAccessMethodJobGenParamAndSetFieldNameForIndexSearch(ILogicalOperator indexSearchOp,
+            MetadataProvider metadataProvider) throws AlgebricksException {
+        UnnestMapOperator unnestMapOp = null;
+        LeftOuterUnnestMapOperator leftOuterUnnestMapOp = null;
+        List<LogicalVariable> unnestMapOpVars = null;
+        ILogicalExpression unnestExpr = null;
+        AbstractFunctionCallExpression unnestFuncExpr = null;
+        FunctionIdentifier funcIdent = null;
+
+        if (indexSearchOp.getOperatorTag() == LogicalOperatorTag.UNNEST_MAP) {
+            unnestMapOp = (UnnestMapOperator) indexSearchOp;
+            unnestMapOpVars = unnestMapOp.getVariables();
+            unnestExpr = unnestMapOp.getExpressionRef().getValue();
+            unnestFuncExpr = (AbstractFunctionCallExpression) unnestExpr;
+            funcIdent = unnestFuncExpr.getFunctionIdentifier();
+            if (funcIdent.equals(BuiltinFunctions.INDEX_SEARCH)) {
+                AccessMethodJobGenParams jobGenParams =
+                        AbstractIntroduceAccessMethodRule.getAccessMethodJobGenParamsFromUnnestMap(unnestMapOp);
+                setVarToFieldNameMappingFromUnnestMap(jobGenParams, unnestMapOpVars, metadataProvider);
+            }
+        } else if (indexSearchOp.getOperatorTag() == LogicalOperatorTag.LEFT_OUTER_UNNEST_MAP) {
+            leftOuterUnnestMapOp = (LeftOuterUnnestMapOperator) indexSearchOp;
+            unnestMapOpVars = leftOuterUnnestMapOp.getVariables();
+            unnestExpr = leftOuterUnnestMapOp.getExpressionRef().getValue();
+            unnestFuncExpr = (AbstractFunctionCallExpression) unnestExpr;
+            funcIdent = unnestFuncExpr.getFunctionIdentifier();
+            if (funcIdent.equals(BuiltinFunctions.INDEX_SEARCH)) {
+                AccessMethodJobGenParams jobGenParams = AbstractIntroduceAccessMethodRule
+                        .getAccessMethodJobGenParamsFromUnnestMap(leftOuterUnnestMapOp);
+                setVarToFieldNameMappingFromUnnestMap(jobGenParams, unnestMapOpVars, metadataProvider);
+            }
+        }
     }
 
     private boolean initializeDataSource(Mutable<ILogicalOperator> subTreeOpRef) {
@@ -168,6 +271,19 @@ public class OptimizableOperatorSubTree {
                                     initializeIxJoinOuterAddtionalDataSourcesIfEmpty();
                                     getIxJoinOuterAdditionalDataSourceTypes().add(DataSourceType.PRIMARY_INDEX_LOOKUP);
                                     getIxJoinOuterAdditionalDataSourceRefs().add(subTreeOpRef);
+                                }
+                                dataSourceFound = true;
+                            } else {
+                                // Secondary index search in an index-only plan case
+                                if (getDataSourceRef() == null) {
+                                    setDataSourceRef(subTreeOpRef);
+                                    setDataSourceType(DataSourceType.INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP);
+                                } else {
+                                    // One datasource already exists. This is an additional datasource.
+                                    initializeIxJoinOuterAddtionalDataSourcesIfEmpty();
+                                    ixJoinOuterAdditionalDataSourceTypes
+                                            .add(DataSourceType.INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP);
+                                    ixJoinOuterAdditionalDataSourceRefs.add(subTreeOpRef);
                                 }
                                 dataSourceFound = true;
                             }
@@ -214,6 +330,144 @@ public class OptimizableOperatorSubTree {
     }
 
     /**
+     * Initializes assign, unnest and datasource information for the given index-only plan.
+     *
+     * @throws AlgebricksException
+     */
+    private boolean initFromIndexOnlyPlan(Mutable<ILogicalOperator> subTreeOpRef) throws AlgebricksException {
+        Mutable<ILogicalOperator> opRef = subTreeOpRef;
+        AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
+
+        // Top level operator should be UNIONALL operator.
+        if (op.getOperatorTag() != LogicalOperatorTag.UNIONALL) {
+            return false;
+        }
+        UnionAllOperator unionAllOp = (UnionAllOperator) op;
+
+        // The complete path
+        //
+        // Index-only plan path:
+        // Left branch -
+        // ... < UNION < PROJECT < SELECT < ASSIGN? < UNNEST_MAP(PIdx) < SPLIT < UNNEST_MAP (SIdx) < ASSIGN? < ...
+        // Right branch -
+        //             < PROJECT < SELECT? < ASSIGN?                   <                      ""
+
+        // We now traverse the left path first (instantTryLock on PK fail path).
+        // Index-only plan: PROJECT
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        if (op.getOperatorTag() != LogicalOperatorTag.PROJECT) {
+            return false;
+        }
+
+        // The left path
+        // Index-only plan: SELECT
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+
+        if (op.getOperatorTag() != LogicalOperatorTag.SELECT) {
+            return false;
+        }
+
+        // The left path
+        // Index-only plan: ASSIGN? or UNNEST?
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        while (op.getOperatorTag() == LogicalOperatorTag.ASSIGN || op.getOperatorTag() == LogicalOperatorTag.UNNEST) {
+            assignsAndUnnestsRefs.add(opRef);
+            assignsAndUnnests.add(op);
+            opRef = op.getInputs().get(0);
+            op = (AbstractLogicalOperator) opRef.getValue();
+        }
+
+        // The left path
+        // Index-only plan: UNNEST-MAP (PIdx search)
+        if (op.getOperatorTag() != LogicalOperatorTag.UNNEST_MAP) {
+            return false;
+        }
+
+        // The left path
+        // Index-only plan: SPLIT - left path is done
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        if (op.getOperatorTag() != LogicalOperatorTag.SPLIT) {
+            return false;
+        }
+
+        // The left path is done. Now, checks the right branch of the UNIONALL operator.
+        // Index-only plan right path:
+        //   UNION <- PROJECT <- SELECT? <- ASSIGN? <- SPLIT <- ...
+
+        // The right path
+        // Index-only plan: PROJECT
+        opRef = unionAllOp.getInputs().get(1);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        if (op.getOperatorTag() != LogicalOperatorTag.PROJECT) {
+            return false;
+        }
+
+        // The right path
+        // Index-only plan: SELECT?
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        if (op.getOperatorTag() == LogicalOperatorTag.SELECT) {
+            // This is actually an R-Tree index search case
+            // since we might need to do a post-verification.
+            opRef = op.getInputs().get(0);
+            op = (AbstractLogicalOperator) opRef.getValue();
+        }
+
+        // Index-only plan: ASSIGN?
+        while (op.getOperatorTag() == LogicalOperatorTag.ASSIGN || op.getOperatorTag() == LogicalOperatorTag.UNNEST) {
+            assignsAndUnnestsRefs.add(opRef);
+            assignsAndUnnests.add(op);
+            opRef = op.getInputs().get(0);
+            op = (AbstractLogicalOperator) opRef.getValue();
+        }
+
+        // Index-only plan: SPLIT - right path is done
+        // Reducing the number of SELECT verification plan: already done
+        if (op.getOperatorTag() != LogicalOperatorTag.SPLIT) {
+            return false;
+        }
+
+        // Now, we traversed both the left and the right path.
+        // We are going to traverse the common path before the SPLIT operator.
+        // Index-only plan common path:
+        //  ... <- SPLIT <- UNNEST_MAP (SIdx) <- ASSIGN? <- ...
+
+        // Index-only plan: UNNEST-MAP (SIdx)
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        if (op.getOperatorTag() != LogicalOperatorTag.UNNEST_MAP) {
+            return false;
+        }
+        // This secondary index search is the data source that we can trust.
+        boolean initDataSource = initializeDataSource(opRef);
+        if (!initDataSource) {
+            return false;
+        }
+
+        // Index-only plan: ASSIGN?
+        opRef = op.getInputs().get(0);
+        op = (AbstractLogicalOperator) opRef.getValue();
+        while (op.getOperatorTag() == LogicalOperatorTag.ASSIGN || op.getOperatorTag() == LogicalOperatorTag.UNNEST) {
+            assignsAndUnnestsRefs.add(opRef);
+            assignsAndUnnests.add(op);
+            opRef = op.getInputs().get(0);
+            op = (AbstractLogicalOperator) opRef.getValue();
+        }
+
+        // Index-only plan: EMPTYTUPLESOURCE
+        // Reducing the number of the SELECT verification plan: ORDER?
+        if (op.getOperatorTag() != LogicalOperatorTag.EMPTYTUPLESOURCE) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Find the dataset corresponding to the datasource scan in the metadata.
      * Also sets recordType to be the type of that dataset.
      */
@@ -254,6 +508,7 @@ public class OptimizableOperatorSubTree {
                     datasetName = datasetInfo.second;
                     break;
                 case PRIMARY_INDEX_LOOKUP:
+                case INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP:
                     AbstractUnnestOperator unnestMapOp = (AbstractUnnestOperator) sourceOpRefs.get(i).getValue();
                     ILogicalExpression unnestExpr = unnestMapOp.getExpressionRef().getValue();
                     AbstractFunctionCallExpression f = (AbstractFunctionCallExpression) unnestExpr;
@@ -369,7 +624,7 @@ public class OptimizableOperatorSubTree {
     }
 
     /**
-     * Get primary key variables from the given data-source.
+     * Gets the primary key variables from the given data-source.
      */
     public void getPrimaryKeyVars(Mutable<ILogicalOperator> dataSourceRefToFetch, List<LogicalVariable> target)
             throws AlgebricksException {
@@ -389,12 +644,26 @@ public class OptimizableOperatorSubTree {
                 primaryKeys = AccessMethodUtils.getPrimaryKeyVarsFromPrimaryUnnestMap(dataset, unnestMapOp);
                 target.addAll(primaryKeys);
                 break;
+            case INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP:
+                AbstractUnnestMapOperator idxOnlyPlanUnnestMapOp =
+                        (AbstractUnnestMapOperator) dataSourceRefToFetchKey.getValue();
+                List<LogicalVariable> idxOnlyPlanKeyVars = idxOnlyPlanUnnestMapOp.getVariables();
+                int indexOnlyPlanNumPrimaryKeys = dataset.getPrimaryKeys().size();
+                // The order of variables: SK, PK, the result of instantTryLock on PK.
+                // The last variable keeps the result of instantTryLock on PK.
+                // Thus, we deduct 1 to only count key variables.
+                int start = idxOnlyPlanKeyVars.size() - 1 - indexOnlyPlanNumPrimaryKeys;
+                int end = start + indexOnlyPlanNumPrimaryKeys;
+
+                for (int i = start; i < end; i++) {
+                    target.add(idxOnlyPlanKeyVars.get(i));
+                }
+                break;
             case EXTERNAL_SCAN:
                 break;
             case NO_DATASOURCE:
             default:
                 throw CompilationException.create(ErrorCode.SUBTREE_HAS_NO_DATA_SOURCE);
-
         }
     }
 
@@ -405,6 +674,11 @@ public class OptimizableOperatorSubTree {
             case PRIMARY_INDEX_LOOKUP:
                 AbstractScanOperator scanOp = (AbstractScanOperator) getDataSourceRef().getValue();
                 return scanOp.getVariables();
+            case INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP:
+                // This data-source doesn't have record variables.
+                List<LogicalVariable> pkVars = new ArrayList<>();
+                getPrimaryKeyVars(dataSourceRef, pkVars);
+                return pkVars;
             case COLLECTION_SCAN:
                 return new ArrayList<>();
             case NO_DATASOURCE:
@@ -422,6 +696,10 @@ public class OptimizableOperatorSubTree {
                     AbstractScanOperator scanOp =
                             (AbstractScanOperator) getIxJoinOuterAdditionalDataSourceRefs().get(idx).getValue();
                     return scanOp.getVariables();
+                case INDEXONLY_PLAN_SECONDARY_INDEX_LOOKUP:
+                    List<LogicalVariable> PKVars = new ArrayList<>();
+                    getPrimaryKeyVars(ixJoinOuterAdditionalDataSourceRefs.get(idx), PKVars);
+                    return PKVars;
                 case COLLECTION_SCAN:
                     return new ArrayList<>();
                 case NO_DATASOURCE:
@@ -537,6 +815,42 @@ public class OptimizableOperatorSubTree {
 
     public void setIxJoinOuterAdditionalRecordTypes(List<ARecordType> ixJoinOuterAdditionalRecordTypes) {
         this.ixJoinOuterAdditionalRecordTypes = ixJoinOuterAdditionalRecordTypes;
+    }
+
+    public Map<LogicalVariable, List<String>> getVarsTofieldNameMap() {
+        return varsTofieldNameMap;
+    }
+
+    /**
+     * Sets the field names for variables from the given index-search.
+     */
+    private void setVarToFieldNameMappingFromUnnestMap(AccessMethodJobGenParams jobGenParams,
+            List<LogicalVariable> unnestMapVariables, MetadataProvider metadataProvider) throws AlgebricksException {
+        if (jobGenParams != null) {
+            // Fetches the associated index.
+            Index idxUsedInUnnestMap = metadataProvider.getIndex(jobGenParams.getDataverseName(),
+                    jobGenParams.getDatasetName(), jobGenParams.getIndexName());
+
+            if (idxUsedInUnnestMap != null) {
+                List<List<String>> idxUsedInUnnestMapFieldNames = idxUsedInUnnestMap.getKeyFieldNames();
+
+                switch (idxUsedInUnnestMap.getIndexType()) {
+                    case BTREE:
+                        for (int i = 0; i < idxUsedInUnnestMapFieldNames.size(); i++) {
+                            varsTofieldNameMap.put(unnestMapVariables.get(i), idxUsedInUnnestMapFieldNames.get(i));
+                        }
+                        break;
+                    // Except the BTree, field name can't be matched directly with variable(s).
+                    case RTREE:
+                    case SINGLE_PARTITION_NGRAM_INVIX:
+                    case SINGLE_PARTITION_WORD_INVIX:
+                    case LENGTH_PARTITIONED_NGRAM_INVIX:
+                    case LENGTH_PARTITIONED_WORD_INVIX:
+                    default:
+                        break;
+                }
+            }
+        }
     }
 
 }

@@ -18,7 +18,7 @@
  */
 /*
  * Description    : Self-joins a dataset on the intersection of its point attribute.
- *                  The dataset has an RTree index, and we expect the 
+ *                  The dataset has an RTree index, and we expect the
  *                  join to be transformed into an indexed nested-loop join.
  * Success        : Yes
  */
@@ -41,8 +41,6 @@ create type MyRecord as closed {
 create dataset MyData(MyRecord) primary key id;
 
 create index rtree_index on MyData(point) type rtree;
-
-write output to asterix_nc1:"rttest/rtree-index-join_spatial-intersect-point_03.adm";
 
 for $a in dataset('MyData')
 for $b in dataset('MyData')

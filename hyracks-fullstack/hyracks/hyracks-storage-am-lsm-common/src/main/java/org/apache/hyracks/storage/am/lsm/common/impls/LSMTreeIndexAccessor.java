@@ -205,6 +205,16 @@ public class LSMTreeIndexAccessor implements ILSMIndexAccessor {
         return cursorFactory.create(ctx);
     }
 
+    @Override
+    public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+            byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult) {
+        // This method is only applicable for the LSM based indexes.
+        ctx.setUseOpCallbackProceedResult(useOpCallbackProceedResult);
+        ctx.setFirstValueForUseProceedResult(firstValueForUseOpCallbackProceedResult);
+        ctx.setSecondValueForUseProceedResult(secondValueForUseOpCallbackProceedResult);
+        return cursorFactory.create(ctx);
+    }
+
     public void updateFilter(ITupleReference tuple) throws HyracksDataException {
         ctx.setOperation(IndexOperation.UPSERT);
         lsmHarness.updateFilter(ctx, tuple);

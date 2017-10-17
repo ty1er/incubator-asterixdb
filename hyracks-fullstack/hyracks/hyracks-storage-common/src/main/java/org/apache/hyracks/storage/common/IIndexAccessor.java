@@ -90,6 +90,14 @@ public interface IIndexAccessor {
     public IIndexCursor createSearchCursor(boolean exclusive);
 
     /**
+     * Creates a cursor appropriate for passing into search().
+     * In this case, cursor will add one more field to the output of the given index-search.
+     * The field will contain the result of OperationCallback.proceed().
+     */
+    public IIndexCursor createSearchCursor(boolean exclusive, boolean useOpCallbackProceedResult,
+            byte[] firstValueForUseOpCallbackProceedResult, byte[] secondValueForUseOpCallbackProceedResult);
+
+    /**
      * Open the given cursor for an index search using the given predicate as
      * search condition.
      *
