@@ -59,7 +59,7 @@ public class CardinalityEstimator implements ICardinalityEstimator {
         }
         long startTime = System.nanoTime();
         List<Statistics> stats =
-                ((MetadataProvider) metadataProvider).getIndexStatistics(dataverseName, datasetName, indexName);
+                ((MetadataProvider) metadataProvider).getMergedStatistics(dataverseName, datasetName, indexName);
         double estimate = 0.0;
         for (Statistics s : stats) {
             try {

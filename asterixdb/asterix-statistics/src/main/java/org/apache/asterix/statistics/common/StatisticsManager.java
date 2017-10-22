@@ -139,15 +139,15 @@ public class StatisticsManager implements IStatisticsManager {
 
     @Override
     public void sendFlushStatistics(ILSMDiskComponent flushedComponent) throws HyracksDataException {
-        sendFlushSynopsisStatistics(synopsisMap.get(flushedComponent), flushedComponent, false);
-        sendFlushSynopsisStatistics(antimatterSynopsisMap.get(flushedComponent), flushedComponent, true);
+        sendFlushSynopsisStatistics(synopsisMap.remove(flushedComponent), flushedComponent, false);
+        sendFlushSynopsisStatistics(antimatterSynopsisMap.remove(flushedComponent), flushedComponent, true);
     }
 
     @Override
     public void sendMergeStatistics(ILSMDiskComponent newComponent, List<ILSMDiskComponent> mergedComponents)
             throws HyracksDataException {
-        sendMergeSynopsisStatistics(synopsisMap.get(newComponent), newComponent, mergedComponents, false);
-        sendMergeSynopsisStatistics(antimatterSynopsisMap.get(newComponent), newComponent, mergedComponents, true);
+        sendMergeSynopsisStatistics(synopsisMap.remove(newComponent), newComponent, mergedComponents, false);
+        sendMergeSynopsisStatistics(antimatterSynopsisMap.remove(newComponent), newComponent, mergedComponents, true);
     }
 
     @Override

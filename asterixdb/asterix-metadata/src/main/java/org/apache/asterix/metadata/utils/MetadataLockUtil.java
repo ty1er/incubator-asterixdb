@@ -169,7 +169,7 @@ public class MetadataLockUtil {
             String dataverseName, String datasetName, String indexName, String nodeName, String partitionId,
             boolean isAntimatter) throws AsterixException {
         lockMgr.acquireDataverseReadLock(locks, statisticsDataset);
-        lockMgr.acquireDataverseReadLock(locks, dataverseName);
+        lockMgr.acquireDatasetModifyLock(locks, dataverseName + "." + datasetName);
         lockMgr.acquireStatisticsWriteLock(locks, dataverseName, datasetName, indexName, nodeName, partitionId,
                 isAntimatter);
     }

@@ -358,10 +358,10 @@ public class MetadataProvider implements IMetadataProvider<DataSourceId, String>
         return MetadataManagerUtil.getDatasetIndexes(mdTxnCtx, dataverseName, datasetName);
     }
 
-    public List<Statistics> getIndexStatistics(String dataverseName, String datasetName, String indexName)
+    public List<Statistics> getMergedStatistics(String dataverseName, String datasetName, String indexName)
             throws AlgebricksException {
         try {
-            return MetadataManager.INSTANCE.getIndexStatistics(mdTxnCtx, dataverseName, datasetName, indexName);
+            return MetadataManager.INSTANCE.getMergedStatistics(mdTxnCtx, dataverseName, datasetName, indexName);
         } catch (MetadataException e) {
             throw new AlgebricksException(e);
         }

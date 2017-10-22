@@ -647,7 +647,7 @@ public interface IMetadataManager extends IMetadataBootstrap {
     ExternalFile getExternalFile(MetadataTransactionContext mdTxnCtx, String dataverseName, String datasetName,
             Integer fileNumber) throws MetadataException;
 
-    List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+    List<Statistics> getMergedStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
             String indexName) throws MetadataException;
 
     List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
