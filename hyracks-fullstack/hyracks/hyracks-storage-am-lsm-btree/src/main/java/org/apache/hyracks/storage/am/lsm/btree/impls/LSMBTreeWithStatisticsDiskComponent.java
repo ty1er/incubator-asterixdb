@@ -70,7 +70,7 @@ public class LSMBTreeWithStatisticsDiskComponent implements ILSMDiskComponent {
     @Override
     public void activate(boolean createNewComponent) throws HyracksDataException {
         wrapperComponent.activate(createNewComponent);
-        if (statistics != null && !createNewComponent) {
+        if (!createNewComponent) {
             statistics.readTuplesNum(wrapperComponent.getMetadata());
         }
     }

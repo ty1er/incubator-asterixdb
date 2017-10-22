@@ -580,8 +580,8 @@ public class MetadataManager implements IMetadataManager {
     }
 
     @Override
-    public List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName) throws MetadataException {
+    public List<Statistics> getMergedStatistics(MetadataTransactionContext ctx, String dataverseName,
+            String datasetName, String indexName) throws MetadataException {
         List<Statistics> stats = getMergedStatistics(ctx, dataverseName, datasetName, indexName, false);
         stats.addAll(getMergedStatistics(ctx, dataverseName, datasetName, indexName, true));
         return stats;
