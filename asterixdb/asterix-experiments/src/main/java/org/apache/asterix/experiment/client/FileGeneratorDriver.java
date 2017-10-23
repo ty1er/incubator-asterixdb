@@ -64,7 +64,7 @@ public class FileGeneratorDriver {
         configuration.put(TweetGenerator.KEY_GUID_INCREMENT, String.valueOf(statsConfig.getPartitionsNum()));
         List<String> genFilePaths = null;
         configuration.put(KEY_ZIPF_SKEW, statsConfig.getSkew().toString());
-        configuration.put(KEY_MIN_SPREAD, Integer.toString(statsConfig.getSpreadMin()));
+        configuration.put(KEY_MIN_SPREAD, Integer.toString(RangeGenerator.MIN_SPREAD));
         configuration.put(KEY_GUID_SEED, Long.toString(statsConfig.getSeed()));
         configuration.put(TweetGenerator.KEY_PERCENTAGE_UPDATES, String.valueOf(statsConfig.getUpdatesPercentage()));
         configuration.put(TweetGenerator.KEY_PERCENTAGE_DELETES, String.valueOf(statsConfig.getDeletesPercentage()));

@@ -19,6 +19,8 @@
 
 package org.apache.asterix.experiment.client;
 
+import static org.apache.asterix.experiment.client.DataGeneratorForSpatialIndexEvaluation.NUM_BTREE_EXTRA_FIELDS;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,8 +33,6 @@ import org.apache.asterix.experiment.action.derived.RunPlanAQLStringAction;
 import org.apache.asterix.experiment.client.numgen.DistributionType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
-
-import static org.apache.asterix.experiment.client.DataGeneratorForSpatialIndexEvaluation.NUM_BTREE_EXTRA_FIELDS;
 
 public class StatisticsQueryGenerator extends QueryGenerator {
 
@@ -51,10 +51,9 @@ public class StatisticsQueryGenerator extends QueryGenerator {
         lowerBound = config.getLowerBound();
         rangeGens = new RangeGenerator[DistributionType.values().length];
         for (int i = 0; i < DistributionType.values().length; i++)
-            rangeGens[i] = RangeGenerator
-                    .getRangeGenerator(config.getRangeType(), upperBound, lowerBound, config.getRangeLength(),
-                            config.getQueryCount(), DistributionType.values()[i], config.getSkew(), config.getSeed(),
-                            config.getSpreadMin());
+            rangeGens[i] = RangeGenerator.getRangeGenerator(config.getRangeType(), upperBound, lowerBound,
+                    config.getRangeLength(), config.getRangePercent(), config.getQueryCount(),
+                    DistributionType.values()[i], config.getSkew(), config.getSeed());
     }
 
     protected void sendQuery() throws IOException {
@@ -69,7 +68,8 @@ public class StatisticsQueryGenerator extends QueryGenerator {
                     getQueryAQL(range, "btree-extra-field" + i), tmpBuffer);
             seq.addLast(rangeQueryAction);
             seq.addLast(new IAction() {
-                @Override public void perform() {
+                @Override
+                public void perform() {
                     try {
                         tmpBuffer.write(("," + range.getLeft() + "," + range.getRight() + ",").getBytes());
                     } catch (IOException e) {
@@ -109,15 +109,11 @@ public class StatisticsQueryGenerator extends QueryGenerator {
         sb.append("for $x in dataset Tweets").append(" ");
         if (rangeType == StatisticsRangeType.CorrelatedPoint || rangeType == StatisticsRangeType.Point) {
             sb.append("where $x.").append(fieldName).append(" = ").append(getIntType(upperBound, lowerBound))
-                    .append("(\"")
-                    .append(range.getLeft())
-                    .append("\") ");
+                    .append("(\"").append(range.getLeft()).append("\") ");
         } else {
             sb.append("where $x.").append(fieldName).append(" >= ").append(getIntType(upperBound, lowerBound))
                     .append("(\"").append(range.getLeft()).append("\") and $x.").append(fieldName).append(" <= ")
-                    .append(getIntType(upperBound, lowerBound)).append("(\"")
-                    .append(range.getRight())
-                    .append("\") ");
+                    .append(getIntType(upperBound, lowerBound)).append("(\"").append(range.getRight()).append("\") ");
         }
         sb.append("return $x.").append(fieldName);
         sb.append(");");

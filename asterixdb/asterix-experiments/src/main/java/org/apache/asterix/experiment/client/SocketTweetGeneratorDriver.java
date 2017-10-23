@@ -37,7 +37,7 @@ public class SocketTweetGeneratorDriver {
 
         Map<String, String> properties = new HashMap<>();
         properties.put(GeneratorFactory.KEY_ZIPF_SKEW, config.getSkew().toString());
-        properties.put(KEY_MIN_SPREAD, Integer.toString(config.getSpreadMin()));
+        properties.put(KEY_MIN_SPREAD, Integer.toString(RangeGenerator.MIN_SPREAD));
 
         SocketTweetGenerator client = new SocketTweetGenerator(config, properties);
         client.start();

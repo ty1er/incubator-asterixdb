@@ -86,13 +86,6 @@ public class TweetGeneratorConfig {
         return lowerBound;
     }
 
-    @Option(name = "-sm", aliases = "--spread-min", usage = "The minimum value of generated spread values")
-    private int spreadMin = 1;
-
-    public int getSpreadMin() {
-        return spreadMin;
-    }
-
     @Option(name = "-pu", aliases = "--percentage-updates", usage = "The percentage of updated tweets in the stream")
     private double updatesPercent;
 

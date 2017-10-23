@@ -46,6 +46,13 @@ public class LSMStatsExperimentSetRunnerConfig extends LSMExperimentSetRunnerCon
         return rangeLength;
     }
 
+    @Option(name = "-pr", aliases = "--range-percent", usage = "The percentage of total domain used for range queries")
+    private double rangePercent;
+
+    public double getRangePercent() {
+        return rangePercent;
+    }
+
     @Option(name = "-ub", aliases = "--datagen-upper-bound", usage = "Upper bound of generated data values")
     private String upperBound;
 
@@ -66,13 +73,6 @@ public class LSMStatsExperimentSetRunnerConfig extends LSMExperimentSetRunnerCon
 
     public void setLowerBound(String s) {
         lowerBound = s;
-    }
-
-    @Option(name = "-sm", aliases = "--spread-min", usage = "The minimum value of generated spread values")
-    private int spreadMin = 1;
-
-    public int getSpreadMin() {
-        return spreadMin;
     }
 
     @Option(name = "-pu", aliases = "--percentage-updates", usage = "The percentage of updated tweets in the stream")

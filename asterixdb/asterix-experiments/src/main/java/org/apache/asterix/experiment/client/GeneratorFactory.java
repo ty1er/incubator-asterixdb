@@ -93,10 +93,9 @@ public class GeneratorFactory {
                 break;
         }
         LSMStatsExperimentSetRunnerConfig statsConfig = (LSMStatsExperimentSetRunnerConfig) config;
-        sb.append(" -z ").append(statsConfig.getSkew()).append(" -sm ").append(statsConfig.getSpreadMin())
-                .append(" -ub ").append(statsConfig.getUpperBound()).append(" -lb ").append(statsConfig.getLowerBound())
-                .append(" -pu ").append(statsConfig.getUpdatesPercentage()).append(" -pd ")
-                .append(statsConfig.getDeletesPercentage());
+        sb.append(" -z ").append(statsConfig.getSkew()).append(" -ub ").append(statsConfig.getUpperBound())
+                .append(" -lb ").append(statsConfig.getLowerBound()).append(" -pu ")
+                .append(statsConfig.getUpdatesPercentage()).append(" -pd ").append(statsConfig.getDeletesPercentage());
         sb.append(" ").append(genItems);
         // launch in background mode
         //.append("&");
@@ -108,22 +107,24 @@ public class GeneratorFactory {
         Path binaryPath = Paths.get(config.getLocalExperimentRoot()).resolve("bin").resolve("querygenrunner");
         //        String remoteDebug = "JAVA_OPTS=\"-Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3000,suspend=y\" ";
         //        sb.append(remoteDebug);
-        sb.append("JAVA_HOME=").append(config.getJavaHome()).append(" ").append(binaryPath).append(" -wt ")
-                .append(config.getWorkloadType()).append(" -rh ").append(config.getRESTHost()).append(" -rp ")
-                .append(config.getRESTPort()).append(" -o ").append(config.getQgenOutputFilePath()).append(" -qc ")
-                .append(config.getQueryCount()).append(" -p ").append(partitionsNum);
-
         LSMStatsExperimentSetRunnerConfig statsConfig = (LSMStatsExperimentSetRunnerConfig) config;
-        switch (config.getWorkloadType()) {
+        sb.append("JAVA_HOME=").append(statsConfig.getJavaHome()).append(" ").append(binaryPath).append(" -wt ")
+                .append(statsConfig.getWorkloadType()).append(" -rh ").append(statsConfig.getRESTHost()).append(" -rp ")
+                .append(statsConfig.getRESTPort()).append(" -o ").append(statsConfig.getQgenOutputFilePath())
+                .append(" -qc ").append(statsConfig.getQueryCount()).append(" -p ").append(partitionsNum)
+                .append(" -pr ").append(statsConfig.getRangePercent()).append(" -ub ")
+                .append(statsConfig.getUpperBound()).append(" -lb ").append(statsConfig.getLowerBound()).append(" -s ")
+                .append(statsConfig.getSeed() + partition);
+
+        switch (statsConfig.getWorkloadType()) {
             case InsertOnly:
             case Varying:
-                sb.append(" -rt ").append(statsConfig.getRangeType()).append(" -z ").append(statsConfig.getSkew())
-                        .append(" -sm ").append(statsConfig.getSpreadMin());
-                //fallthrough!
+                sb.append(" -rt ").append(statsConfig.getRangeType()).append(" -rl ")
+                        .append(statsConfig.getRangeLength()).append(" -z ").append(statsConfig.getSkew());
+                break;
             case WorldCup:
-                sb.append(" -rl ").append(statsConfig.getRangeLength()).append(" -ub ")
-                        .append(statsConfig.getUpperBound()).append(" -lb ").append(statsConfig.getLowerBound())
-                        .append(" -s ").append(config.getSeed() + partition);
+                sb.append(" -rt ").append(StatisticsRangeType.Percentage.toString());
+                break;
         }
         return sb.toString();
     }

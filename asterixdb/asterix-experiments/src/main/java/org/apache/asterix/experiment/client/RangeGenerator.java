@@ -30,6 +30,8 @@ import org.apache.commons.math3.random.RandomGeneratorFactory;
 
 public abstract class RangeGenerator {
 
+    public static int MIN_SPREAD = 1;
+
     protected RandomDataGenerator randGen;
     protected PrecomputedDistributionGenerator dataGen;
     protected long upperBound;
@@ -37,12 +39,12 @@ public abstract class RangeGenerator {
 
     public abstract Pair<Long, Long> getNextRange();
 
-    public RangeGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound, double skew, long seed,
-            int minSpread) {
+    public RangeGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound, double skew,
+            long seed) {
         this.randGen = new RandomDataGenerator(RandomGeneratorFactory.createRandomGenerator(new Random(seed)));
         this.dataGen = DistributionType
                 .getNumberGenerator(spreadDistribution, INITIAL_SPREAD_ZIPF_SERIES_SIZE, upperBound - lowerBound,
-                        lowerBound, minSpread, skew, seed);
+                        lowerBound, MIN_SPREAD, skew, seed);
         this.upperBound = upperBound;
         this.lowerBound = lowerBound;
     }
@@ -52,30 +54,29 @@ public abstract class RangeGenerator {
     }
 
     public static RangeGenerator getRangeGenerator(StatisticsRangeType queryType, long upperBound, long lowerBound,
-            int length, int queryCount, DistributionType spreadDistribution, double dataSkew, long seed,
-            int minSpread) {
+            int length, double percentage, int queryCount, DistributionType spreadDistribution, double dataSkew,
+            long seed) {
         switch (queryType) {
             case Random:
-                return new RandomRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                return new RandomRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             case CorrelatedRandom:
-                return new CorrelatedRandomRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed,
-                        minSpread);
+                return new CorrelatedRandomRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             case FixedLength:
-                return new FixedLengthRangeGenerator(length, spreadDistribution, upperBound, lowerBound, dataSkew, seed,
-                        minSpread);
+                return new FixedLengthRangeGenerator(length, spreadDistribution, upperBound, lowerBound, dataSkew,
+                        seed);
             case HalfOpen:
-                return new HalfOpenRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed,
-                        minSpread);
+                return new HalfOpenRangeGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             //            case CorrelatedHalfOpen:
             //                return new HalfOpenCorrelatedRangeGenerator(upperBound, spreadDistribution, dataCount, dataSkew);
             case Point:
-                return new PointGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                return new PointGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             case CorrelatedPoint:
-                return new CorrelatedPointGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed,
-                        minSpread);
+                return new CorrelatedPointGenerator(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             case CDF:
-                return new CDFGenerator(spreadDistribution, upperBound, lowerBound, queryCount, dataSkew, seed,
-                        minSpread);
+                return new CDFGenerator(spreadDistribution, upperBound, lowerBound, queryCount, dataSkew, seed);
+            case Percentage:
+                return new PercentageRangeGenerator(percentage, spreadDistribution, upperBound, lowerBound, dataSkew,
+                        seed);
             default:
                 throw new IllegalArgumentException("Cannot create query generator of the type " + queryType);
         }
@@ -84,8 +85,8 @@ public abstract class RangeGenerator {
     static class RandomRangeGenerator extends RangeGenerator {
 
         public RandomRangeGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override
@@ -100,8 +101,8 @@ public abstract class RangeGenerator {
     static class CorrelatedRandomRangeGenerator extends RangeGenerator {
 
         public CorrelatedRandomRangeGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override public Pair<Long, Long> getNextRange() {
@@ -118,8 +119,8 @@ public abstract class RangeGenerator {
         private long length;
 
         public FixedLengthRangeGenerator(long length, DistributionType spreadDistribution, long upperBound,
-                long lowerBound, double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                long lowerBound, double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             this.length = length;
         }
 
@@ -143,8 +144,8 @@ public abstract class RangeGenerator {
     static class HalfOpenRangeGenerator extends RangeGenerator {
 
         public HalfOpenRangeGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override
@@ -158,8 +159,8 @@ public abstract class RangeGenerator {
     static class PointGenerator extends RangeGenerator {
 
         public PointGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound, double dataSkew,
-                long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override
@@ -173,8 +174,8 @@ public abstract class RangeGenerator {
     static class CorrelatedPointGenerator extends RangeGenerator {
 
         public CorrelatedPointGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override
@@ -189,8 +190,8 @@ public abstract class RangeGenerator {
     static class FrequentPointGenerator extends RangeGenerator {
 
         public FrequentPointGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
         }
 
         @Override
@@ -207,8 +208,8 @@ public abstract class RangeGenerator {
         private int i;
 
         public CDFGenerator(DistributionType spreadDistribution, long upperBound, long lowerBound, int queryCount,
-                double dataSkew, long seed, int minSpread) {
-            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed, minSpread);
+                double dataSkew, long seed) {
+            super(spreadDistribution, upperBound, lowerBound, dataSkew, seed);
             this.queryCount = queryCount;
             this.i = 0;
         }
@@ -218,6 +219,15 @@ public abstract class RangeGenerator {
             return Pair.of((long) lowerBound,
                     (long) (totalLength / queryCount) * i++ - RangeGenerator.adjustSign(lowerBound));
 
+        }
+    }
+
+    static class PercentageRangeGenerator extends FixedLengthRangeGenerator {
+        public PercentageRangeGenerator(double percentage, DistributionType spreadDistribution, long upperBound,
+                long lowerBound, double dataSkew, long seed) {
+            super(((upperBound - lowerBound) * percentage) < MIN_SPREAD ? MIN_SPREAD
+                    : (long) Math.floor((upperBound - lowerBound) * percentage), spreadDistribution, upperBound,
+                    lowerBound, dataSkew, seed);
         }
     }
 }

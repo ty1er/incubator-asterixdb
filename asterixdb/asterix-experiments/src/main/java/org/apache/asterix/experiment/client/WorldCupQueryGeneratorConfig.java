@@ -22,13 +22,6 @@ import org.kohsuke.args4j.Option;
 
 public class WorldCupQueryGeneratorConfig extends QueryGeneratorConfig {
 
-    @Option(name = "-rl", aliases = "--range-length", usage = "The range for fix-sized range queries")
-    private int rangeLength;
-
-    public int getRangeLength() {
-        return rangeLength;
-    }
-
     @Option(name = "-ub", aliases = "--upper-bounds", handler = LongArrayOptionHandler.class, usage = "Upper bound of the query range")
     private long[] upperBounds = { Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE,
             Byte.MAX_VALUE, Byte.MAX_VALUE };
