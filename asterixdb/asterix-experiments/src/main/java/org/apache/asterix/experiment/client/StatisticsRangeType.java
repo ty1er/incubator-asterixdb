@@ -27,5 +27,6 @@ public enum StatisticsRangeType {
     Point,
     CorrelatedPoint,
     RandomPoint,
-    CDF
+    CDF,
+    Percentage
 }

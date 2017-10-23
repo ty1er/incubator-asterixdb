@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
+import org.apache.asterix.experiment.action.derived.LogAction;
 import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -95,6 +96,8 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
         experimentActions
                 .addLast(new RunAQLStringAction(httpClient, restHost, restPort, getMinMaxAql(func), countResultStream));
         experimentActions.addLast(() -> f.accept("\"" + new String(countResultStream.toByteArray()) + "\""));
+        experimentActions
+                .addLast(new LogAction(() -> "Domain " + func + ":" + new String(countResultStream.toByteArray())));
     }
 
     private String getMinMaxAql(String function) {

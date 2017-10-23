@@ -23,13 +23,6 @@ import org.kohsuke.args4j.Option;
 
 public class StatisticsQueryGeneratorConfig extends QueryGeneratorConfig {
 
-    @Option(name = "-rt", aliases = "--range-type", usage = "Range generator type [] (default = Random)")
-    private StatisticsRangeType rangeType = StatisticsRangeType.Random;
-
-    public StatisticsRangeType getRangeType() {
-        return rangeType;
-    }
-
     @Option(name = "-rl", aliases = "--range-length", usage = "The range for fix-sized range queries")
     private int rangeLength;
 
@@ -58,10 +51,4 @@ public class StatisticsQueryGeneratorConfig extends QueryGeneratorConfig {
         return skew;
     }
 
-    @Option(name = "-sm", aliases = "--spread-min", usage = "The minimum value of generated spread values")
-    private int spreadMin = 1;
-
-    public int getSpreadMin() {
-        return spreadMin;
-    }
 }

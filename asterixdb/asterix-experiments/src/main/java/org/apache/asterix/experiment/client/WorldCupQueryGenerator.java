@@ -36,7 +36,7 @@ public class WorldCupQueryGenerator extends QueryGenerator {
     private long[] upperBounds;
     private long[] lowerBounds;
     private RangeGenerator[] fieldRangeGens;
-    private long rangeLength;
+    private double rangePercent;
     public static String[] fieldNames =
             { "timestamp", "clientID", "objectID", "size", "status", "server" };
 
@@ -45,12 +45,12 @@ public class WorldCupQueryGenerator extends QueryGenerator {
         super(sem, config, threadsNum, outputFos, httpClient);
         this.upperBounds = config.getUpperBounds();
         this.lowerBounds = config.getLowerBounds();
-        this.rangeLength = config.getRangeLength();
+        this.rangePercent = config.getRangePercent();
         this.fieldRangeGens = new RangeGenerator[fieldNames.length];
         for (int i = 0; i < fieldNames.length; i++)
             fieldRangeGens[i] =
-                    new RangeGenerator.FixedLengthRangeGenerator(rangeLength, DistributionType.Uniform, upperBounds[i],
-                            lowerBounds[i], 0, config.getSeed(), 1);
+                    new RangeGenerator.PercentageRangeGenerator(rangePercent, DistributionType.Uniform, upperBounds[i],
+                            lowerBounds[i], 0, config.getSeed());
     }
 
     @Override

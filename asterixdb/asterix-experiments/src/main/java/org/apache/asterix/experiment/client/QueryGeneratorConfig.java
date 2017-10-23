@@ -39,6 +39,20 @@ public class QueryGeneratorConfig {
     @Option(name = "-wt", aliases = "--workload-type", usage = "The type of experiment workload", required = true)
     private WorkloadType workloadType;
 
+    @Option(name = "-rt", aliases = "--range-type", usage = "Range generator type [] (default = Random)")
+    private StatisticsRangeType rangeType = StatisticsRangeType.Random;
+
+    public StatisticsRangeType getRangeType() {
+        return rangeType;
+    }
+
+    @Option(name = "-pr", aliases = "--range-percent", usage = "The percentage of total domain used for range queries")
+    private double rangePercent;
+
+    public double getRangePercent() {
+        return rangePercent;
+    }
+
     @Option(name = "-s", aliases = "--seed", usage = "The seed parameter for random generators")
     private long seed = System.currentTimeMillis();
 
