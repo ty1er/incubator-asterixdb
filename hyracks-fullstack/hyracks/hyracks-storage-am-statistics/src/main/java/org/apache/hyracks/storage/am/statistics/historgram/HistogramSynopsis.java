@@ -71,7 +71,7 @@ public abstract class HistogramSynopsis<T extends HistogramBucket> extends Abstr
         } else {
             //account for part of the initial bucket between startPosition and it's right border
             value += approximateValueWithinBucket(startBucket, startPosition,
-                    getBuckets().get(startBucket).getKey() - 1);
+                    getBuckets().get(startBucket).getKey());
             //...and for the part between left border of the last bucket and endPosition
             value += approximateValueWithinBucket(endBucket, endBucketLeftBorder, endPosition);
             //sum up all the buckets in between
@@ -83,7 +83,7 @@ public abstract class HistogramSynopsis<T extends HistogramBucket> extends Abstr
     }
 
     public double approximateValueWithinBucket(int bucketIdx, long startPosition, long endPosition) {
-        return getBuckets().get(bucketIdx).getValue() * (endPosition - startPosition) / getBucketSpan(bucketIdx);
+        return getBuckets().get(bucketIdx).getValue() * (endPosition - startPosition + 1) / getBucketSpan(bucketIdx);
     }
 
     public abstract void appendToBucket(int bucketId, int bucketNum, long tuplePos, double frequency);

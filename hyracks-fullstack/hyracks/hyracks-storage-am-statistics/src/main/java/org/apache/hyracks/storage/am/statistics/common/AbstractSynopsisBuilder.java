@@ -49,7 +49,9 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
     public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component)
             throws HyracksDataException {
         // Skip sending statistics about empty synopses
-        statisticsManager.addStatistics(isEmpty ? null : synopsis, isAntimatter, component);
+        if (!isEmpty) {
+            statisticsManager.addStatistics(synopsis, isAntimatter, component);
+        }
     }
 
     @Override
