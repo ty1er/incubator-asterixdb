@@ -22,6 +22,7 @@ package org.apache.hyracks.storage.am.lsm.btree.impls;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.btree.impls.BTree;
 import org.apache.hyracks.storage.am.lsm.common.api.IComponentFilterHelper;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentFilter;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponentFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
@@ -47,13 +48,14 @@ public class LSMBTreeDiskComponentFactory implements ILSMDiskComponentFactory {
     @Override
     public ILSMDiskComponent createComponent(AbstractLSMIndex lsmIndex, LSMComponentFileReferences cfr)
             throws HyracksDataException {
-        LSMBTreeDiskComponent btreeComponent =
-                new LSMBTreeDiskComponent(lsmIndex, btreeFactory.createIndexInstance(cfr.getInsertIndexFileReference()),
-                        filterHelper == null ? null : filterHelper.createFilter());
+        BTree btreeIndex = btreeFactory.createIndexInstance(cfr.getInsertIndexFileReference());
+        ILSMComponentFilter filter = filterHelper == null ? null : filterHelper.createFilter();
         if (statisticsManager != null && statisticsFactory != null) {
-            return new LSMBTreeWithStatisticsDiskComponent(btreeComponent, statisticsFactory, statisticsManager);
+            return new LSMBTreeWithStatisticsDiskComponent(lsmIndex, btreeIndex, filter, statisticsFactory,
+                    statisticsManager);
+        } else {
+            return new LSMBTreeDiskComponent(lsmIndex, btreeIndex, filter);
         }
-        return btreeComponent;
     }
 
 }
