@@ -25,16 +25,15 @@ import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMTreeTupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 
-public class CombinedSynopsisBuilder extends AbstractSynopsisBuilder<AbstractSynopsis<ISynopsisElement>> {
+public class CombinedSynopsisBuilder implements ISynopsisBuilder {
 
     private final AbstractSynopsisBuilder synopsisBuilder;
     private final AbstractSynopsisBuilder antimatterSynopsisBuilder;
 
     public CombinedSynopsisBuilder(AbstractSynopsisBuilder synopsisBuilder,
-            AbstractSynopsisBuilder antimatterSynopsisBuilder, IFieldExtractor fieldExtractor) {
-        super(null, false, fieldExtractor, null);
+            AbstractSynopsisBuilder antimatterSynopsisBuilder) {
         this.synopsisBuilder = synopsisBuilder;
         this.antimatterSynopsisBuilder = antimatterSynopsisBuilder;
     }
@@ -52,11 +51,6 @@ public class CombinedSynopsisBuilder extends AbstractSynopsisBuilder<AbstractSyn
     public void end() throws HyracksDataException {
         synopsisBuilder.end();
         antimatterSynopsisBuilder.end();
-    }
-
-    @Override
-    public void addValue(long value) {
-        throw new RuntimeException("Combined synopsis cannot be used to add elements");
     }
 
     @Override
