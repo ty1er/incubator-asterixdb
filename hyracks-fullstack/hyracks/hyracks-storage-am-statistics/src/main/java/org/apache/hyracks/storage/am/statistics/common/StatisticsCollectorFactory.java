@@ -88,7 +88,7 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
             return synopsisBuilder;
         } else {
             AbstractSynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true);
-            return new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder, fieldExtractor);
+            return new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
         }
     }
 
