@@ -203,7 +203,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
             return;
         }
         // sort synopsis coefficients based on keys
-        Iterator<WaveletCoefficient> mergedIt = ((PrefixSumWaveletSynopsis) mergedSynopsis).sortOnKeys().iterator();
+        Iterator<WaveletCoefficient> mergedIt = ((WaveletSynopsis) mergedSynopsis).sortOnKeys().iterator();
         Iterator<WaveletCoefficient> it = sortOnKeys().iterator();
         synopsisElements.clear();
         synopsisElements = new PriorityQueue<>(size, WaveletCoefficient.VALUE_COMPARATOR);

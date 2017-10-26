@@ -61,6 +61,12 @@ public class WaveletCoefficient implements ISynopsisElement {
         reset(value, level, index);
     }
 
+    public void reset(WaveletCoefficient c) {
+        this.value = c.getValue();
+        this.level = c.getLevel();
+        this.index = c.getKey();
+    }
+
     public void reset(double value, int level, long index) {
         this.value = value;
         this.level = level;

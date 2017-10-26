@@ -29,7 +29,7 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? extends ISynopsisElement>>
         implements ISynopsisBuilder {
 
-    private boolean isEmpty = true;
+    protected boolean isEmpty = true;
 
     protected final T synopsis;
     protected final boolean isAntimatter;
@@ -56,10 +56,10 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
 
     @Override
     public void add(ITupleReference tuple) throws HyracksDataException {
-        isEmpty = false;
         numTuples++;
         long value = fieldExtractor.extractFieldValue(tuple);
         addValue(value);
+        isEmpty = false;
     }
 
     @Override
