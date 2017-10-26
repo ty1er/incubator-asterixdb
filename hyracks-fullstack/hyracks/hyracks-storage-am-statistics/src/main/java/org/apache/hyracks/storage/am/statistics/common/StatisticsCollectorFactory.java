@@ -35,6 +35,7 @@ import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBuilder;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
+import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
 
@@ -105,7 +106,10 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
                 return new HistogramBuilder((HistogramSynopsis<? extends HistogramBucket>) synopsis, isAntimatter,
                         fieldExtractor, componentStatistics);
             case PrefixSumWavelet:
-                return new WaveletTransform((PrefixSumWaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
+                return new PrefixSumWaveletTransform((PrefixSumWaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
+                        componentStatistics);
+            case Wavelet:
+                return new WaveletTransform((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
                         componentStatistics);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);

@@ -75,6 +75,7 @@ public class SynopsisFactory {
             case EquiWidthHistogram:
                 elements = new ArrayList<HistogramBucket>(elementsNum);
                 break;
+            case Wavelet:
             case PrefixSumWavelet:
                 elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
                 break;

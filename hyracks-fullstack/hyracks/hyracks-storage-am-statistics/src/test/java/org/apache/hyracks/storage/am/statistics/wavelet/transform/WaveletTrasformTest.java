@@ -27,7 +27,7 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
-import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
+import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Before;
@@ -55,7 +55,7 @@ public abstract class WaveletTrasformTest {
     public void init() throws HyracksDataException {
         synopsis = new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
                 new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        builder = new WaveletTransform(synopsis, false, null, new ComponentStatistics(-1L, -1L));
+        builder = new PrefixSumWaveletTransform(synopsis, false, null, new ComponentStatistics(-1L, -1L));
     }
 
     public PeekingIterator<WaveletCoefficient> runTest(List<TransformTuple> initialData) throws Exception {
