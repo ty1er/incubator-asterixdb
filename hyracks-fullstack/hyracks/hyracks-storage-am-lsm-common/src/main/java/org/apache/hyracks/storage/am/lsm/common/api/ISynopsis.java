@@ -30,6 +30,7 @@ public interface ISynopsis<T extends ISynopsisElement> extends Serializable {
 
     enum SynopsisType {
         None,
+        GroupCountSketch,
         PrefixSumWavelet,
         Wavelet,
         EquiWidthHistogram,

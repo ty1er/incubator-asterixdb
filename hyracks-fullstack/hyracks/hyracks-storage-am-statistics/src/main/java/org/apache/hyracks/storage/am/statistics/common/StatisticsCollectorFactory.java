@@ -34,6 +34,7 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBuilder;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramSynopsis;
+import org.apache.hyracks.storage.am.statistics.sketch.GroupCountSketchBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
@@ -45,16 +46,25 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     private final int[] fields;
     private final int size;
     private final ITypeTraits[] fieldTypeTraits;
+    private final double energyAccuracy;
     private final SynopsisType type;
     private final IFieldExtractor fieldExtractor;
+    private int fanout;
+    private double failureProbability;
+    private double accuracy;
 
     public StatisticsCollectorFactory(SynopsisType type, int[] fields, int size, ITypeTraits[] fieldTypeTraits,
-            IOrdinalPrimitiveValueProvider fieldValueProvider) {
+            IOrdinalPrimitiveValueProvider fieldValueProvider, int fanout, double failureProbability, double accuracy,
+            double energyAccuracy) {
         this.type = type;
         this.fields = fields;
         this.size = size;
         this.fieldTypeTraits = fieldTypeTraits;
         this.fieldExtractor = new FirstKeyFieldExtractor(fieldValueProvider, fields);
+        this.fanout = fanout;
+        this.failureProbability = failureProbability;
+        this.accuracy = accuracy;
+        this.energyAccuracy = energyAccuracy;
     }
 
     @Override
@@ -111,6 +121,12 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
             case Wavelet:
                 return new WaveletTransform((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
                         componentStatistics);
+            case GroupCountSketch:
+                return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
+                        componentStatistics, fanout,
+                        failureProbability, accuracy, energyAccuracy, isAntimatter
+                                ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples(),
+                        (int) System.currentTimeMillis());
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);
         }

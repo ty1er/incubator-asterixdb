@@ -54,6 +54,7 @@ public class SynopsisFactory {
                 return new EquiWidthHistogramSynopsis(domainStart, domainEnd, maxLevel, synopsisSize,
                         (List<HistogramBucket>) synopsisElements);
             case Wavelet:
+            case GroupCountSketch:
                 return new WaveletSynopsis(domainStart, domainEnd, maxLevel, synopsisSize,
                         (Collection<WaveletCoefficient>) synopsisElements, true, true);
             case PrefixSumWavelet:

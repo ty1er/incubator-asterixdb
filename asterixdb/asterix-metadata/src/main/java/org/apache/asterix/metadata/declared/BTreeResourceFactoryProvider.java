@@ -106,7 +106,11 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
                     statisticsFactory = new StatisticsCollectorFactory(statsType, btreeKeys,
                             mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
                             typeTraits,
-                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider());
+                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider(),
+                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
+                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
+                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchAccuracy(),
+                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchEnergyAccuracy());
                 }
                 return new LSMBTreeLocalResourceFactory(storageManager, typeTraits, cmpFactories, filterTypeTraits,
                         filterCmpFactories, filterFields, opTrackerFactory, ioOpCallbackFactory,
