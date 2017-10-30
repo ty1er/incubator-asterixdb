@@ -60,6 +60,7 @@ public class SynopsisElementFactory {
                 break;
             case Wavelet:
             case PrefixSumWavelet:
+            case GroupCountSketch:
                 elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
                 break;
             default:

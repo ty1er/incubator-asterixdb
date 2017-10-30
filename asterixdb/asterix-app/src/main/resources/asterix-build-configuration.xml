@@ -130,4 +130,32 @@
       (Default = 60000)
     </description>
   </property>
+  <property>
+    <name>statistics.sketch.fanout</name>
+    <value>2</value>
+    <description>Fanout of the search tree for GroupCount sketch.
+      (Default = 2)
+    </description>
+  </property>
+  <property>
+    <name>statistics.sketch.failure.probability</name>
+    <value>0.05</value>
+    <description>Probability that sketched result will not be within accuracy bounds
+      (Default = 0.01)
+    </description>
+  </property>
+  <property>
+    <name>statistics.sketch.accuracy</name>
+    <value>0.1</value>
+    <description>Fanout of the search tree for GroupCount sketch.
+      (Default = 0.1)
+    </description>
+  </property>
+  <property>
+    <name>statistics.sketch.energy.accuracy</name>
+    <value>0.1</value>
+    <description>Parameter specifying that sketched result is within a factor of (1±accuracy) of the true result.
+      (Default = 0.1)
+    </description>
+  </property>
 </asterixConfiguration>
