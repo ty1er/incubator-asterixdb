@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IUniformHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IUniformHistBuilder;
 import org.apache.asterix.experiment.builder.ingest.IPrefixMergePolicy;
 import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment3Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment3UniformHist extends AbstractStatsExperiment3Builder
-        implements IUniformHistConfigBuilder, IPrefixMergePolicy {
+        implements IUniformHistBuilder, IPrefixMergePolicy {
 
     public StatisticsExperiment3UniformHist(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

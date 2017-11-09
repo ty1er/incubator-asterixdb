@@ -18,11 +18,12 @@
  */
 package org.apache.asterix.experiment.builder.config;
 
-public interface IAsterixConfigBuilder {
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 
-    String SYNOPSIS_SIZE_SUBSTITUTE_MARKER = "SYNOPSIS_SIZE";
+public interface IPrefixSumWaveletBuilder extends ISynopsisTypeBuilder {
 
-    default String getAsterixConfig() {
-        return null;
+    @Override
+    default SynopsisType getSynopsisType() {
+        return SynopsisType.PrefixSumWavelet;
     }
 }

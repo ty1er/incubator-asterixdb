@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IWaveletConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IWaveletBuilder;
 import org.apache.asterix.experiment.builder.ingest.IPrefixMergePolicy;
 import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment2Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment2WaveletPrefixPolicy extends AbstractStatsExperiment2Builder
-        implements IWaveletConfigBuilder, IPrefixMergePolicy {
+        implements IWaveletBuilder, IPrefixMergePolicy {
 
     public StatisticsExperiment2WaveletPrefixPolicy(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

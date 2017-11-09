@@ -18,19 +18,17 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IContinuousHistBuilder;
-import org.apache.asterix.experiment.builder.dgen.IDgen4Builder;
-import org.apache.asterix.experiment.builder.ingest.IIngestFeeds4Builder;
-import org.apache.asterix.experiment.builder.stats.StatisticsExperiment1Builder;
+import org.apache.asterix.experiment.builder.config.IPrefixSumWaveletBuilder;
+import org.apache.asterix.experiment.builder.ingest.INoMergePolicy;
+import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment3Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class StatisticsExperiment1Dgen4Ingest4ContinuousHist extends StatisticsExperiment1Builder
-        implements IDgen4Builder, IIngestFeeds4Builder, IContinuousHistBuilder {
+public class StatisticsExperiment3PrefixsumWaveletNoMergePolicy extends AbstractStatsExperiment3Builder
+        implements IPrefixSumWaveletBuilder, INoMergePolicy {
 
-    public StatisticsExperiment1Dgen4Ingest4ContinuousHist(LSMExperimentSetRunnerConfig config,
+    public StatisticsExperiment3PrefixsumWaveletNoMergePolicy(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {
         super(config, httpClient);
     }
-
 }

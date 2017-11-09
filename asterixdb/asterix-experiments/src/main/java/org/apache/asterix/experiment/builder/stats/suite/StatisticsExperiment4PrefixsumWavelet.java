@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.asterix.experiment.builder.config;
+package org.apache.asterix.experiment.builder.stats.suite;
 
-public interface IUniformHistConfigBuilder extends IAsterixConfigBuilder {
+import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
+import org.apache.asterix.experiment.builder.config.IPrefixSumWaveletBuilder;
+import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
+import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
 
-    @Override
-    default String getAsterixConfig() {
-        return "uniform-hist-configuration.xml";
+public class StatisticsExperiment4PrefixsumWavelet extends WorldCupExperimentBuilder
+        implements ICluster8Partition1Builder, IPrefixSumWaveletBuilder {
+
+    public StatisticsExperiment4PrefixsumWavelet(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
+        super(config, httpClient);
     }
 }

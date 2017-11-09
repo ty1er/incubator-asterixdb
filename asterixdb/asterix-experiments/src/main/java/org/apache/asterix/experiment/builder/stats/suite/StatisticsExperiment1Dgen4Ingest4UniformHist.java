@@ -18,7 +18,7 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IUniformHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IUniformHistBuilder;
 import org.apache.asterix.experiment.builder.dgen.IDgen4Builder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds4Builder;
 import org.apache.asterix.experiment.builder.stats.StatisticsExperiment1Builder;
@@ -26,7 +26,7 @@ import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment1Dgen4Ingest4UniformHist extends StatisticsExperiment1Builder
-        implements IDgen4Builder, IIngestFeeds4Builder, IUniformHistConfigBuilder {
+        implements IDgen4Builder, IIngestFeeds4Builder, IUniformHistBuilder {
 
     public StatisticsExperiment1Dgen4Ingest4UniformHist(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

@@ -18,10 +18,15 @@
  */
 package org.apache.asterix.experiment.builder.config;
 
-public interface IContinuousHistConfigBuilder extends IAsterixConfigBuilder {
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 
-    @Override
-    default String getAsterixConfig() {
-        return "continuous-hist-configuration.xml";
+public interface ISynopsisTypeBuilder {
+
+    String SYNOPSIS_SIZE_SUBSTITUTE_MARKER = "SYNOPSIS_SIZE";
+
+    String SYNOPSIS_TYPE_SUBSTITUTE_MARKER = "SYNOPSIS_TYPE";
+
+    default SynopsisType getSynopsisType() {
+        return null;
     }
 }

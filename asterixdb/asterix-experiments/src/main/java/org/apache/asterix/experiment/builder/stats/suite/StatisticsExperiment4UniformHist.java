@@ -19,13 +19,13 @@
 package org.apache.asterix.experiment.builder.stats.suite;
 
 import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
-import org.apache.asterix.experiment.builder.config.IUniformHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IUniformHistBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment4UniformHist extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IUniformHistConfigBuilder {
+        implements ICluster8Partition1Builder, IUniformHistBuilder {
 
     public StatisticsExperiment4UniformHist(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

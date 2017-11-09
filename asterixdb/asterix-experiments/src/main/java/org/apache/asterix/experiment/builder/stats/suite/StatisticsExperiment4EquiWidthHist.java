@@ -19,13 +19,13 @@
 package org.apache.asterix.experiment.builder.stats.suite;
 
 import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
-import org.apache.asterix.experiment.builder.config.IEquiWidthHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IEquiWidthHistBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment4EquiWidthHist extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IEquiWidthHistConfigBuilder {
+        implements ICluster8Partition1Builder, IEquiWidthHistBuilder {
 
     public StatisticsExperiment4EquiWidthHist(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
