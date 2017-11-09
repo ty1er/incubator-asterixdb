@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet;
+package org.apache.hyracks.storage.am.statistics.wavelet.transform;
 
 import java.util.List;
 import java.util.PriorityQueue;
@@ -25,6 +25,9 @@ import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
+import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
+import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Before;
@@ -37,7 +40,7 @@ public abstract class WaveletTrasformTest {
     private final int threshold;
     private final boolean normalize;
     protected AbstractSynopsisBuilder builder;
-    protected WaveletSynopsis synopsis;
+    protected PrefixSumWaveletSynopsis synopsis;
     protected static double epsilon = 0.001;
 
     public WaveletTrasformTest(long domainStart, long domainEnd, int maxLevel, int threshold, boolean normalize) {
@@ -50,7 +53,7 @@ public abstract class WaveletTrasformTest {
 
     @Before
     public void init() throws HyracksDataException {
-        synopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
+        synopsis = new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
                 new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
         builder = new WaveletTransform(synopsis, false, null, new ComponentStatistics(-1L, -1L));
     }

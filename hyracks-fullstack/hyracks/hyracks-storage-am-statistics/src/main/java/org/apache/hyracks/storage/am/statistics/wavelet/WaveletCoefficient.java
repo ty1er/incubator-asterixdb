@@ -58,6 +58,10 @@ public class WaveletCoefficient implements ISynopsisElement {
     };
 
     public WaveletCoefficient(double value, int level, long index) {
+        reset(value, level, index);
+    }
+
+    public void reset(double value, int level, long index) {
         this.value = value;
         this.level = level;
         this.index = index;
@@ -119,33 +123,44 @@ public class WaveletCoefficient implements ISynopsisElement {
         if (level == 0) {
             // Convert position to proper coefficient index
             //return (index >> 1) - (domainMin >> 1) + (1l << (maxLevel - 1));
-            return (index - domainMin) >> 1 | (1l << (maxLevel - 1));
+            return (index - domainMin) >>> 1 | (1l << (maxLevel - 1));
         } else {
             return index >>> 1;
         }
     }
 
     public long getLeftChildCoeffIndex(long domainMin, int maxLevel) {
-        if (level == 1) {
-            return -1;// (index << 1) - (domainMin >> 1) + (1l << (maxLevel - 1));
+        if (level == 0 || level > maxLevel) {
+            return -1;
+        } else if (level == 1) {
+            return ((index - (1L << (maxLevel - 1))) << 1) + domainMin;
         } else {
             return index << 1;
         }
     }
 
     public long getRightChildCoeffIndex(long domainMin, int maxLevel) {
-        return getLeftChildCoeffIndex(domainMin, maxLevel) + 1;
+        if (level == 0 || level > maxLevel) {
+            return -1;
+        } else {
+            return getLeftChildCoeffIndex(domainMin, maxLevel) + 1;
+        }
     }
 
-    // Returns true if the coefficient's dyadic range covers tuple with the given position
-    public boolean covers(long tuplePosition, int maxLevel, long domainMin) {
+    // Returns true if the coefficient's support interval covers the given position
+    public boolean covers(long position, int maxLevel, long domainMin) {
         if (level < 0) {
             return true;
         } else if (level == 0) {
-            return index == tuplePosition;
+            return index == position;
         } else {
-            return index == (((tuplePosition - domainMin) >>> 1) + (1l << (maxLevel - 1))) >>> (level - 1);
+            return index == (((position - domainMin) >>> 1) + (1l << (maxLevel - 1))) >>> (level - 1);
         }
+    }
+
+    public DyadicTupleRange convertCoeffToSupportInterval(long domainMin, long domainMax) {
+        long intervalStart = convertCoeffToPosition(domainMin, domainMax);
+        return new DyadicTupleRange(intervalStart, intervalStart + (1L << level) - 1, 0.0);
     }
 
     // Method calculates coefficient level based on it's index and maximum level of transform. Since coefficient level
@@ -164,5 +179,19 @@ public class WaveletCoefficient implements ISynopsisElement {
             level++;
         }
         return maxLevel - level;
+    }
+
+    public long convertCoeffToPosition(long domainMin, long domainMax) {
+        // Position is calculated via formula coeff << (maxLevel - level) - domainLength + domainStart.
+        // Domain length is expanded like domainEnd-domainStart, to avoid integer overflow
+        //return (coeff << level) - domainEnd + domainStart + domainStart;
+
+        if (level == 0)
+            return index;
+        else {
+            //binary mask, used to zero out most significant bits
+            long mask = domainMax - domainMin;
+            return ((index << level) & mask) + domainMin;
+        }
     }
 }

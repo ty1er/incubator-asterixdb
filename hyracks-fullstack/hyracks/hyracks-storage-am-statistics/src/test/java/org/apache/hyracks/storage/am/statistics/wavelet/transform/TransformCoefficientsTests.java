@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet;
+package org.apache.hyracks.storage.am.statistics.wavelet.transform;
 
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
+import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -40,9 +42,9 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
-        assertEquals(5.75, synopsis.findCoeffValue(it, 0L, 4), epsilon);
-        assertEquals((-1.75), synopsis.findCoeffValue(it, 1L, 4), epsilon);
-        assertEquals((-1.5), synopsis.findCoeffValue(it, 3L, 3), epsilon);
+        Assert.assertEquals(5.75, synopsis.findCoeffValue(it, 0L, 4), epsilon);
+        Assert.assertEquals((-1.75), synopsis.findCoeffValue(it, 1L, 4), epsilon);
+        Assert.assertEquals((-1.5), synopsis.findCoeffValue(it, 3L, 3), epsilon);
     }
 
     @Test
@@ -52,16 +54,16 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
-        assertEquals(3.4375, synopsis.findCoeffValue(it, 0L, 4), epsilon);
-        assertEquals(-2.9375, synopsis.findCoeffValue(it, 1L, 4), epsilon);
-        assertEquals(-0.5, synopsis.findCoeffValue(it, 2L, 3), epsilon);
-        assertEquals(-1, synopsis.findCoeffValue(it, 5L, 2), epsilon);
-        assertEquals(-2, synopsis.findCoeffValue(it, 11L, 1), epsilon);
-        assertEquals(-1.875, synopsis.findCoeffValue(it, 3L, 3), epsilon);
-        assertEquals(-0.5, synopsis.findCoeffValue(it, 6L, 2), epsilon);
-        assertEquals(-1, synopsis.findCoeffValue(it, 13L, 1), epsilon);
-        assertEquals(-0.75, synopsis.findCoeffValue(it, 7L, 2), epsilon);
-        assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
+        Assert.assertEquals(3.4375, synopsis.findCoeffValue(it, 0L, 4), epsilon);
+        Assert.assertEquals(-2.9375, synopsis.findCoeffValue(it, 1L, 4), epsilon);
+        Assert.assertEquals(-0.5, synopsis.findCoeffValue(it, 2L, 3), epsilon);
+        Assert.assertEquals(-1, synopsis.findCoeffValue(it, 5L, 2), epsilon);
+        Assert.assertEquals(-2, synopsis.findCoeffValue(it, 11L, 1), epsilon);
+        Assert.assertEquals(-1.875, synopsis.findCoeffValue(it, 3L, 3), epsilon);
+        Assert.assertEquals(-0.5, synopsis.findCoeffValue(it, 6L, 2), epsilon);
+        Assert.assertEquals(-1, synopsis.findCoeffValue(it, 13L, 1), epsilon);
+        Assert.assertEquals(-0.75, synopsis.findCoeffValue(it, 7L, 2), epsilon);
+        Assert.assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
     }
 
     @Test
@@ -71,14 +73,14 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
-        assertEquals(3.8125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
-        assertEquals(-3.3125, synopsis.findCoeffValue(it, 1L, 4), epsilon);
-        assertEquals(-0.5, synopsis.findCoeffValue(it, 2L, 3), epsilon);
-        assertEquals(-1, synopsis.findCoeffValue(it, 5L, 2), epsilon);
-        assertEquals(-2, synopsis.findCoeffValue(it, 11L, 1), epsilon);
-        assertEquals(-1.125, synopsis.findCoeffValue(it, 3L, 3), epsilon);
-        assertEquals(-0.75, synopsis.findCoeffValue(it, 7L, 2), epsilon);
-        assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
+        Assert.assertEquals(3.8125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
+        Assert.assertEquals(-3.3125, synopsis.findCoeffValue(it, 1L, 4), epsilon);
+        Assert.assertEquals(-0.5, synopsis.findCoeffValue(it, 2L, 3), epsilon);
+        Assert.assertEquals(-1, synopsis.findCoeffValue(it, 5L, 2), epsilon);
+        Assert.assertEquals(-2, synopsis.findCoeffValue(it, 11L, 1), epsilon);
+        Assert.assertEquals(-1.125, synopsis.findCoeffValue(it, 3L, 3), epsilon);
+        Assert.assertEquals(-0.75, synopsis.findCoeffValue(it, 7L, 2), epsilon);
+        Assert.assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
     }
 
     @Test
@@ -89,10 +91,10 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
-        assertEquals(14, synopsis.findCoeffValue(it, 0L, 4), epsilon);
-        assertEquals(-6, synopsis.findCoeffValue(it, 1L, 4), epsilon);
-        assertEquals(-4, synopsis.findCoeffValue(it, 2L, 3), epsilon);
-        assertEquals(-2, synopsis.findCoeffValue(it, 4L, 2), epsilon);
+        Assert.assertEquals(14, synopsis.findCoeffValue(it, 0L, 4), epsilon);
+        Assert.assertEquals(-6, synopsis.findCoeffValue(it, 1L, 4), epsilon);
+        Assert.assertEquals(-4, synopsis.findCoeffValue(it, 2L, 3), epsilon);
+        Assert.assertEquals(-2, synopsis.findCoeffValue(it, 4L, 2), epsilon);
     }
 
     @Test
@@ -103,14 +105,14 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
-        assertEquals(7.125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
-        assertEquals(-6.125, synopsis.findCoeffValue(it, 1L, 4), epsilon);
-        assertEquals(-1, synopsis.findCoeffValue(it, 2L, 3), epsilon);
-        assertEquals(-2, synopsis.findCoeffValue(it, 5L, 2), epsilon);
-        assertEquals(-4, synopsis.findCoeffValue(it, 11L, 1), epsilon);
-        assertEquals(-2.25, synopsis.findCoeffValue(it, 3L, 3), epsilon);
-        assertEquals(-1, synopsis.findCoeffValue(it, 6L, 2), epsilon);
-        assertEquals(-1.5, synopsis.findCoeffValue(it, 7L, 2), epsilon);
-        assertEquals(-3, synopsis.findCoeffValue(it, 15L, 1), epsilon);
+        Assert.assertEquals(7.125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
+        Assert.assertEquals(-6.125, synopsis.findCoeffValue(it, 1L, 4), epsilon);
+        Assert.assertEquals(-1, synopsis.findCoeffValue(it, 2L, 3), epsilon);
+        Assert.assertEquals(-2, synopsis.findCoeffValue(it, 5L, 2), epsilon);
+        Assert.assertEquals(-4, synopsis.findCoeffValue(it, 11L, 1), epsilon);
+        Assert.assertEquals(-2.25, synopsis.findCoeffValue(it, 3L, 3), epsilon);
+        Assert.assertEquals(-1, synopsis.findCoeffValue(it, 6L, 2), epsilon);
+        Assert.assertEquals(-1.5, synopsis.findCoeffValue(it, 7L, 2), epsilon);
+        Assert.assertEquals(-3, synopsis.findCoeffValue(it, 15L, 1), epsilon);
     }
 }

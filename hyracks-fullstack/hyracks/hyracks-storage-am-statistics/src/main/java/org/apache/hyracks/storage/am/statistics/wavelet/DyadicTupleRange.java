@@ -18,6 +18,9 @@
  */
 package org.apache.hyracks.storage.am.statistics.wavelet;
 
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Longs;
+
 public class DyadicTupleRange {
     private long start;
     private long end;
@@ -43,5 +46,22 @@ public class DyadicTupleRange {
 
     public void setValue(double value) {
         this.value = value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DyadicTupleRange that = (DyadicTupleRange) o;
+        return start == that.start && end == that.end && Double.compare(that.value, value) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return (Longs.hashCode(start) * 31 + Longs.hashCode(end)) * 31 + Doubles.hashCode(value);
     }
 }

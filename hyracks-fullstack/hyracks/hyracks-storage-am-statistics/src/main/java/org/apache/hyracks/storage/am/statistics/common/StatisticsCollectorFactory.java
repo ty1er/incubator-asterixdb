@@ -34,6 +34,7 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBuilder;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramSynopsis;
+import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
 
@@ -103,8 +104,8 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
             case EquiWidthHistogram:
                 return new HistogramBuilder((HistogramSynopsis<? extends HistogramBucket>) synopsis, isAntimatter,
                         fieldExtractor, componentStatistics);
-            case Wavelet:
-                return new WaveletTransform((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
+            case PrefixSumWavelet:
+                return new WaveletTransform((PrefixSumWaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
                         componentStatistics);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);
