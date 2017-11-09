@@ -28,14 +28,14 @@ import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.util.objectpool.IObjectFactory;
 import org.apache.hyracks.util.objectpool.MapObjectPool;
 
-public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
+public class WaveletTransform extends AbstractSynopsisBuilder<PrefixSumWaveletSynopsis> {
     private final Stack<WaveletCoefficient> avgStack;
     private MapObjectPool<WaveletCoefficient, Integer> avgStackObjectPool;
     private long transformPosition;
     private double transformFrequency;
     private double prefixSumFrequency;
 
-    public WaveletTransform(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
+    public WaveletTransform(PrefixSumWaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
             ComponentStatistics componentStatistics) {
         super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
         avgStack = new Stack<>();

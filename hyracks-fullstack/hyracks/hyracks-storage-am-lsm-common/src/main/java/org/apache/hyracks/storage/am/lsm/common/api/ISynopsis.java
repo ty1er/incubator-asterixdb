@@ -28,8 +28,9 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 
 public interface ISynopsis<T extends ISynopsisElement> extends Serializable {
 
-    public static enum SynopsisType {
+    enum SynopsisType {
         None,
+        PrefixSumWavelet,
         Wavelet,
         EquiWidthHistogram,
         UniformHistogram,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet;
+package org.apache.hyracks.storage.am.statistics.wavelet.transform;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.apache.hyracks.test.support.RepeatRule;
 import org.apache.hyracks.test.support.RepeatRule.Repeat;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,9 +54,9 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
         List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainStart, 100.0));
         runTest(initialData);
 
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, domainStart + 1), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, 0), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, domainStart + 1), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, 0), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
     }
 
     @Test
@@ -63,9 +64,9 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
         List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainEnd, 100.0));
         runTest(initialData);
 
-        assertEquals(100.0, synopsis.rangeQuery(domainEnd - 1, domainEnd), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(0, domainEnd), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainEnd - 1, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(0, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
     }
 
     @Test
@@ -76,13 +77,13 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
                         new TransformTuple(domainEnd, 100.0));
         runTest(initialData);
 
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, rand - 1), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(domainStart + 1, rand), epsilon);
-        assertEquals(200.0, synopsis.rangeQuery(domainStart, rand), epsilon);
-        assertEquals(200.0, synopsis.rangeQuery(rand, domainEnd), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(rand + 1, domainEnd), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(rand, domainEnd - 1), epsilon);
-        assertEquals(300.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, rand - 1), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart + 1, rand), epsilon);
+        Assert.assertEquals(200.0, synopsis.rangeQuery(domainStart, rand), epsilon);
+        Assert.assertEquals(200.0, synopsis.rangeQuery(rand, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(rand + 1, domainEnd), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(rand, domainEnd - 1), epsilon);
+        Assert.assertEquals(300.0, synopsis.rangeQuery(domainStart, domainEnd), epsilon);
     }
 
     @Rule
@@ -98,14 +99,14 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
         List<TransformTuple> initialData = Arrays.asList(new TransformTuple(rand1, 100.0));
         runTest(initialData);
 
-        assertEquals(0.0, synopsis.rangeQuery(domainStart, rand1 - 1), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(domainStart, rand1), epsilon);
-        assertEquals(100.0, synopsis.rangeQuery(rand1, domainEnd), epsilon);
-        assertEquals(0.0, synopsis.rangeQuery(rand1 + 1, domainEnd), epsilon);
+        Assert.assertEquals(0.0, synopsis.rangeQuery(domainStart, rand1 - 1), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, rand1), epsilon);
+        Assert.assertEquals(100.0, synopsis.rangeQuery(rand1, domainEnd), epsilon);
+        Assert.assertEquals(0.0, synopsis.rangeQuery(rand1 + 1, domainEnd), epsilon);
 
         long rangeStart = Math.min(rand2, rand3);
         long rangeEnd = Math.min(rand2, rand3);
-        assertEquals(rand1 >= rangeStart && rand1 <= rangeEnd ? 100.0 : 0.0, synopsis.rangeQuery(rangeStart, rangeEnd),
+        Assert.assertEquals(rand1 >= rangeStart && rand1 <= rangeEnd ? 100.0 : 0.0, synopsis.rangeQuery(rangeStart, rangeEnd),
                 epsilon);
     }
 

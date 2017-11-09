@@ -33,6 +33,7 @@ import org.apache.hyracks.storage.am.statistics.historgram.EquiWidthHistogramSyn
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.UniformHistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.UniformHistogramSynopsis;
+import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 
@@ -57,6 +58,9 @@ public class SynopsisFactory {
             case Wavelet:
                 return new WaveletSynopsis(domainStart, domainEnd, maxLevel, synopsisSize,
                         (Collection<WaveletCoefficient>) synopsisElements, true, true);
+            case PrefixSumWavelet:
+                return new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, synopsisSize,
+                        (Collection<WaveletCoefficient>) synopsisElements, true, true);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis of type " + type);
         }
@@ -71,7 +75,7 @@ public class SynopsisFactory {
             case EquiWidthHistogram:
                 elements = new ArrayList<HistogramBucket>(elementsNum);
                 break;
-            case Wavelet:
+            case PrefixSumWavelet:
                 elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
                 break;
             default:

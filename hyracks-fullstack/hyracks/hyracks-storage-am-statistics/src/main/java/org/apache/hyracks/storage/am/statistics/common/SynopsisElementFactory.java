@@ -36,7 +36,7 @@ public class SynopsisElementFactory {
                 return new HistogramBucket(key, value);
             case UniformHistogram:
                 return new UniformHistogramBucket(key, value, uniqueValNum);
-            case Wavelet:
+            case PrefixSumWavelet:
                 int maxLevel = TypeTraitsDomainUtils.maxLevel(keyTypeTraits);
                 return new WaveletCoefficient(value, WaveletCoefficient.getLevel(key, maxLevel), key);
             default:

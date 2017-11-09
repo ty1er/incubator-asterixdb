@@ -38,9 +38,9 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
     private static final long serialVersionUID = 1L;
 
     // Trigger wavelet coefficients to be normalized
-    private boolean normalize;
+    protected boolean normalize;
     // Trigger linear approximation of the prefix sum returned by synopsis
-    private boolean linearApproximation;
+    protected boolean linearApproximation;
 
     public WaveletSynopsis(long domainStart, long domainEnd, int maxLevel, int size,
             Collection<WaveletCoefficient> coefficients, boolean normalize, boolean linearApproximation) {
@@ -109,6 +109,10 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         }
     }
 
+    public void orderByKeys() {
+        synopsisElements = sortOnKeys();
+    }
+
     //function sorts wavelet coefficients in binary tree preorder
     public void createBinaryPreorder() {
         // sorting coefficients according their indices first
@@ -144,7 +148,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                             activeNode.right = insertedNode;
                         }
                     }
-                    TreeNode tmp = nextNode;
+                    WaveletSynopsis.TreeNode tmp = nextNode;
                     nextNode = insertedNode;
                     insertedNode = tmp;
                 } else {
@@ -195,11 +199,11 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
     @Override
     // Method implements naive synopsis merge, which just picks largest coefficients from the synopsis sum
     public void merge(ISynopsis<WaveletCoefficient> mergedSynopsis) throws HyracksDataException {
-        if (mergedSynopsis.getType() != SynopsisType.Wavelet) {
+        if (mergedSynopsis.getType() != getType()) {
             return;
         }
         // sort synopsis coefficients based on keys
-        Iterator<WaveletCoefficient> mergedIt = ((WaveletSynopsis) mergedSynopsis).sortOnKeys().iterator();
+        Iterator<WaveletCoefficient> mergedIt = ((PrefixSumWaveletSynopsis) mergedSynopsis).sortOnKeys().iterator();
         Iterator<WaveletCoefficient> it = sortOnKeys().iterator();
         synopsisElements.clear();
         synopsisElements = new PriorityQueue<>(size, WaveletCoefficient.VALUE_COMPARATOR);
@@ -244,7 +248,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         }
     }
 
-    double findCoeffValue(PeekingIterator<WaveletCoefficient> it, long coeffIdx, int coeffLevel) {
+    public double findCoeffValue(PeekingIterator<WaveletCoefficient> it, long coeffIdx, int coeffLevel) {
         WaveletCoefficient curr = it.peek();
         if (curr == null)
             return 0.0;
@@ -276,119 +280,16 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         }
     }
 
-    public long convertPositionToCoeff(Long position) {
+    //TODO:this is a duplicate of method WaveletCoefficient.getParentCoeffIndex()
+    public long convertPositionToCoeffIndex(long position) {
         return ((position - domainStart) >>> 1) | (1L << (maxLevel - 1));
         //return (1l << (maxLevel - 1)) + ((position >> 1) - (domainStart >> 1));
     }
 
-    public long convertCoeffToPosition(long coeff, int level) {
-        // Position is calculated via formula coeff << (maxLevel - level) - domainLength + domainStart.
-        // Domain length is expanded like domainEnd-domainStart, to avoid integer overflow
-        //return (coeff << level) - domainEnd + domainStart + domainStart;
-
-        if (level == 0)
-            return coeff;
-        else {
-            //binary mask, used to zero out most significant bits
-            long mask = domainEnd - domainStart;
-            return ((coeff << level) & mask) + domainStart;
-        }
-    }
-
-    public DyadicTupleRange convertCoeffToSupportInterval(long coeffIndex, int level) {
-        long intervalStart = convertCoeffToPosition(coeffIndex, level);
-        return new DyadicTupleRange(intervalStart, intervalStart + (1L << level) - 1, 0.0);
-    }
-
     @Override
     public double pointQuery(long position) {
-        if (position == getDomainStart()) {
-            return getApproximatedPrefixSum(position);
-        } else {
-            return getApproximatedPrefixSum(position) - getApproximatedPrefixSum(position - 1);
-        }
-    }
-
-    private DyadicTupleRange getPrefixSum(PeekingIterator<WaveletCoefficient> it, double average, long startPosition,
-            long startCoeffIdx, int level) {
-        double coeffVal = 0.0;
-        long coeffIdx = 0;
-        DyadicTupleRange result = convertCoeffToSupportInterval(startPosition, 0);
-        // start reverse decomposition starting from the top coefficient (i.e. with level=maxLevel)
-        for (int i = level; i >= 0; i--) {
-            if (i == 0) {
-                //on the last level use position to calculate sign of the coefficient
-                coeffIdx = startPosition - domainStart;
-            } else {
-                coeffIdx = startCoeffIdx >>> (i - 1);
-            }
-            if ((coeffIdx & 0x1) == 1) {
-                coeffVal *= -1;
-            }
-            if (coeffVal != 0.0) {
-                if (i == 0) {
-                    result = new DyadicTupleRange(startPosition, startPosition, 0.0);
-                } else {
-                    result = convertCoeffToSupportInterval(coeffIdx, i);
-                }
-            }
-            average += coeffVal;
-            coeffVal = findCoeffValue(it, coeffIdx, i);
-            if (normalize)
-                coeffVal *= WaveletCoefficient.getNormalizationCoefficient(maxLevel, i);
-        }
-        result.setValue(average);
-        return result;
-    }
-
-    private double getApproximatedPrefixSum(long position) {
-        //find a prefix sum and it's support interval for given position
-        DyadicTupleRange positionDyadicRange = getPrefixSum(position);
-        if (linearApproximation) {
-            //if a range is a single point there is not need for approximation
-            if (positionDyadicRange.getStart() == positionDyadicRange.getEnd())
-                return positionDyadicRange.getValue();
-            //indicates whether the position is located in the first half of the appropriate dyadic range or not
-            boolean firstHalf = position < (positionDyadicRange.getStart() + positionDyadicRange.getEnd()) / 2.0;
-            //        double approximationXStart = (positionDyadicRange.getStart() + positionDyadicRange.getEnd()) / 2.0;
-            double stairLength = (positionDyadicRange.getEnd() - positionDyadicRange.getStart()) / 2.0 + 1;
-            double x = position;
-            DyadicTupleRange prevDyadicRange;
-            DyadicTupleRange nextDyadicRange;
-            if (firstHalf) {
-                nextDyadicRange = positionDyadicRange;
-                if (positionDyadicRange.getStart() == domainStart) {
-                    prevDyadicRange = new DyadicTupleRange(domainStart, domainStart, 0.0);
-                    x += 1;
-                } else {
-                    prevDyadicRange = getPrefixSum(positionDyadicRange.getStart() - 1);
-                    stairLength += (prevDyadicRange.getEnd() - prevDyadicRange.getStart()) / 2.0;
-                }
-            } else {
-                prevDyadicRange = positionDyadicRange;
-                if (positionDyadicRange.getEnd() == domainEnd) {
-                    DyadicTupleRange prev = getPrefixSum(positionDyadicRange.getStart() - 1);
-                    nextDyadicRange = new DyadicTupleRange(domainEnd, domainEnd,
-                            positionDyadicRange.getValue() + (positionDyadicRange.getValue() - prev.getValue()) / 2);
-                    stairLength -= 0.5;
-                } else {
-                    nextDyadicRange = getPrefixSum(positionDyadicRange.getEnd() + 1);
-                    stairLength += (nextDyadicRange.getEnd() - nextDyadicRange.getStart()) / 2.0;
-                }
-            }
-            x -= (prevDyadicRange.getStart() + prevDyadicRange.getEnd()) / 2.0;
-            double stairHeight = nextDyadicRange.getValue() - prevDyadicRange.getValue();
-            return prevDyadicRange.getValue() + x * stairHeight / stairLength;
-        } else {
-            return positionDyadicRange.getValue();
-        }
-    }
-
-    private DyadicTupleRange getPrefixSum(long position) {
-        PeekingIterator<WaveletCoefficient> it = new PeekingIterator<>(synopsisElements.iterator());
-        long startCoeffIdx = convertPositionToCoeff(position);
-        double mainAvg = findCoeffValue(it, 0l, maxLevel);
-        return getPrefixSum(it, mainAvg, position, startCoeffIdx, maxLevel);
+        // point query is a special case of range query with range [x; x]
+        return rangeQuery(position, position);
     }
 
     //    public Double rangeQuery2(Long startPosition, Long endPosition) {
@@ -440,73 +341,58 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
     //    }
 
     @Override
+    // Follows the algorithm from "Approximate computation of multidimensional aggregates of sparse data using wavelets"
+    // Only coefficients along the path from root to leaves, designating the borders of the range, contribute to result
+    // Contribution of non-root individual coefficient is calculated as (|left_leaves_i| - |right_leaves_i|) * C_i,
+    // where |left_leaves_i| (|right_leaves_i| respectively) is the intersection between a set of leaves in the left
+    // (right) subtree and a given query range [start, end]
     public double rangeQuery(long startPosition, long endPosition) {
-        double startSum = 0.0;
-        if (startPosition > getDomainStart()) {
-            startSum = getApproximatedPrefixSum(startPosition - 1);
-        }
-        return getApproximatedPrefixSum(endPosition) - startSum;
-    }
-
-    public Double rangeQuery3(Long startPosition, Long endPosition) {
-        long leftCoeffIdx = (1l << (maxLevel - 1)) + (startPosition >> 1) - (domainStart >> 1);
-        long rightCoeffIdx = (1l << (maxLevel - 1)) + (endPosition >> 1) - (domainStart >> 1);
-        Double value = 0.0;
-        //during the query time coefficients are stored in the list, so this case is safe
+        int level = 0;
+        WaveletCoefficient leftBorderCoeff = new WaveletCoefficient(-1.0, level, startPosition);
+        WaveletCoefficient rightBorderCoeff = new WaveletCoefficient(-1.0, level, endPosition);
+        double result = 0.0;
+        // relies on the fact that coefficients are sorted in ascending order of their *index* values (i.e. c0, c1, ...)
         ReverseListIterator<WaveletCoefficient> it =
                 new ReverseListIterator<>((List<WaveletCoefficient>) synopsisElements);
-        WaveletCoefficient coeff = null;
+        WaveletCoefficient currCoeff;
         if (it.hasNext()) {
-            coeff = it.next();
-        }
-        int level = 1;
-        while (leftCoeffIdx > 0 && rightCoeffIdx > 0) {
-            int coeffLevel = WaveletCoefficient.getLevel(coeff.getKey(), maxLevel);
-            while (coeffLevel <= level && it.hasNext()) {
-                if (coeff.getKey() == leftCoeffIdx) {
-                    value += getLeavesNumWithinRange(coeff, startPosition, endPosition) * coeff.getValue()
-                            * WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel);
-                } else if (coeff.getKey() == rightCoeffIdx) {
-                    value += getLeavesNumWithinRange(coeff, startPosition, endPosition) * coeff.getValue()
-                            * WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel);
+            currCoeff = it.next();
+            int coeffLevel = WaveletCoefficient.getLevel(currCoeff.getKey(), maxLevel);
+            while (level <= maxLevel) {
+                while (coeffLevel <= level && it.hasNext()) {
+                    if (currCoeff.getKey() == leftBorderCoeff.getKey()
+                            || currCoeff.getKey() == rightBorderCoeff.getKey()) {
+                        DyadicTupleRange supportInterval =
+                                currCoeff.convertCoeffToSupportInterval(domainStart, domainEnd);
+                        //border between left child's range and right child's range
+                        long border = (supportInterval.getStart() + supportInterval.getEnd()) / 2;
+                        long leftLeavesNum =
+                                intersectInterval(supportInterval.getStart(), border, startPosition, endPosition);
+                        long rightLeavesNum =
+                                intersectInterval(border + 1, supportInterval.getEnd(), startPosition, endPosition);
+                        result += currCoeff.getValue() * (leftLeavesNum - rightLeavesNum) * (normalize
+                                ? WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel) : 1);
+                    }
+                    currCoeff = it.next();
+                    coeffLevel = WaveletCoefficient.getLevel(currCoeff.getKey(), maxLevel);
                 }
-                coeff = it.next();
-                coeffLevel = WaveletCoefficient.getLevel(coeff.getKey(), maxLevel);
+                level++;
+                leftBorderCoeff.reset(leftBorderCoeff.getValue(), level,
+                        leftBorderCoeff.getParentCoeffIndex(domainStart, maxLevel));
+                rightBorderCoeff.reset(rightBorderCoeff.getValue(), level,
+                        rightBorderCoeff.getParentCoeffIndex(domainStart, maxLevel));
             }
-            rightCoeffIdx >>= 1;
-            leftCoeffIdx >>= 1;
-            level++;
+            // will this ever happen????
+            while (it.hasNext() && currCoeff.getKey() != 0) {
+                currCoeff = it.next();
+            }
+            // Compute root coefficient's contribution
+            if (currCoeff.getKey() == 0) {
+                result += (Math.subtractExact(endPosition, startPosition) + 1) * currCoeff.getValue()
+                        * (normalize ? WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel) : 1);
+            }
         }
-        while (it.hasNext() && coeff.getKey() != 0) {
-            coeff = it.next();
-        }
-        // take into account for root coefficient
-        if (coeff.getKey() == 0)
-            value += (Math.subtractExact(endPosition, startPosition) + 1) * coeff.getValue()
-                    * (normalize ? WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel) : 1);
-        return value;
-    }
-
-    private long getLeavesNumWithinRange(WaveletCoefficient coeff, Long rangeStart, Long rangeEnd) {
-        if (WaveletCoefficient.getLevel(coeff.getKey(), maxLevel) > 1) {
-            DyadicTupleRange leftChildRange = convertCoeffToSupportInterval(coeff.getKey() << 1,
-                    WaveletCoefficient.getLevel(coeff.getKey(), maxLevel) - 1);
-            DyadicTupleRange rightChildRange = convertCoeffToSupportInterval((coeff.getKey() << 1) + 1,
-                    WaveletCoefficient.getLevel(coeff.getKey(), maxLevel) - 1);
-            long leftLeaves = intersectInterval(leftChildRange.getStart(), leftChildRange.getEnd(), rangeStart,
-                    rangeEnd);
-            long rightLeaves = intersectInterval(rightChildRange.getStart(), rightChildRange.getEnd(), rangeStart,
-                    rangeEnd);
-            return leftLeaves - rightLeaves;
-        } else {
-            long childLeftPos = (coeff.getKey() - (1 << (maxLevel - 1)) + (domainStart >> 1)) << 1;
-            if (rangeStart < childLeftPos && rangeEnd == childLeftPos
-                    || rangeStart == (childLeftPos + 1) && rangeEnd > (childLeftPos + 1)) {
-                return 1;
-            } else
-                return 0;
-
-        }
+        return result;
     }
 
     private long intersectInterval(long i1Start, long i1End, long i2Start, long i2End) {
@@ -516,5 +402,4 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
             return Math.min(i2End, i1End) - Math.max(i1Start, i2Start) + 1;
         }
     }
-
 }
