@@ -16,23 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet.helper;
+package org.apache.hyracks.storage.am.statistics.wavelet;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+public abstract class WaveletTest {
+    protected final long domainStart;
+    protected final long domainEnd;
+    protected final int maxLevel;
+    protected final int threshold;
+    protected final boolean normalize;
 
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+    protected static double epsilon = 0.001;
 
-public class TransformHelper {
-
-    public static void runTransform(List<TransformTuple> inputData, AbstractSynopsisBuilder synopsisBuilder)
-            throws Exception {
-        Collections.sort(inputData, Comparator.comparingLong(o -> o.position));
-        for (TransformTuple t : inputData) {
-            for (int i = 0; i < t.cardinality; i++)
-                synopsisBuilder.addValue(t.position);
-        }
-        synopsisBuilder.end();
+    public WaveletTest(int threshold, int maxLevel, boolean normalize, long domainStart, long domainEnd) {
+        this.threshold = threshold;
+        this.maxLevel = maxLevel;
+        this.normalize = normalize;
+        this.domainStart = domainStart;
+        this.domainEnd = domainEnd;
     }
 }

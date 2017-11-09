@@ -23,39 +23,29 @@ import java.util.PriorityQueue;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
-import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
+import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
+import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTest;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Before;
 
-public abstract class WaveletTrasformTest {
+public abstract class WaveletTransformTest extends WaveletTest {
 
-    protected final long domainStart;
-    protected final long domainEnd;
-    protected final int maxLevel;
-    private final int threshold;
-    private final boolean normalize;
     protected AbstractSynopsisBuilder builder;
     protected PrefixSumWaveletSynopsis synopsis;
-    protected static double epsilon = 0.001;
 
-    public WaveletTrasformTest(long domainStart, long domainEnd, int maxLevel, int threshold, boolean normalize) {
-        this.domainStart = domainStart;
-        this.domainEnd = domainEnd;
-        this.maxLevel = maxLevel;
-        this.threshold = threshold;
-        this.normalize = normalize;
+    public WaveletTransformTest(long domainStart, long domainEnd, int maxLevel, int threshold, boolean normalize) {
+        super(threshold, maxLevel, normalize, domainStart, domainEnd);
     }
 
     @Before
     public void init() throws HyracksDataException {
         synopsis = new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
                 new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        builder = new PrefixSumWaveletTransform(synopsis, false, null, new ComponentStatistics(-1L, -1L));
+        builder = new PrefixSumWaveletTransform(synopsis, false, null, null);
     }
 
     public PeekingIterator<WaveletCoefficient> runTest(List<TransformTuple> initialData) throws Exception {

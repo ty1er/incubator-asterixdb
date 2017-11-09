@@ -25,9 +25,7 @@ import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
-public class TransformRangeQueryTests extends WaveletTrasformTest {
+public class TransformRangeQueryTests extends WaveletTransformTest {
 
     public TransformRangeQueryTests() {
         super(0, 15, 4, 16, true);
@@ -58,7 +56,7 @@ public class TransformRangeQueryTests extends WaveletTrasformTest {
 
     @Test
     public void SinglePointDomainStartTest() throws Exception {
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(0, 4.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(0, 4));
         runTest(initialData);
 
         Assert.assertEquals(4.0, synopsis.rangeQuery(0, 1), epsilon);
@@ -96,7 +94,7 @@ public class TransformRangeQueryTests extends WaveletTrasformTest {
 
     @Test
     public void SinglePointDomainEndTest() throws Exception {
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(15, 4.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(15, 4));
         runTest(initialData);
 
         Assert.assertEquals(0.0, synopsis.rangeQuery(0, 1), epsilon);
@@ -134,7 +132,7 @@ public class TransformRangeQueryTests extends WaveletTrasformTest {
 
     @Test
     public void TwoPointsTest() throws Exception {
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(7, 4.0), new TransformTuple(11, 2.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(7, 4), new TransformTuple(11, 2));
         runTest(initialData);
 
         Assert.assertEquals(0.0, synopsis.rangeQuery(0, 6), epsilon);

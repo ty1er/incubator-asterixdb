@@ -33,10 +33,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static org.junit.Assert.assertEquals;
-
 @RunWith(Parameterized.class)
-public class TransformBorderValuesTests extends WaveletTrasformTest {
+public class TransformBorderValuesTests extends WaveletTransformTest {
 
     @Parameters
     public static Collection<Object[]> data() {
@@ -51,7 +49,7 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
 
     @Test
     public void DomainStartTest() throws Exception {
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainStart, 100.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainStart, 100));
         runTest(initialData);
 
         Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, domainStart + 1), epsilon);
@@ -61,7 +59,7 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
 
     @Test
     public void DomainEndTest() throws Exception {
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainEnd, 100.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(domainEnd, 100));
         runTest(initialData);
 
         Assert.assertEquals(100.0, synopsis.rangeQuery(domainEnd - 1, domainEnd), epsilon);
@@ -73,8 +71,8 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
     public void MixedTest() throws Exception {
         long rand = ThreadLocalRandom.current().nextLong(domainStart + 1, domainEnd - 1);
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(domainStart, 100.0), new TransformTuple(rand, 100.0),
-                        new TransformTuple(domainEnd, 100.0));
+                Arrays.asList(new TransformTuple(domainStart, 100), new TransformTuple(rand, 100),
+                        new TransformTuple(domainEnd, 100));
         runTest(initialData);
 
         Assert.assertEquals(100.0, synopsis.rangeQuery(domainStart, rand - 1), epsilon);
@@ -96,7 +94,7 @@ public class TransformBorderValuesTests extends WaveletTrasformTest {
         long rand2 = ThreadLocalRandom.current().nextLong(domainStart, domainEnd);
         long rand3 = ThreadLocalRandom.current().nextLong(domainStart, domainEnd);
 
-        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(rand1, 100.0));
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(rand1, 100));
         runTest(initialData);
 
         Assert.assertEquals(0.0, synopsis.rangeQuery(domainStart, rand1 - 1), epsilon);

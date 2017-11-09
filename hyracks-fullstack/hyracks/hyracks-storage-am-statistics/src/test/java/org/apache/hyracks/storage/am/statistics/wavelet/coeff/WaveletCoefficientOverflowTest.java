@@ -36,6 +36,9 @@ public class WaveletCoefficientOverflowTest {
     private final long domainEnd;
     private final int maxLevel;
 
+    private final long minIndex;
+    private final long maxIndex;
+
     @Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] { { Long.MIN_VALUE, Long.MAX_VALUE, Long.SIZE },
@@ -47,6 +50,9 @@ public class WaveletCoefficientOverflowTest {
         this.domainStart = domainStart;
         this.domainEnd = domainEnd;
         this.maxLevel = maxLevel;
+        // init axillary coefficient values
+        this.minIndex = 1L << (maxLevel - 1);
+        this.maxIndex = minIndex | (minIndex - 1);
     }
 
     @Test
@@ -54,16 +60,12 @@ public class WaveletCoefficientOverflowTest {
         WaveletCoefficient underflowCoeff = new WaveletCoefficient(0.0, 0, domainStart);
         WaveletCoefficient overflowCoeff = new WaveletCoefficient(0.0, 0, domainEnd);
 
-        long domainMinSigned = 1L << (maxLevel - 1);
-        assertEquals(domainMinSigned, underflowCoeff.getParentCoeffIndex(domainStart, maxLevel));
-        long domainMaxSigned = (domainMinSigned - 1);
-        assertEquals(domainMinSigned | domainMaxSigned, overflowCoeff.getParentCoeffIndex(domainStart, maxLevel));
+        assertEquals(minIndex, underflowCoeff.getParentCoeffIndex(domainStart, maxLevel));
+        assertEquals(maxIndex, overflowCoeff.getParentCoeffIndex(domainStart, maxLevel));
     }
 
     @Test
     public void testLeftChildCoeffLevel0Overflow() {
-        long minIndex = 1L << (maxLevel - 1);
-        long maxIndex = minIndex | (minIndex - 1);
         WaveletCoefficient underflowCoeff = new WaveletCoefficient(0.0, 1, minIndex);
         WaveletCoefficient overflowCoeff = new WaveletCoefficient(0.0, 1, maxIndex);
 
@@ -73,8 +75,6 @@ public class WaveletCoefficientOverflowTest {
 
     @Test
     public void testRightChildCoeffLevel0Overflow() {
-        long minIndex = 1L << (maxLevel - 1);
-        long maxIndex = minIndex | (minIndex - 1);
         WaveletCoefficient underflowCoeff = new WaveletCoefficient(0.0, 1, minIndex);
         WaveletCoefficient overflowCoeff = new WaveletCoefficient(0.0, 1, maxIndex);
 

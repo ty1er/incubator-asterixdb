@@ -27,9 +27,7 @@ import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
-public class TransformCoefficientsTests extends WaveletTrasformTest {
+public class TransformCoefficientsTests extends WaveletTransformTest {
 
     public TransformCoefficientsTests() {
         super(0, 15, 4, 16, false);
@@ -38,7 +36,7 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestUpperBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(0L, 4.0), new TransformTuple(8L, 2.0), new TransformTuple(12L, 3.0));
+                Arrays.asList(new TransformTuple(0L, 4), new TransformTuple(8L, 2), new TransformTuple(12L, 3));
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
@@ -50,7 +48,7 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestLowerBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7L, 4.0), new TransformTuple(11L, 2.0), new TransformTuple(13L, 3.0));
+                Arrays.asList(new TransformTuple(7L, 4), new TransformTuple(11L, 2), new TransformTuple(13L, 3));
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
@@ -69,7 +67,7 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestMixedBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7L, 4.0), new TransformTuple(8L, 2.0), new TransformTuple(13L, 3.0));
+                Arrays.asList(new TransformTuple(7L, 4), new TransformTuple(8L, 2), new TransformTuple(13L, 3));
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
@@ -86,8 +84,8 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
     @Test
     public void DecreasingLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(0L, 2.0), new TransformTuple(2L, 4.0), new TransformTuple(4L, 6.0),
-                        new TransformTuple(8L, 8.0));
+                Arrays.asList(new TransformTuple(0L, 2), new TransformTuple(2L, 4), new TransformTuple(4L, 6),
+                        new TransformTuple(8L, 8));
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
@@ -100,8 +98,8 @@ public class TransformCoefficientsTests extends WaveletTrasformTest {
     @Test
     public void MixedLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7L, 8.0), new TransformTuple(8L, 2.0), new TransformTuple(11L, 4.0),
-                        new TransformTuple(15L, 6.0));
+                Arrays.asList(new TransformTuple(7L, 8), new TransformTuple(8L, 2), new TransformTuple(11L, 4),
+                        new TransformTuple(15L, 6));
 
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 

@@ -22,16 +22,16 @@ import java.util.Objects;
 
 public class TransformTuple {
     public long position;
-    public double value;
+    public long cardinality;
     public boolean isAntimatter;
 
-    public TransformTuple(long x, double y, boolean isAntimatter) {
+    public TransformTuple(long x, long y, boolean isAntimatter) {
         this.position = x;
-        this.value = y;
+        this.cardinality = y;
         this.isAntimatter = isAntimatter;
     }
 
-    public TransformTuple(long x, double y) {
+    public TransformTuple(long x, long y) {
         this(x, y, false);
     }
 

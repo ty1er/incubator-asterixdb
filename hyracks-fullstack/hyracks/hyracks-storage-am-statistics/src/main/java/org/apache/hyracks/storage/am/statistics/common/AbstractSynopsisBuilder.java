@@ -64,10 +64,12 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
 
     @Override
     public void end() throws HyracksDataException {
-        if (isAntimatter) {
-            componentStatistics.resetAntimatterTuples(numTuples);
-        } else {
-            componentStatistics.resetTuples(numTuples);
+        if (componentStatistics != null) {
+            if (isAntimatter) {
+                componentStatistics.resetAntimatterTuples(numTuples);
+            } else {
+                componentStatistics.resetTuples(numTuples);
+            }
         }
     }
 
