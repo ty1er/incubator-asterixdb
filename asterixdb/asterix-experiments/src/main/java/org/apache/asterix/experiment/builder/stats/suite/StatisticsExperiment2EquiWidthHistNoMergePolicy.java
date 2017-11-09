@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IEquiWidthHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IEquiWidthHistBuilder;
 import org.apache.asterix.experiment.builder.ingest.INoMergePolicy;
 import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment2Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment2EquiWidthHistNoMergePolicy extends AbstractStatsExperiment2Builder
-        implements IEquiWidthHistConfigBuilder, INoMergePolicy {
+        implements IEquiWidthHistBuilder, INoMergePolicy {
 
     public StatisticsExperiment2EquiWidthHistNoMergePolicy(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

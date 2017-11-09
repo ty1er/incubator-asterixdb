@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IContinuousHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IContinuousHistBuilder;
 import org.apache.asterix.experiment.builder.ingest.INoMergePolicy;
 import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment2Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment2ContinuousHistNoMergePolicy extends AbstractStatsExperiment2Builder
-        implements IContinuousHistConfigBuilder, INoMergePolicy {
+        implements IContinuousHistBuilder, INoMergePolicy {
 
     public StatisticsExperiment2ContinuousHistNoMergePolicy(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

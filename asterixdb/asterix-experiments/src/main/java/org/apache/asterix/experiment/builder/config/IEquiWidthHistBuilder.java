@@ -16,21 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.asterix.experiment.builder.stats.suite;
+package org.apache.asterix.experiment.builder.config;
 
-import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
-import org.apache.asterix.experiment.builder.dgen.IDgen16Builder;
-import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
-import org.apache.asterix.experiment.builder.stats.StatisticsExperiment1Builder;
-import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
-import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 
-public class StatisticsExperiment1Dgen16Ingest1Nostats extends StatisticsExperiment1Builder
-        implements IDgen16Builder, IIngestFeeds1Builder, INoStatsBuilder {
+public interface IEquiWidthHistBuilder extends ISynopsisTypeBuilder {
 
-    public StatisticsExperiment1Dgen16Ingest1Nostats(LSMExperimentSetRunnerConfig config,
-            CloseableHttpClient httpClient) {
-        super(config, httpClient);
+    @Override
+    default SynopsisType getSynopsisType() {
+        return SynopsisType.EquiWidthHistogram;
     }
-
 }

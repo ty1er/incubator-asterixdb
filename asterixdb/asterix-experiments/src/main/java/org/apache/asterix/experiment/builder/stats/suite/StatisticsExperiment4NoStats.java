@@ -21,13 +21,13 @@
 package org.apache.asterix.experiment.builder.stats.suite;
 
 import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
-import org.apache.asterix.experiment.builder.config.INoStatsConfigBuilder;
+import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment4NoStats extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, INoStatsConfigBuilder {
+        implements ICluster8Partition1Builder, INoStatsBuilder {
 
     public StatisticsExperiment4NoStats(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

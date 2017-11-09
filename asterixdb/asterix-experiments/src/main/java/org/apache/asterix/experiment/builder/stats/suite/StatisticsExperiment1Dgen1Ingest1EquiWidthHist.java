@@ -20,7 +20,7 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IEquiWidthHistConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IEquiWidthHistBuilder;
 import org.apache.asterix.experiment.builder.dgen.IDgen1Builder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
 import org.apache.asterix.experiment.builder.stats.StatisticsExperiment1Builder;
@@ -28,7 +28,7 @@ import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment1Dgen1Ingest1EquiWidthHist extends StatisticsExperiment1Builder
-        implements IDgen1Builder, IIngestFeeds1Builder, IEquiWidthHistConfigBuilder {
+        implements IDgen1Builder, IIngestFeeds1Builder, IEquiWidthHistBuilder {
 
     public StatisticsExperiment1Dgen1Ingest1EquiWidthHist(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

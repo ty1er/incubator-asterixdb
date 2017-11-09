@@ -20,14 +20,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.IWaveletConfigBuilder;
+import org.apache.asterix.experiment.builder.config.IWaveletBuilder;
 import org.apache.asterix.experiment.builder.ingest.IConstantMergePolicy;
 import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment2Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment2WaveletConstantPolicy extends AbstractStatsExperiment2Builder
-        implements IWaveletConfigBuilder, IConstantMergePolicy {
+        implements IWaveletBuilder, IConstantMergePolicy {
 
     public StatisticsExperiment2WaveletConstantPolicy(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

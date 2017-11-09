@@ -47,7 +47,7 @@ import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.BaseExperimentBuilder;
 import org.apache.asterix.experiment.builder.Experiment;
-import org.apache.asterix.experiment.builder.config.IAsterixConfigBuilder;
+import org.apache.asterix.experiment.builder.config.ISynopsisTypeBuilder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeedsBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentConstants;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
@@ -57,7 +57,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implements IAsterixConfigBuilder {
+public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implements ISynopsisTypeBuilder {
 
     protected final int ingestFeedsNumber;
 
@@ -65,26 +65,28 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
         super(config, httpClient);
         this.ingestFeedsNumber = getIngestFeedsNumber();
         this.asterixConfigFileName = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(LSMExperimentConstants.ASTERIX_CONFIGURATION_DIR).resolve(getAsterixConfig()).toString();
+                .resolve(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION).toString();
     }
 
     @Override
     protected void doBuild(Experiment e) throws Exception {
         LSMStatsExperimentSetRunnerConfig statsConfig = (LSMStatsExperimentSetRunnerConfig) config;
         int synopsisSize = statsConfig.getSynopsisSize();
-        File tempAsterixConfig = File.createTempFile(getAsterixConfig(), ".tmp." + synopsisSize);
+        File tempAsterixConfig =
+                File.createTempFile(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION, ".tmp." + synopsisSize);
         String asterixConfigTemplate =
                 FileUtils.readFileToString(new File(asterixConfigFileName), Charset.defaultCharset());
-        String newAsterixConfig = Pattern.compile(SYNOPSIS_SIZE_SUBSTITUTE_MARKER).matcher(asterixConfigTemplate)
-                .replaceFirst(Integer.toString(synopsisSize));
+        String newAsterixConfig = Pattern
+                .compile(SYNOPSIS_TYPE_SUBSTITUTE_MARKER).matcher(Pattern.compile(SYNOPSIS_SIZE_SUBSTITUTE_MARKER)
+                        .matcher(asterixConfigTemplate).replaceFirst(Integer.toString(synopsisSize)))
+                .replaceFirst(getSynopsisType().toString());
         FileUtils.writeStringToFile(tempAsterixConfig, newAsterixConfig, Charset.defaultCharset());
         this.asterixConfigFileName = tempAsterixConfig.getAbsolutePath();
 
         super.doBuild(e);
     }
 
-    protected String assembleLoad(Path loadTemplate, List<Pair<String, String>> receivers)
-            throws IOException {
+    protected String assembleLoad(Path loadTemplate, List<Pair<String, String>> receivers) throws IOException {
         //form a ','-separated list of strings of a form 'host'://'absolute_file_path'
         String files = String.join(",",
                 receivers.stream().map(x -> x.getLeft() + "://" + x.getRight()).collect(Collectors.toList()));

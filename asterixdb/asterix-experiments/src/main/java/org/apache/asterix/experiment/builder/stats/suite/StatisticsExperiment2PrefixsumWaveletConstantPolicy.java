@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.asterix.experiment.builder.config;
+package org.apache.asterix.experiment.builder.stats.suite;
 
-public interface IEquiWidthHistConfigBuilder extends IAsterixConfigBuilder {
+import org.apache.asterix.experiment.builder.config.IPrefixSumWaveletBuilder;
+import org.apache.asterix.experiment.builder.ingest.IConstantMergePolicy;
+import org.apache.asterix.experiment.builder.stats.AbstractStatsExperiment2Builder;
+import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
 
-    @Override
-    default String getAsterixConfig() {
-        return "equi-width-hist-configuration.xml";
+public class StatisticsExperiment2PrefixsumWaveletConstantPolicy extends AbstractStatsExperiment2Builder
+        implements IPrefixSumWaveletBuilder, IConstantMergePolicy {
+
+    public StatisticsExperiment2PrefixsumWaveletConstantPolicy(LSMExperimentSetRunnerConfig config,
+            CloseableHttpClient httpClient) {
+        super(config, httpClient);
     }
 }

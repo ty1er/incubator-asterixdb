@@ -18,7 +18,7 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.config.INoStatsConfigBuilder;
+import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
 import org.apache.asterix.experiment.builder.dgen.IDgen8Builder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
 import org.apache.asterix.experiment.builder.stats.StatisticsExperiment1Builder;
@@ -26,7 +26,7 @@ import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsExperiment1Dgen8Ingest1Nostats extends StatisticsExperiment1Builder
-        implements IDgen8Builder, IIngestFeeds1Builder, INoStatsConfigBuilder {
+        implements IDgen8Builder, IIngestFeeds1Builder, INoStatsBuilder {
 
     public StatisticsExperiment1Dgen8Ingest1Nostats(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {

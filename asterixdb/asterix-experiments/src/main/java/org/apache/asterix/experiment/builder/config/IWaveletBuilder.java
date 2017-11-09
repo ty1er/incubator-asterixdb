@@ -18,10 +18,12 @@
  */
 package org.apache.asterix.experiment.builder.config;
 
-public interface IWaveletConfigBuilder extends IAsterixConfigBuilder {
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
+
+public interface IWaveletBuilder extends ISynopsisTypeBuilder {
 
     @Override
-    default String getAsterixConfig() {
-        return "wavelet-configuration.xml";
+    default SynopsisType getSynopsisType() {
+        return SynopsisType.Wavelet;
     }
 }
