@@ -25,9 +25,7 @@ import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
-public class TransformPointQueryTests extends WaveletTrasformTest {
+public class TransformPointQueryTests extends WaveletTransformTest {
 
     public TransformPointQueryTests() {
         super(0, 15, 4, 16, true);
@@ -36,7 +34,7 @@ public class TransformPointQueryTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestUpperBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(0l, 4.0), new TransformTuple(8l, 2.0), new TransformTuple(12l, 3.0));
+                Arrays.asList(new TransformTuple(0l, 4), new TransformTuple(8l, 2), new TransformTuple(12l, 3));
         runTest(initialData);
 
         Assert.assertEquals(4.0, synopsis.pointQuery(0l), epsilon);
@@ -47,7 +45,7 @@ public class TransformPointQueryTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestLowerBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7l, 4.0), new TransformTuple(11l, 2.0), new TransformTuple(13l, 3.0));
+                Arrays.asList(new TransformTuple(7l, 4), new TransformTuple(11l, 2), new TransformTuple(13l, 3));
         runTest(initialData);
 
         Assert.assertEquals(4.0, synopsis.pointQuery(7l), epsilon);
@@ -58,7 +56,7 @@ public class TransformPointQueryTests extends WaveletTrasformTest {
     @Test
     public void IncreasingLevelTestMixedBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7l, 4.0), new TransformTuple(8l, 2.0), new TransformTuple(13l, 3.0));
+                Arrays.asList(new TransformTuple(7l, 4), new TransformTuple(8l, 2), new TransformTuple(13l, 3));
         runTest(initialData);
 
         Assert.assertEquals(4.0, synopsis.pointQuery(7l), epsilon);
@@ -69,8 +67,8 @@ public class TransformPointQueryTests extends WaveletTrasformTest {
     @Test
     public void DecreasingLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(0l, 2.0), new TransformTuple(2l, 4.0), new TransformTuple(4l, 6.0),
-                        new TransformTuple(8l, 8.0));
+                Arrays.asList(new TransformTuple(0l, 2), new TransformTuple(2l, 4), new TransformTuple(4l, 6),
+                        new TransformTuple(8l, 8));
         runTest(initialData);
 
         Assert.assertEquals(2.0, synopsis.pointQuery(0l), epsilon);
@@ -82,8 +80,8 @@ public class TransformPointQueryTests extends WaveletTrasformTest {
     @Test
     public void MixedLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(7l, 8.0), new TransformTuple(8l, 2.0), new TransformTuple(11l, 4.0),
-                        new TransformTuple(15l, 6.0));
+                Arrays.asList(new TransformTuple(7l, 8), new TransformTuple(8l, 2), new TransformTuple(11l, 4),
+                        new TransformTuple(15l, 6));
         runTest(initialData);
 
         Assert.assertEquals(8.0, synopsis.pointQuery(7l), epsilon);

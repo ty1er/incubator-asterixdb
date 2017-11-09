@@ -36,9 +36,9 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
         // keep straddling coefficients for each level of error tree + additional coefficient for main average
         straddlingCoeffs = new WaveletCoefficient[synopsis.getMaxLevel() + 1];
         for (int i = 0; i < synopsis.getMaxLevel(); i++) {
-            straddlingCoeffs[i] = new WaveletCoefficient(0.0, i, -1L);
+            straddlingCoeffs[i] = new WaveletCoefficient(0.0, -1, -1L);
         }
-        straddlingCoeffs[synopsis.getMaxLevel()] = new WaveletCoefficient(0.0, synopsis.getMaxLevel(), 0L);
+        straddlingCoeffs[synopsis.getMaxLevel()] = new WaveletCoefficient(0.0, synopsis.getMaxLevel() + 1, 0L);
     }
 
     @Override
@@ -56,14 +56,17 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
         WaveletCoefficient coeff = new WaveletCoefficient(frequency, 0, tuplePosition);
         for (int i = 0; i < synopsis.getMaxLevel(); i++) {
             int sign = ((coeff.getKey() & 0x1) == 1) ? -1 : 1;
-            coeff.reset(frequency * sign / (1L << (coeff.getLevel() + 1)), coeff.getLevel() + 1,
+            coeff.reset(Math.abs(coeff.getValue()) * sign / 2, coeff.getLevel() + 1,
                     coeff.getParentCoeffIndex(synopsis.getDomainStart(), synopsis.getMaxLevel()));
             if (straddlingCoeffs[i].covers(tuplePosition, synopsis.getMaxLevel(), synopsis.getDomainStart())) {
-                straddlingCoeffs[i].setValue(straddlingCoeffs[i].getValue() + coeff.getValue());
+                straddlingCoeffs[i].reset(straddlingCoeffs[i].getValue() + coeff.getValue(), coeff.getLevel(),
+                        coeff.getKey());
             } else {
                 // tuple's position is not covered by the straddling coefficient C anymore, i.e. transform for C is
-                // finished. Add C to priority queue and renew straddling coefficient.
-                synopsis.addElement(straddlingCoeffs[i]);
+                // finished. Add C to priority queue if the coefficient is not dummy and renew straddling coefficient.
+                if (!straddlingCoeffs[i].isDummy()) {
+                    synopsis.addElement(straddlingCoeffs[i]);
+                }
                 straddlingCoeffs[i].reset(coeff);
             }
         }

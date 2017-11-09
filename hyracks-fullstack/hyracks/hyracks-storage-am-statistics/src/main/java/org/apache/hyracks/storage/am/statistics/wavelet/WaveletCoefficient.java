@@ -111,6 +111,11 @@ public class WaveletCoefficient implements ISynopsisElement {
     }
 
     @Override
+    public String toString() {
+        return "L" + level + ": h" + index + "=" + value;
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(value, level, index);
     }
@@ -125,19 +130,32 @@ public class WaveletCoefficient implements ISynopsisElement {
 
     // Returns index of the parent coefficient
     public long getParentCoeffIndex(long domainMin, int maxLevel) {
+        return getAncestorCoeffIndex(domainMin, maxLevel, 1);
+    }
+
+    public long getAncestorCoeffIndex(long domainMin, int maxLevel, int ancestorLevelDifference) {
+        if (ancestorLevelDifference == 0) {
+            return index;
+        }
         // Special case for values on level 0
         if (level == 0) {
             // Convert position to proper coefficient index
-            //return (index >> 1) - (domainMin >> 1) + (1l << (maxLevel - 1));
-            return (index - domainMin) >>> 1 | (1l << (maxLevel - 1));
+            return (index - domainMin) >>> ancestorLevelDifference | (1l << (maxLevel - ancestorLevelDifference));
+        } else if (level == maxLevel + 1) {
+            // Special case for the main average with level maxLevel+1
+            return -1;
+        } else if (ancestorLevelDifference >= Long.SIZE) {
+            return 0L;
         } else {
-            return index >>> 1;
+            return index >>> ancestorLevelDifference;
         }
     }
 
     public long getLeftChildCoeffIndex(long domainMin, int maxLevel) {
-        if (level == 0 || level > maxLevel) {
+        if (level == 0) {
             return -1;
+        } else if (level > maxLevel) {
+            return 1;
         } else if (level == 1) {
             return ((index - (1L << (maxLevel - 1))) << 1) + domainMin;
         } else {
@@ -146,8 +164,10 @@ public class WaveletCoefficient implements ISynopsisElement {
     }
 
     public long getRightChildCoeffIndex(long domainMin, int maxLevel) {
-        if (level == 0 || level > maxLevel) {
+        if (level == 0) {
             return -1;
+        } else if (level > maxLevel) {
+            return 1;
         } else {
             return getLeftChildCoeffIndex(domainMin, maxLevel) + 1;
         }
@@ -176,7 +196,7 @@ public class WaveletCoefficient implements ISynopsisElement {
             return -1;
         }
         if (coeffIdx == 0) {
-            return maxLevel;
+            return maxLevel + 1;
         }
         int level = 0;
         coeffIdx = coeffIdx >>> 1;
@@ -195,8 +215,8 @@ public class WaveletCoefficient implements ISynopsisElement {
         if (level == 0)
             return index;
         else {
-            //binary mask, used to zero out most significant bits
-            long mask = domainMax - domainMin;
+            //binary mask, used to zero out most significant bit
+            long mask = domainMax - 1 - domainMin;
             return ((index << level) & mask) + domainMin;
         }
     }

@@ -27,9 +27,7 @@ import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
-public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTest {
+public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTest {
 
     public TransformCoefficientsNegativeDomainTests() {
         super(-8, 7, 4, 16, false);
@@ -38,7 +36,7 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTes
     @Test
     public void IncreasingLevelTestUpperBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-8l, 4.0), new TransformTuple(0l, 2.0), new TransformTuple(4l, 3.0));
+                Arrays.asList(new TransformTuple(-8l, 4), new TransformTuple(0l, 2), new TransformTuple(4l, 3));
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(5.75, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -49,7 +47,7 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTes
     @Test
     public void IncreasingLevelTestLowerBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 4.0), new TransformTuple(3l, 2.0), new TransformTuple(5l, 3.0));
+                Arrays.asList(new TransformTuple(-1l, 4), new TransformTuple(3l, 2), new TransformTuple(5l, 3));
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(3.4375, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -67,7 +65,7 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTes
     @Test
     public void IncreasingLevelTestMixedBoarder() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 4.0), new TransformTuple(0l, 2.0), new TransformTuple(5l, 3.0));
+                Arrays.asList(new TransformTuple(-1l, 4), new TransformTuple(0l, 2), new TransformTuple(5l, 3));
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(3.8125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -83,8 +81,8 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTes
     @Test
     public void DecreasingLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-8l, 2.0), new TransformTuple(-6l, 4.0), new TransformTuple(-4l, 6.0),
-                        new TransformTuple(0l, 8.0));
+                Arrays.asList(new TransformTuple(-8l, 2), new TransformTuple(-6l, 4), new TransformTuple(-4l, 6),
+                        new TransformTuple(0l, 8));
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(14, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -96,8 +94,8 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTrasformTes
     @Test
     public void MixedLevelTest() throws Exception {
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 8.0), new TransformTuple(0l, 2.0), new TransformTuple(3l, 4.0),
-                        new TransformTuple(7l, 6.0));
+                Arrays.asList(new TransformTuple(-1l, 8), new TransformTuple(0l, 2), new TransformTuple(3l, 4),
+                        new TransformTuple(7l, 6));
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(7.125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
