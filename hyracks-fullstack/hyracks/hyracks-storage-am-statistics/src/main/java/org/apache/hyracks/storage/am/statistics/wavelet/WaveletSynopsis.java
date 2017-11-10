@@ -21,8 +21,10 @@ package org.apache.hyracks.storage.am.statistics.wavelet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -399,6 +401,57 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
             return 0;
         } else {
             return Math.min(i2End, i1End) - Math.max(i1Start, i2Start) + 1;
+        }
+    }
+
+    // Method implements creates a joint synopsis from two input wavelets. Result of the join is equivalent to synopsis,
+    // built on the result of relational join between datasets, that were used to create left and right synopses
+    public void join(WaveletSynopsis left, WaveletSynopsis right) {
+        Map<Long, Double> joinedWavelet = new HashMap<>();
+
+        for (WaveletCoefficient leftCoeff : left.getElements()) {
+            for (WaveletCoefficient rightCoeff : right.getElements()) {
+                int levelDifference = Math.abs(rightCoeff.getLevel() - leftCoeff.getLevel());
+                if (levelDifference != 0) {
+                    WaveletCoefficient larger = leftCoeff.getLevel() > rightCoeff.getLevel() ? leftCoeff : rightCoeff;
+                    WaveletCoefficient smaller = leftCoeff.getLevel() > rightCoeff.getLevel() ? rightCoeff : leftCoeff;
+                    // process only coefficients on the path from root to smaller
+                    if (larger.getKey() == smaller.getAncestorCoeffIndex(domainStart, maxLevel, levelDifference)) {
+                        //main average always contributes positively
+                        int sign = larger.getKey() == 0 ? 1
+                                : (((1L << (levelDifference - 1)) & smaller.getKey()) > 0 ? -1 : 1);
+                        double joinedCoeffValue = smaller.getValue() * larger.getValue() * sign * (!isNormalized() ? 1
+                                : WaveletCoefficient.getNormalizationCoefficient(maxLevel, smaller.getLevel())
+                                        * WaveletCoefficient.getNormalizationCoefficient(maxLevel, larger.getLevel()));
+                        joinedWavelet.compute(smaller.getKey(), (k, v) -> (v == null ? 0 : v) + joinedCoeffValue);
+                    }
+                } else if (leftCoeff.getKey() == rightCoeff.getKey()) {
+                    WaveletCoefficient coeff = leftCoeff;
+                    //special case: product of two main averages contributes to joined main average
+                    if (coeff.getKey() == 0) {
+                        double joinedCoeffValue = leftCoeff.getValue() * rightCoeff.getValue() * (!isNormalized() ? 1
+                                : WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel())
+                                        * WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel()));
+                        joinedWavelet.compute(0L, (k, v) -> (v == null ? 0 : v) + joinedCoeffValue);
+                    }
+                    for (int i = maxLevel - coeff.getLevel() + 1; i > 0; i--) {
+                        long ancestorIndex = coeff.getAncestorCoeffIndex(domainStart, maxLevel, i);
+                        //main average always contributes positively
+                        int sign = ancestorIndex == 0 ? 1 : (((1L << (i - 1)) & coeff.getKey()) > 0 ? -1 : 1);
+                        long scaleFactor = Math.min(i, maxLevel - coeff.getLevel());
+                        // offset numeric overflow, which can drive (1L << scaleFactor) into negative domain
+                        int adjustSign = (scaleFactor == Long.SIZE - 1) ? -1 : 1;
+                        double joinedCoeffValue = sign * adjustSign * (!isNormalized() ? 1
+                                : WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel())
+                                        * WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel()))
+                                * ((coeff.getValue() * rightCoeff.getValue()) / (1L << scaleFactor));
+                        joinedWavelet.compute(ancestorIndex, (k, v) -> (v == null ? 0 : v) + joinedCoeffValue);
+                    }
+                }
+            }
+        }
+        for (Map.Entry<Long, Double> e : joinedWavelet.entrySet()) {
+            addElement(e.getKey(), e.getValue(), WaveletCoefficient.getLevel(e.getKey(), maxLevel), normalize);
         }
     }
 }
