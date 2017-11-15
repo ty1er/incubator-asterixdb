@@ -56,6 +56,7 @@ public class SynopsisElementFactory {
             case UniformHistogram:
             case ContinuousHistogram:
             case EquiWidthHistogram:
+            case QuantileSketch:
                 elements = new ArrayList<>(elementsNum);
                 break;
             case Wavelet:

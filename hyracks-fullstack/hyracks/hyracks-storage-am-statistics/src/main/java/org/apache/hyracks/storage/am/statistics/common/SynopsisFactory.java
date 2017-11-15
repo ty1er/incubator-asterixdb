@@ -50,6 +50,7 @@ public class SynopsisFactory {
                 return new UniformHistogramSynopsis(domainStart, domainEnd, maxLevel, synopsisElementsNum, synopsisSize,
                         (List<UniformHistogramBucket>) synopsisElements);
             case ContinuousHistogram:
+            case QuantileSketch:
                 return new ContinuousHistogramSynopsis(domainStart, domainEnd, maxLevel, synopsisElementsNum,
                         synopsisSize, (List<HistogramBucket>) synopsisElements);
             case EquiWidthHistogram:
