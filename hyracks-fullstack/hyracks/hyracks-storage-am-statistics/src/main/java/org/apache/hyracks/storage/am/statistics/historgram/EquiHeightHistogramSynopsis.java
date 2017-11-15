@@ -33,6 +33,10 @@ public abstract class EquiHeightHistogramSynopsis<T extends HistogramBucket> ext
         elementsPerBucket = Math.max((long) Math.ceil((double) elementsNum / bucketsNum), 1);
     }
 
+    public long getElementsPerBucket() {
+        return elementsPerBucket;
+    }
+
     @Override
     public boolean isMergeable() {
         return false;

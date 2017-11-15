@@ -35,7 +35,8 @@ public interface ISynopsis<T extends ISynopsisElement> extends Serializable {
         Wavelet,
         EquiWidthHistogram,
         UniformHistogram,
-        ContinuousHistogram;
+        ContinuousHistogram,
+        QuantileSketch;
     }
 
     SynopsisType getType();

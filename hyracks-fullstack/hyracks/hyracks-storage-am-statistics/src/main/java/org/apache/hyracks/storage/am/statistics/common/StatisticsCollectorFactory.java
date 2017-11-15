@@ -31,10 +31,12 @@ import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
+import org.apache.hyracks.storage.am.statistics.historgram.EquiHeightHistogramSynopsis;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBuilder;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramSynopsis;
 import org.apache.hyracks.storage.am.statistics.sketch.GroupCountSketchBuilder;
+import org.apache.hyracks.storage.am.statistics.sketch.quantile.QuantileSketchBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
@@ -127,6 +129,9 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
                         failureProbability, accuracy, energyAccuracy, isAntimatter
                                 ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples(),
                         (int) System.currentTimeMillis());
+            case QuantileSketch:
+                return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, isAntimatter, fieldExtractor,
+                        componentStatistics, accuracy);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);
         }
