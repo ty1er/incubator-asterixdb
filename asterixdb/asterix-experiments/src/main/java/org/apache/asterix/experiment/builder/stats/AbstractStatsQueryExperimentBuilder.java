@@ -31,6 +31,7 @@ import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.ParallelActionSet;
 import org.apache.asterix.experiment.action.derived.AbstractRemoteExecutableAction;
 import org.apache.asterix.experiment.action.derived.LogAction;
+import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.counter.ITweetRecordsCounterBuilder;
@@ -100,8 +101,10 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
         return "dump_synopsis.aql";
     }
 
-    public String getDataDump() {
-        return "dump_data.aql";
+    public RunAQLAction getDataDumpAction(OutputStream outputStream) {
+        return new RunAQLFileAction(httpClient, restHost, restPort,
+                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve("dump_data.aql"), outputStream,
+                HttpUtil.ContentType.CSV);
     }
 
     @Override
@@ -115,9 +118,7 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
                 HttpUtil.ContentType.CSV));
         OutputStream data_os = new FileOutputStream(
                 localExperimentRoot.resolve(config.getOutputDir()).resolve(getName() + "_data.csv").toString(), false);
-        experimentActions.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getDataDump()), data_os,
-                HttpUtil.ContentType.CSV));
+        experimentActions.addLast(getDataDumpAction(data_os));
     }
 
 }

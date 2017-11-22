@@ -20,13 +20,19 @@ package org.apache.asterix.experiment.builder.stats;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.LogAction;
+import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -39,9 +45,13 @@ import org.apache.asterix.experiment.client.LSMStatsExperimentSetRunnerConfig;
 import org.apache.asterix.experiment.client.WorldCupQueryGenerator;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.hyracks.http.server.utils.HttpUtil;
 
 public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuilder
         implements IIngestFeeds1Builder, IPrefixMergePolicy {
+
+    private Supplier<String[]> domainMins;
+    private Supplier<String[]> domainMaxs;
 
     public WorldCupExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
@@ -63,8 +73,29 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
     }
 
     @Override
-    public String getDataDump() {
-        return "worldcup/dump_data.aql";
+    public RunAQLAction getDataDumpAction(OutputStream outputStream) {
+        return new RunAQLAction(httpClient, restHost, restPort, outputStream, HttpUtil.ContentType.CSV) {
+
+            @Override
+            public void doPerform() throws Exception {
+                String aql = StandardCharsets.UTF_8
+                        .decode(ByteBuffer.wrap(Files.readAllBytes(localExperimentRoot
+                                .resolve(LSMExperimentConstants.AQL_DIR).resolve("worldcup/dump_data.aql"))))
+                        .toString();
+                String[] mins = domainMins.get();
+                String[] maxs = domainMaxs.get();
+                int i = 0;
+                for (String field : WorldCupQueryGenerator.fieldNames) {
+                    String minPattern = field.toUpperCase() + "_MIN";
+                    String maxPattern = field.toUpperCase() + "_MAX";
+                    aql = aql.replaceAll(minPattern, mins[i]);
+                    aql = aql.replaceAll(maxPattern, maxs[i]);
+                    i++;
+                }
+                performAqlAction(aql);
+            }
+
+        };
     }
 
     @Override
@@ -86,11 +117,11 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
     protected void verifyIngestedData(ActionList experimentActions) throws IOException {
         super.verifyIngestedData(experimentActions);
         experimentActions.addLast(new SleepAction(1000));
-        getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setLowerBound, "min");
-        getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setUpperBound, "max");
+        domainMins = getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setLowerBound, "min");
+        domainMaxs = getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setUpperBound, "max");
     }
 
-    private void getMinMax(ActionList experimentActions, Consumer<String> f, String func) throws IOException {
+    private Supplier<String[]> getMinMax(ActionList experimentActions, Consumer<String> f, String func) {
         new StringWriter();
         final ByteArrayOutputStream countResultStream = new ByteArrayOutputStream();
         experimentActions
@@ -98,6 +129,7 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
         experimentActions.addLast(() -> f.accept("\"" + new String(countResultStream.toByteArray()) + "\""));
         experimentActions
                 .addLast(new LogAction(() -> "Domain " + func + ":" + new String(countResultStream.toByteArray())));
+        return () -> new String(countResultStream.toByteArray()).split("\n");
     }
 
     private String getMinMaxAql(String function) {
