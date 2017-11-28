@@ -22,6 +22,9 @@ package org.apache.asterix.experiment.builder.stats;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +36,10 @@ import org.apache.asterix.experiment.action.derived.AbstractRemoteExecutableActi
 import org.apache.asterix.experiment.action.derived.LogAction;
 import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
+import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.counter.ITweetRecordsCounterBuilder;
+import org.apache.asterix.experiment.client.DataGeneratorForSpatialIndexEvaluation;
 import org.apache.asterix.experiment.client.GeneratorFactory;
 import org.apache.asterix.experiment.client.LSMExperimentConstants;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
@@ -67,9 +72,7 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
                 @Override
                 protected String getCommand() {
                     String cmd = "scp " + username + "@" + qgenHost + ":" + queryOutput + " "
-                            + localExperimentRoot.resolve(config.getOutputDir())
-                                    .resolve(LSMExperimentConstants.LOG_DIR + "-" + logDirSuffix).resolve(getName())
-                                    .resolve(qhostResultsFile).toString();
+                            + localExperimentRoot.resolve(logDir).resolve(qhostResultsFile).toString();
                     return cmd;
                 }
             });
@@ -101,24 +104,40 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
         return "dump_synopsis.aql";
     }
 
-    public RunAQLAction getDataDumpAction(OutputStream outputStream) {
+    public RunAQLAction getSynopsisDumpAction(OutputStream outputStream, String fieldName) throws IOException {
+        String aql = StandardCharsets.UTF_8
+                .decode(ByteBuffer.wrap(Files.readAllBytes(
+                        localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getSynopsisDump()))))
+                .toString();
+        aql = aql.replaceAll("FIELD", fieldName);
+        return new RunAQLStringAction(httpClient, restHost, restPort, aql, outputStream, HttpUtil.ContentType.CSV);
+    }
+
+    public RunAQLAction getDataDumpAction(OutputStream outputStream, String fieldName) {
         return new RunAQLFileAction(httpClient, restHost, restPort,
                 localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve("dump_data.aql"), outputStream,
                 HttpUtil.ContentType.CSV);
     }
 
+    protected String[] getFieldNames() {
+        String[] result = new String[DataGeneratorForSpatialIndexEvaluation.NUM_BTREE_EXTRA_FIELDS];
+        for (int i = 1; i <= DataGeneratorForSpatialIndexEvaluation.NUM_BTREE_EXTRA_FIELDS; i++) {
+            result[i - 1] = "btree-extra-field" + i;
+        }
+        return result;
+    }
+
     @Override
     protected void listIngestedData(ActionList experimentActions) throws IOException {
         super.listIngestedData(experimentActions);
-        OutputStream synopsis_os = new FileOutputStream(
-                localExperimentRoot.resolve(config.getOutputDir()).resolve(getName() + "_synopsis.csv").toString(),
-                false);
-        experimentActions.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getSynopsisDump()), synopsis_os,
-                HttpUtil.ContentType.CSV));
-        OutputStream data_os = new FileOutputStream(
-                localExperimentRoot.resolve(config.getOutputDir()).resolve(getName() + "_data.csv").toString(), false);
-        experimentActions.addLast(getDataDumpAction(data_os));
+        for (String fieldName : getFieldNames()) {
+            OutputStream synopsis_os = new FileOutputStream(
+                    logDir.resolve(getName() + "_" + fieldName + "_synopsis.csv").toString(), false);
+            experimentActions.addLast(getSynopsisDumpAction(synopsis_os, fieldName));
+            OutputStream data_os =
+                    new FileOutputStream(logDir.resolve(getName() + "_" + fieldName + "_data.csv").toString(), false);
+            experimentActions.addLast(getDataDumpAction(data_os, fieldName));
+        }
     }
 
 }

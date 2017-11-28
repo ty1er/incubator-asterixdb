@@ -106,7 +106,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected final int nQueryRuns;
 
-    protected final String logDirSuffix;
+    protected final Path logDir;
 
     protected final LSMExperimentSetRunnerConfig config;
 
@@ -128,7 +128,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     public BaseExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         this.config = config;
-        this.logDirSuffix = config.getLogDirSuffix();
         this.restHost = config.getRESTHost();
         this.restPort = config.getRESTPort();
         this.managixHomePath = config.getManagixHome();
@@ -153,6 +152,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         this.queryOutput = config.getQgenOutputFilePath();
         this.lsAction = new SequentialActionList();
         this.localExperimentRoot = Paths.get(config.getLocalExperimentRoot());
+        this.logDir = localExperimentRoot.resolve(config.getOutputDir())
+                .resolve(LSMExperimentConstants.LOG_DIR + "-" + config.getLogDirSuffix()).resolve(getName());
         this.asterixConfigFileName = LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION;
         this.ncHosts = new HashSet<>();
     }
@@ -164,9 +165,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
                 .resolve(LSMExperimentConstants.AQL_DIR).resolve(LSMExperimentConstants.BASE_CLEANUP)));
         execs.addLast(new SleepAction(1000));
         //collect logs form the instance
-        execs.addLast(new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME,
-                localExperimentRoot.resolve(config.getOutputDir())
-                        .resolve(LSMExperimentConstants.LOG_DIR + "-" + logDirSuffix).resolve(getName()).toString()));
+        execs.addLast(
+                new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, logDir.toString()));
     }
 
     protected abstract ActionList loadData(ActionList dgenActions) throws IOException;
@@ -416,6 +416,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         ingestData(execs);
         execs.addLast(new SleepAction(2000));
         queryData(execs);
+        //init log dirs
+        new File(logDir.toString()).mkdirs();
         listIngestedData(execs);
 
         doPost(execs);
