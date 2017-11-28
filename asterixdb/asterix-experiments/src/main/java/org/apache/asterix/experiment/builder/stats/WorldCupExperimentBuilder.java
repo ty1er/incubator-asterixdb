@@ -73,7 +73,7 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
     }
 
     @Override
-    public RunAQLAction getDataDumpAction(OutputStream outputStream) {
+    public RunAQLAction getDataDumpAction(OutputStream outputStream, String fieldName) {
         return new RunAQLAction(httpClient, restHost, restPort, outputStream, HttpUtil.ContentType.CSV) {
 
             @Override
@@ -82,17 +82,15 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
                         .decode(ByteBuffer.wrap(Files.readAllBytes(localExperimentRoot
                                 .resolve(LSMExperimentConstants.AQL_DIR).resolve("worldcup/dump_data.aql"))))
                         .toString();
-                String[] mins = domainMins.get();
-                String[] maxs = domainMaxs.get();
-                int i = 0;
-                for (String field : WorldCupQueryGenerator.fieldNames) {
-                    String minPattern = field.toUpperCase() + "_MIN";
-                    String maxPattern = field.toUpperCase() + "_MAX";
-                    aql = aql.replaceAll(minPattern, mins[i]);
-                    aql = aql.replaceAll(maxPattern, maxs[i]);
-                    i++;
+                for (int i = 0; i < getFieldNames().length; i++) {
+                    if (getFieldNames()[i].equals(fieldName)) {
+                        aql = aql.replaceAll("FIELD_MIN", domainMins.get()[i]);
+                        aql = aql.replaceAll("FIELD_MAX", domainMaxs.get()[i]);
+                        aql = aql.replaceAll("FIELD", fieldName);
+                        performAqlAction(aql);
+                        break;
+                    }
                 }
-                performAqlAction(aql);
             }
 
         };
@@ -161,5 +159,10 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
                     (Long time) -> "Data load took " + time + "ms"));
         }
         return loadActions;
+    }
+
+    @Override
+    protected String[] getFieldNames() {
+        return WorldCupQueryGenerator.fieldNames;
     }
 }

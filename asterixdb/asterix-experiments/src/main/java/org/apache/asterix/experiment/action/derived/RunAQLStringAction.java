@@ -31,8 +31,15 @@ public class RunAQLStringAction extends RunAQLAction {
         this(httpClient, restHost, restPort, aql, null);
     }
 
-    public RunAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql, OutputStream os) {
+    public RunAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql,
+            OutputStream os) {
         super(httpClient, restHost, restPort, os);
+        this.aql = aql;
+    }
+
+    public RunAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql,
+            OutputStream os, String contentType) {
+        super(httpClient, restHost, restPort, os, contentType);
         this.aql = aql;
     }
 
