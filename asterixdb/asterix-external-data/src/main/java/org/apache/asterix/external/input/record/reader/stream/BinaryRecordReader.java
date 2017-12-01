@@ -71,7 +71,7 @@ public class BinaryRecordReader extends ByteStreamRecordReader {
             }
             if (readLength == 0) {
                 bufferPosn += recordSize;
-                if (bufferPosn < bufferLength) {
+                if (bufferPosn <= bufferLength) {
                     readLength = recordSize;
                     fullRecord = true;
                 } else {
