@@ -18,6 +18,10 @@
  */
 package org.apache.hyracks.storage.am.statistics.common;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.PriorityQueue;
+
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
@@ -41,7 +45,28 @@ public class SynopsisElementFactory {
                 int maxLevel = TypeTraitsDomainUtils.maxLevel(keyTypeTraits);
                 return new WaveletCoefficient(value, WaveletCoefficient.getLevel(key, maxLevel), key);
             default:
-                throw new HyracksDataException("Cannot instanciate new synopsis element of type " + type);
+                throw new HyracksDataException("Cannot instantiate new synopsis element of type " + type);
         }
+    }
+
+    public static Collection<? extends ISynopsisElement> createSynopsisElementsCollection(SynopsisType type,
+            int elementsNum) throws HyracksDataException {
+        Collection<? extends ISynopsisElement> elements;
+        switch (type) {
+            case UniformHistogram:
+            case ContinuousHistogram:
+            case EquiWidthHistogram:
+            case QuantileSketch:
+                elements = new ArrayList<>(elementsNum);
+                break;
+            case Wavelet:
+            case PrefixSumWavelet:
+            case GroupCountSketch:
+                elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
+                break;
+            default:
+                throw new HyracksDataException("Cannot new elements collection for synopsis type " + type);
+        }
+        return elements;
     }
 }

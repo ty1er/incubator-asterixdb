@@ -63,6 +63,7 @@ import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
+import org.apache.hyracks.storage.am.statistics.common.SynopsisElementFactory;
 import org.apache.hyracks.storage.am.statistics.common.SynopsisFactory;
 
 /**
@@ -558,8 +559,8 @@ public class MetadataManager implements IMetadataManager {
 
                     try {
                         ISynopsis mergedSynopsis = SynopsisFactory.createSynopsis(type, keyTypeTraits,
-                                SynopsisFactory.createSynopsisElements(type, maxSynopsisElements), maxSynopsisElements,
-                                synopsisSize);
+                                SynopsisElementFactory.createSynopsisElementsCollection(type, maxSynopsisElements),
+                                maxSynopsisElements, synopsisSize);
                         //trigger stats merge routine manually
                         mergedSynopsis.merge(synopsisList);
                         mergedStats = new Statistics(dataverseName, datasetName, indexName, Statistics.MERGED_STATS_ID,

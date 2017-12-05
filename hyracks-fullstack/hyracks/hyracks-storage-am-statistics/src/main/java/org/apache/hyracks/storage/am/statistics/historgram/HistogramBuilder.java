@@ -50,8 +50,7 @@ public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<
     }
 
     @Override
-    public void end() throws HyracksDataException {
-        super.end();
+    public void finishSynopsisBuild() throws HyracksDataException {
         if (activeBucketElementsNum == 0) {
             synopsis.appendToBucket(0, 0, synopsis.getDomainEnd(), 0.0);
         }
