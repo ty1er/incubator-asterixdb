@@ -18,10 +18,8 @@
  */
 package org.apache.hyracks.storage.am.statistics.common;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.PriorityQueue;
 
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
@@ -64,24 +62,5 @@ public class SynopsisFactory {
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis of type " + type);
         }
-    }
-
-    public static Collection<? extends ISynopsisElement> createSynopsisElements(SynopsisType type, int elementsNum)
-            throws HyracksDataException {
-        Collection<? extends ISynopsisElement> elements;
-        switch (type) {
-            case UniformHistogram:
-            case ContinuousHistogram:
-            case EquiWidthHistogram:
-                elements = new ArrayList<HistogramBucket>(elementsNum);
-                break;
-            case Wavelet:
-            case PrefixSumWavelet:
-                elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
-                break;
-            default:
-                throw new HyracksDataException("Cannot new elements for synopsis of type " + type);
-        }
-        return elements;
     }
 }

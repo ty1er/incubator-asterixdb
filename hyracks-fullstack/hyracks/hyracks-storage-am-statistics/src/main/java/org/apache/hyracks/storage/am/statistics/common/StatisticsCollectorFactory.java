@@ -97,7 +97,7 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     private AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics, boolean isAntimatter)
             throws HyracksDataException {
         ISynopsis synopsis = SynopsisFactory.createSynopsis(type, fieldTypeTraits[0],
-                SynopsisFactory.createSynopsisElements(type, size),
+                SynopsisElementFactory.createSynopsisElementsCollection(type, size),
                 isAntimatter ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples(), size);
         switch (type) {
             case UniformHistogram:

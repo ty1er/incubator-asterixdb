@@ -175,8 +175,7 @@ public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSy
     }
 
     @Override
-    public void end() throws HyracksDataException {
-        super.end();
+    public void finishSynopsisBuild() throws HyracksDataException {
         //complete transform
         transformTuple(transformPosition, prefixSumFrequency, transformFrequency);
         if (transformPosition != synopsis.getDomainEnd()) {

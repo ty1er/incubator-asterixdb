@@ -76,7 +76,7 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
     }
 
     @Override
-    public void end() throws HyracksDataException {//complete transform
+    public void finishSynopsisBuild() throws HyracksDataException {//complete transform
         transformTuple(transformPosition, transformFrequency);
         // finish all straddling coefficients
         for (int i = 0; i <= synopsis.getMaxLevel(); i++) {

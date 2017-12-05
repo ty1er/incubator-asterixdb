@@ -71,7 +71,12 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
                 componentStatistics.resetTuples(numTuples);
             }
         }
+        if (!isEmpty) {
+            finishSynopsisBuild();
+        }
     }
 
     public abstract void addValue(long value);
+
+    public abstract void finishSynopsisBuild() throws HyracksDataException;
 }

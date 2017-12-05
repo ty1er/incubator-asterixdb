@@ -33,6 +33,6 @@ public class TransformHelper {
             for (int i = 0; i < t.cardinality; i++)
                 synopsisBuilder.addValue(t.position);
         }
-        synopsisBuilder.end();
+        synopsisBuilder.finishSynopsisBuild();
     }
 }
