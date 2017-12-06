@@ -197,12 +197,10 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         return dgenSeq;
     }
 
-    private void setupCluster(ActionList experimentActions, String clusterConfigPath,
-            String asterixConfigPath) {
+    private void setupCluster(ActionList experimentActions, String clusterConfigPath, String asterixConfigPath) {
         //Precondition: create new cluster instance
-        experimentActions.addFirst(
-                new CreateAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, clusterConfigPath,
-                        asterixConfigPath));
+        experimentActions.addFirst(new CreateAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME,
+                clusterConfigPath, asterixConfigPath));
         experimentActions.addFirst(new SleepAction(1000));
         experimentActions.addFirst(new DeleteAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
         experimentActions.addFirst(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
@@ -369,9 +367,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         //some setup
         SequentialActionList execs = new SequentialActionList("main experiment action");
 
-        String clusterConfigPath =
-                localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR).resolve(clusterConfigFileName)
-                        .toString();
+        String clusterConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
+                .resolve(clusterConfigFileName).toString();
         String asterixConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
                 .resolve(LSMExperimentConstants.ASTERIX_CONFIGURATION_DIR).resolve(asterixConfigFileName).toString();
 
@@ -380,6 +377,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
         cluster = (Cluster) unmarshaller.unmarshal(file);
 
+        new File(logDir.toString()).mkdirs();
         //applying experiment actions last to first
         assembleExperiment(execs);
         measureIO(execs);
@@ -389,15 +387,13 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     }
 
     protected void createTypes(ActionList execs) throws IOException {
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir())
-                        .resolve(BASE_TYPES)));
+        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir()).resolve(BASE_TYPES)));
     }
 
     protected void createDataset(ActionList execs) throws IOException {
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir())
-                        .resolve(experimentDDL)));
+        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir()).resolve(experimentDDL)));
     }
 
     protected void createIndexes(ActionList execs) throws IOException {
@@ -417,7 +413,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         execs.addLast(new SleepAction(2000));
         queryData(execs);
         //init log dirs
-        new File(logDir.toString()).mkdirs();
         listIngestedData(execs);
 
         doPost(execs);
