@@ -42,7 +42,7 @@ public class LineRecordReader extends CharStreamRecordReader {
 
     @Override
     public void configure(AsterixInputStream inputStream, Map<String, String> config) throws HyracksDataException {
-        super.configure(inputStream);
+        super.configure(inputStream, config);
         this.hasHeader = ExternalDataUtils.hasHeader(config);
         if (hasHeader) {
             inputStream.setNotificationHandler(this);

@@ -68,6 +68,7 @@ public class BinaryDataParserFactory implements IRecordDataParserFactory<byte[]>
             }
         }
         configuration.put(ExternalDataConstants.KEY_RECORD_SIZE, Integer.toString(size));
+        configuration.put(ExternalDataConstants.KEY_RECORD_BORDER, "");
     }
 
     @Override

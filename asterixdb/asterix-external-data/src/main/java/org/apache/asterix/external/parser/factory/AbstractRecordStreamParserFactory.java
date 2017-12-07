@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.asterix.external.api.IExternalDataSourceFactory.DataSourceType;
 import org.apache.asterix.external.api.IRecordDataParserFactory;
 import org.apache.asterix.external.api.IStreamDataParserFactory;
+import org.apache.asterix.external.util.ExternalDataConstants;
 import org.apache.asterix.external.util.ExternalDataUtils;
 import org.apache.asterix.om.types.ARecordType;
 
@@ -41,6 +42,7 @@ public abstract class AbstractRecordStreamParserFactory<T>
     @Override
     public void configure(Map<String, String> configuration) {
         this.configuration = configuration;
+        this.configuration.put(ExternalDataConstants.KEY_RECORD_BORDER, Character.toString(ExternalDataConstants.LF));
     }
 
     @Override
