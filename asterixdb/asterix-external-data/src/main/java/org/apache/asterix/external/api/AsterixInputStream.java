@@ -29,6 +29,7 @@ public abstract class AsterixInputStream extends InputStream {
     protected AbstractFeedDataFlowController controller;
     protected FeedLogManager logManager;
     protected IStreamNotificationHandler notificationHandler;
+    protected char recordBorder;
 
     public abstract boolean stop() throws Exception;
 
@@ -46,5 +47,9 @@ public abstract class AsterixInputStream extends InputStream {
 
     public void setNotificationHandler(IStreamNotificationHandler notificationHandler) {
         this.notificationHandler = notificationHandler;
+    }
+
+    public void setRecordBorder(char recordBorder) {
+        this.recordBorder = recordBorder;
     }
 }

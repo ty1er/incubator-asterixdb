@@ -128,9 +128,8 @@ public class LocalFSInputStream extends AsterixInputStream {
         }
         int result = in.read(b, off, len);
         while ((result < 0) && advance()) {
-            // return a new line at the end of every file <--Might create problems for some cases
-            // depending on the parser implementation-->
-            if ((lastByte != ExternalDataConstants.BYTE_LF) && (lastByte != ExternalDataConstants.BYTE_LF)) {
+            // return a new line at the end of every file if is was configured to do so
+            if (recordBorder == ExternalDataConstants.LF && (lastByte != ExternalDataConstants.BYTE_LF)) {
                 lastByte = ExternalDataConstants.BYTE_LF;
                 b[off] = ExternalDataConstants.BYTE_LF;
                 return 1;

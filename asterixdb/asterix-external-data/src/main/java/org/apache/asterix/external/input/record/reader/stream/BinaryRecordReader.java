@@ -37,7 +37,7 @@ public class BinaryRecordReader extends ByteStreamRecordReader {
 
     @Override
     public void configure(AsterixInputStream stream, Map<String, String> config) throws HyracksDataException {
-        super.configure(stream);
+        super.configure(stream, config);
         String recSizeString = config.get(ExternalDataConstants.KEY_RECORD_SIZE);
         if (recSizeString != null) {
             recordSize = Integer.parseInt(recSizeString);

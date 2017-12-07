@@ -41,8 +41,12 @@ public abstract class StreamRecordReader<T> implements IRecordReader<T>, IStream
     protected boolean done = false;
     protected FeedLogManager feedLogManager;
 
-    public void configure(AsterixInputStream inputStream) {
+    public void configure(AsterixInputStream inputStream, Map<String, String> config) throws HyracksDataException {
         this.reader = new AsterixInputStreamReader(inputStream);
+        String borderCharacter = config.get(ExternalDataConstants.KEY_RECORD_BORDER);
+        if (!borderCharacter.isEmpty()) {
+            inputStream.setRecordBorder(config.get(ExternalDataConstants.KEY_RECORD_BORDER).charAt(0));
+        }
         record = getNewRecord();
         inputBuffer = getNewBuffer(ExternalDataConstants.DEFAULT_BUFFER_SIZE);
     }
@@ -102,7 +106,4 @@ public abstract class StreamRecordReader<T> implements IRecordReader<T>, IStream
     public abstract List<String> getRecordReaderFormats();
 
     public abstract String getRequiredConfigs();
-
-    public abstract void configure(AsterixInputStream inputStream, Map<String, String> config)
-            throws HyracksDataException;
 }

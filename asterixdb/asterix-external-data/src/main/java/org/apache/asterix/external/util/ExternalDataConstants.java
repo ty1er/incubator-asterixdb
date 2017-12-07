@@ -59,6 +59,7 @@ public class ExternalDataConstants {
     public static final String KEY_RECORD_START = "record-start";
     public static final String KEY_RECORD_END = "record-end";
     public static final String KEY_RECORD_SIZE = "record-size";
+    public static final String KEY_RECORD_BORDER = "record-border";
     public static final String KEY_EXPRESSION = "expression";
     public static final String KEY_LOCAL_SOCKET_PATH = "local-socket-path";
     public static final String KEY_FORMAT = "format";
