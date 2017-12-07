@@ -26,10 +26,10 @@ import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class StatisticsExperiment4NoStats extends WorldCupExperimentBuilder
+public class WorldCupExperimentNoStats extends WorldCupExperimentBuilder
         implements ICluster8Partition1Builder, INoStatsBuilder {
 
-    public StatisticsExperiment4NoStats(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
+    public WorldCupExperimentNoStats(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
     }
 }

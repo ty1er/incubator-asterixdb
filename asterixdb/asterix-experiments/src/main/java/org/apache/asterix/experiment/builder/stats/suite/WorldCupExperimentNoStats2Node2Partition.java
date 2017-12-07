@@ -18,16 +18,16 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster1Partition1Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster2Partition2Builder;
 import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class StatisticsExperiment4NoStats1Node1Partition extends WorldCupExperimentBuilder
-        implements ICluster1Partition1Builder, INoStatsBuilder {
+public class WorldCupExperimentNoStats2Node2Partition extends WorldCupExperimentBuilder
+        implements ICluster2Partition2Builder, INoStatsBuilder {
 
-    public StatisticsExperiment4NoStats1Node1Partition(LSMExperimentSetRunnerConfig config,
+    public WorldCupExperimentNoStats2Node2Partition(LSMExperimentSetRunnerConfig config,
             CloseableHttpClient httpClient) {
         super(config, httpClient);
     }
