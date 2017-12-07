@@ -19,19 +19,15 @@
 package org.apache.asterix.experiment.builder.stats.suite;
 
 import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
-import org.apache.asterix.experiment.builder.config.IContinuousHistBuilder;
-import org.apache.asterix.experiment.builder.counter.ITweetRecordsCounterBuilder;
-import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
-import org.apache.asterix.experiment.builder.ingest.IPrefixMergePolicy;
+import org.apache.asterix.experiment.builder.config.IWaveletBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class StatisticsExperiment4ContinuousHist extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IIngestFeeds1Builder, ITweetRecordsCounterBuilder,
-        IContinuousHistBuilder, IPrefixMergePolicy {
+public class WorldCupExperimentWavelet extends WorldCupExperimentBuilder
+        implements ICluster8Partition1Builder, IWaveletBuilder {
 
-    public StatisticsExperiment4ContinuousHist(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
+    public WorldCupExperimentWavelet(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
     }
 }
