@@ -47,7 +47,7 @@ public class Tracer implements ITracer {
 
     public Tracer(String name, long categories, TraceCategoryRegistry registry) {
         final String traceLoggerName = Tracer.class.getName() + "@" + name;
-        LOGGER.info("Initialize Tracer " + traceLoggerName);
+        LOGGER.fine("Initialize Tracer " + traceLoggerName);
         this.traceLog = Logger.getLogger(traceLoggerName);
         this.categories = categories;
         this.registry = registry;
@@ -61,7 +61,7 @@ public class Tracer implements ITracer {
     }
 
     public void setCategories(String... categories) {
-        LOGGER.info("Set categories for Tracer " + this.traceLog.getName() + " to " + Arrays.toString(categories));
+        LOGGER.fine("Set categories for Tracer " + this.traceLog.getName() + " to " + Arrays.toString(categories));
         this.categories = getRegistry().get(categories);
     }
 
