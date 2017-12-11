@@ -18,6 +18,7 @@
  */
 package org.apache.asterix.metadata.utils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.asterix.common.config.DatasetConfig;
@@ -89,11 +90,11 @@ public class IndexUtil {
         return keys;
     }
 
-    public static ITypeTraits[] getSecondaryKeyTypeTraits(int[] keyPositions, ITypeTraits[] recordTypeTraits)
+    public static List<ITypeTraits> getSecondaryKeyTypeTraits(int[] keyPositions, ITypeTraits[] recordTypeTraits)
             throws AlgebricksException {
-        ITypeTraits[] keyTypeTraits = new ITypeTraits[keyPositions.length];
+        List<ITypeTraits> keyTypeTraits = new ArrayList<>(keyPositions.length);
         for (int i = 0; i < keyPositions.length; i++) {
-            keyTypeTraits[i] = recordTypeTraits[keyPositions[i]];
+            keyTypeTraits.add(recordTypeTraits[keyPositions[i]]);
         }
         return keyTypeTraits;
     }

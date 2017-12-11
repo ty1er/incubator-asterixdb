@@ -658,37 +658,6 @@ public interface IMetadataNode extends Remote, Serializable {
             throws MetadataException, RemoteException;
 
     /**
-     * Retrieves statistics for a given index.
-     *
-     * @param jobId
-     * @param dataverse
-     * @param dataset
-     * @param index
-     * @return
-     * @throws MetadataException
-     * @throws RemoteException
-     */
-
-    List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index)
-            throws MetadataException, RemoteException;
-
-    /**
-     * Retrieves statistics for a given index.
-     *
-     * @param jobId
-     * @param dataverse
-     * @param dataset
-     * @param index
-     * @param isAntimatter
-     * @return
-     * @throws MetadataException
-     * @throws RemoteException
-     */
-
-    List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index,
-            boolean isAntimatter) throws MetadataException, RemoteException;
-
-    /**
      * @param jobId
      *            A globally unique id for an active metadata transaction.
      * @param externalFile
@@ -843,6 +812,53 @@ public interface IMetadataNode extends Remote, Serializable {
     void addStatistics(JobId jobId, Statistics statistics) throws MetadataException, RemoteException;
 
     /**
+     * Retrieves all statistics for a given dataset.
+     *
+     * @param jobId
+     * @param dataverse
+     * @param dataset
+     * @param field
+     * @return
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+
+    List<Statistics> getDatasetStatistics(JobId jobId, String dataverse, String dataset)
+            throws MetadataException, RemoteException;
+
+    /**
+     * Retrieves full statistics for a given field.
+     *
+     * @param jobId
+     * @param dataverse
+     * @param dataset
+     * @param field
+     * @return
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+
+    List<Statistics> getFullFieldStatistics(JobId jobId, String dataverse, String dataset, String index, String field)
+            throws MetadataException, RemoteException;
+
+    /**
+     * Retrieves statistics for a given field.
+     *
+     * @param jobId
+     * @param dataverse
+     * @param dataset
+     * @param index
+     * @param field
+     * @param isAntimatter
+     * @return
+     * @throws MetadataException
+     * @throws RemoteException
+     */
+
+    List<Statistics> getFieldStatistics(JobId jobId, String dataverse, String dataset, String index, String field,
+            boolean isAntimatter) throws MetadataException, RemoteException;
+
+    /**
      * Retrieves the statistics for a given component in given dataverse and dataset,
      * acquiring local locks on behalf of the given transaction id.
      *
@@ -853,7 +869,9 @@ public interface IMetadataNode extends Remote, Serializable {
      * @param datasetName
      *            Name of the dataset, holding the stat.
      * @param indexName
-     *            Name of the index, holding the stat
+     *            Name of the index holding the field.
+     * @param fieldName
+     *            Name of the field for which component statistics is calculated.
      * @param node
      *            Name of the node, holding the stat
      * @param partition
@@ -867,7 +885,7 @@ public interface IMetadataNode extends Remote, Serializable {
      *             For example, if the statistics does not exist.
      * @throws RemoteException
      */
-    Statistics getStatistics(JobId jobId, String dataverseName, String datasetName, String indexName,
+    Statistics getStatistics(JobId jobId, String dataverseName, String datasetName, String fieldName, String indexName,
             String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws MetadataException, RemoteException;
 
@@ -882,7 +900,9 @@ public interface IMetadataNode extends Remote, Serializable {
      * @param datasetName
      *            Name of the dataset holding the index.
      * @param indexName
-     *            the name of the index holding the component statistics.
+     *            Name of the index holding the field.
+     * @param fieldName
+     *            the name of the field for which component statistics is calculated.
      * @param node
      *            the name of the node holding the component statistics.
      * @param partition
@@ -894,7 +914,7 @@ public interface IMetadataNode extends Remote, Serializable {
      * @throws MetadataException
      * @throws RemoteException
      */
-    void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName, String node,
-            String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+    void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName, String fieldName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws MetadataException, RemoteException;
 }

@@ -29,9 +29,10 @@ public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<
     private int activeBucketElementsNum;
     private long lastAddedTuplePosition;
 
-    public HistogramBuilder(HistogramSynopsis<? extends HistogramBucket> histogram, boolean isAntimatter,
-            IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics) {
-        super(histogram, isAntimatter, fieldExtractor, componentStatistics);
+    public HistogramBuilder(HistogramSynopsis<? extends HistogramBucket> histogram, String dataverse, String dataset,
+            String index, String field, boolean isAntimatter, IFieldExtractor fieldExtractor,
+            ComponentStatistics componentStatistics) {
+        super(histogram, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
         activeBucket = 0;
         activeBucketElementsNum = 0;
         lastAddedTuplePosition = synopsis.getDomainStart();

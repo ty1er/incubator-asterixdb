@@ -25,7 +25,7 @@ import org.apache.hyracks.storage.am.common.api.IIndexSearchArgument;
 public interface ICardinalityEstimator {
 
     long getSelectivity(IIndexSearchArgument searchArg, IMetadataProvider metadataProvider, String dataverseName,
-            String datasetName, String indexName) throws AlgebricksException;
+            String datasetName, String indexName, String fieldName) throws AlgebricksException;
 
     long getEstimationTime();
 }

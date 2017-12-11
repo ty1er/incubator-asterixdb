@@ -31,9 +31,10 @@ public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHis
 
     private QuantileSketch<Long> sketch;
 
-    public QuantileSketchBuilder(EquiHeightHistogramSynopsis synopsis, boolean isAntimatter,
-            IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics, double accuracy) {
-        super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
+    public QuantileSketchBuilder(EquiHeightHistogramSynopsis synopsis, String dataverse, String dataset, String index,
+            String field, boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics,
+            double accuracy) {
+        super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
         sketch = new QuantileSketch<>(accuracy, synopsis.getDomainEnd());
     }
 

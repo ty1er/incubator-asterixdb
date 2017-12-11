@@ -35,6 +35,7 @@ public class Statistics implements IMetadataEntity {
     private final String dataverse;
     private final String dataset;
     private final String index;
+    private final String field;
     private final String node;
     private final String partition;
     private final boolean isAntimatter;
@@ -47,26 +48,29 @@ public class Statistics implements IMetadataEntity {
             return false;
         Statistics that = (Statistics) o;
         return temp == that.temp && Objects.equals(dataverse, that.dataverse) && Objects.equals(dataset, that.dataset)
-                && Objects.equals(index, that.index) && Objects.equals(node, that.node)
-                && Objects.equals(partition, that.partition) && Objects.equals(componentID, that.componentID)
-                && Objects.equals(synopsis, that.synopsis) && isAntimatter == that.isAntimatter;
+                && Objects.equals(index, that.index) && Objects.equals(field, that.field)
+                && Objects.equals(node, that.node) && Objects.equals(partition, that.partition)
+                && Objects.equals(componentID, that.componentID) && Objects.equals(synopsis, that.synopsis)
+                && isAntimatter == that.isAntimatter;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dataverse, dataset, index, node, partition, componentID, temp, isAntimatter, synopsis);
+        return Objects.hash(dataverse, dataset, index, field, node, partition, componentID, temp, isAntimatter,
+                synopsis);
     }
 
     private final ComponentStatisticsId componentID;
     private final boolean temp;
     private final ISynopsis<? extends ISynopsisElement> synopsis;
 
-    public Statistics(String dataverse, String dataset, String index, String node, String partition,
+    public Statistics(String dataverse, String dataset, String index, String field, String node, String partition,
             ComponentStatisticsId componentID, boolean temp, boolean isAntimatter,
             ISynopsis<? extends ISynopsisElement> synopsis) {
         this.dataverse = dataverse;
         this.dataset = dataset;
         this.index = index;
+        this.field = field;
         this.node = node;
         this.partition = partition;
         this.componentID = componentID;
@@ -85,6 +89,10 @@ public class Statistics implements IMetadataEntity {
 
     public String getIndexName() {
         return index;
+    }
+
+    public String getFieldName() {
+        return field;
     }
 
     public ComponentStatisticsId getComponentID() {

@@ -561,26 +561,14 @@ public class DatasetUtil {
         return nodeGroup;
     }
 
-    public static ITypeTraits[] computeStatisticsTypeTraits(String statisticsHint, ARecordType itemType)
+    public static List<ITypeTraits> computeFieldTypeTraits(String[] fields, ARecordType itemType)
             throws AlgebricksException {
-        List<List<String>> statisticsFields = getStatisticsFields(statisticsHint);
 
-        ITypeTraits[] typeTraits = new ITypeTraits[statisticsFields.size()];
-        int i = 0;
-        for (List<String> field : statisticsFields) {
-            IAType type = itemType.getSubFieldType(field);
-            typeTraits[i++] = TypeTraitProvider.INSTANCE.getTypeTrait(type);
+        List<ITypeTraits> typeTraits = new ArrayList<>(fields.length);
+        for (String field : fields) {
+            IAType type = itemType.getSubFieldType(Arrays.asList(field.split("\\.")));
+            typeTraits.add(TypeTraitProvider.INSTANCE.getTypeTrait(type));
         }
         return typeTraits;
-    }
-
-    public static List<List<String>> getStatisticsFields(String statisticsHint) {
-        String[] hintFields = statisticsHint.split(",");
-        List<List<String>> res = new ArrayList<>(hintFields.length);
-        for (String field : hintFields) {
-            res.add(new ArrayList<>(Arrays.asList(field.split("\\."))));
-        }
-        return res;
-
     }
 }

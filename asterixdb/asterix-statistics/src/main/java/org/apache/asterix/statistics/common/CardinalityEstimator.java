@@ -47,7 +47,7 @@ public class CardinalityEstimator implements ICardinalityEstimator {
     }
 
     @Override public long getSelectivity(IIndexSearchArgument searchArg, IMetadataProvider metadataProvider,
-            String dataverseName, String datasetName, String indexName) throws AlgebricksException {
+            String dataverseName, String datasetName, String indexName, String fieldName) throws AlgebricksException {
         if (!(searchArg instanceof BTreeSearchArgument)) {
             //estimation works only for B-Trees
             return CardinalityInferenceVisitor.UNKNOWN;
@@ -58,8 +58,8 @@ public class CardinalityEstimator implements ICardinalityEstimator {
             return CardinalityInferenceVisitor.UNKNOWN;
         }
         long startTime = System.nanoTime();
-        List<Statistics> stats =
-                ((MetadataProvider) metadataProvider).getMergedStatistics(dataverseName, datasetName, indexName);
+        List<Statistics> stats = ((MetadataProvider) metadataProvider).getMergedStatistics(dataverseName, datasetName,
+                indexName, fieldName);
         double estimate = 0.0;
         for (Statistics s : stats) {
             try {

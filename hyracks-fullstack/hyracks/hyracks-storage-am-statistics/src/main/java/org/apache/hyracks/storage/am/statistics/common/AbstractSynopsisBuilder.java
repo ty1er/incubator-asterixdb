@@ -32,14 +32,22 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
     protected boolean isEmpty = true;
 
     protected final T synopsis;
+    private final String dataverse;
+    private final String dataset;
+    private final String index;
+    private final String field;
     protected final boolean isAntimatter;
     private final IFieldExtractor fieldExtractor;
     private final ComponentStatistics componentStatistics;
     private long numTuples = 0L;
 
-    public AbstractSynopsisBuilder(T synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
-            ComponentStatistics componentStatistics) {
+    public AbstractSynopsisBuilder(T synopsis, String dataverse, String dataset, String index, String field,
+            boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics) {
         this.synopsis = synopsis;
+        this.dataverse = dataverse;
+        this.dataset = dataset;
+        this.index = index;
+        this.field = field;
         this.isAntimatter = isAntimatter;
         this.fieldExtractor = fieldExtractor;
         this.componentStatistics = componentStatistics;
@@ -50,7 +58,7 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
             throws HyracksDataException {
         // Skip sending statistics about empty synopses
         if (!isEmpty) {
-            statisticsManager.addStatistics(synopsis, isAntimatter, component);
+            statisticsManager.addStatistics(synopsis, dataverse, dataset, index, field, isAntimatter, component);
         }
     }
 

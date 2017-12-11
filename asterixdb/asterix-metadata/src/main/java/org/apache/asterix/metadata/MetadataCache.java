@@ -80,7 +80,7 @@ public class MetadataCache {
     // Key is DataverseName, Key of value map is feedConnectionId
     protected final Map<String, Map<String, FeedConnection>> feedConnections = new HashMap<>();
     // Key is dataverse name. Key of value map is dataset name. Key of value map of value map is index name.
-    protected final Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> statistics =
+    protected final Map<String, Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>>> statistics =
             new HashMap<>();
 
     // Atomically executes all metadata operations in ctx's log.
@@ -228,23 +228,29 @@ public class MetadataCache {
 
     public Object addStatisticsIfNotExists(Statistics stats) {
         synchronized (statistics) {
-            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetMap =
+            Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetMap =
                     statistics.get(stats.getDataverseName());
             if (datasetMap == null) {
                 datasetMap = new HashMap<>();
                 statistics.put(stats.getDataverseName(), datasetMap);
             }
-            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> indexMap =
+            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> indexMap =
                     datasetMap.get(stats.getDatasetName());
             if (indexMap == null) {
                 indexMap = new HashMap<>();
                 datasetMap.put(stats.getDatasetName(), indexMap);
             }
-            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterArray =
+            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> fieldMap =
                     indexMap.get(stats.getIndexName());
+            if (fieldMap == null) {
+                fieldMap = new HashMap<>();
+                datasetMap.put(stats.getDatasetName(), indexMap);
+            }
+            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterArray =
+                    fieldMap.get(stats.getFieldName());
             if (matterAntimatterArray == null) {
                 matterAntimatterArray = new Map[2];
-                indexMap.put(stats.getIndexName(), matterAntimatterArray);
+                fieldMap.put(stats.getFieldName(), matterAntimatterArray);
             }
             Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>> nodeMap =
                     stats.isAntimatter() ? matterAntimatterArray[1] : matterAntimatterArray[0];
@@ -335,7 +341,7 @@ public class MetadataCache {
                     }
 
                     //remove the index statistics of the dataset from statistics' cache
-                    Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetStatsMap =
+                    Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetStatsMap =
                             statistics.get(dataset.getDataverseName());
                     if (datasetStatsMap != null) {
                         datasetStatsMap.remove(dataset.getDatasetName());
@@ -356,10 +362,10 @@ public class MetadataCache {
         synchronized (indexes) {
             synchronized (statistics) {
                 //remove the index statistics of the dataset from statistics' cache
-                Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetStatsMap =
+                Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetStatsMap =
                         statistics.get(index.getDataverseName());
                 if (datasetStatsMap != null) {
-                    Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> indexStatsMap =
+                    Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> indexStatsMap =
                             datasetStatsMap.get(index.getDatasetName());
                     if (indexStatsMap != null) {
                         indexStatsMap.remove(index.getIndexName());
@@ -398,20 +404,26 @@ public class MetadataCache {
 
     public Object dropStatistics(Statistics stat) {
         synchronized (statistics) {
-            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetMap =
+            Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetMap =
                     statistics.get(stat.getDataverseName());
             if (datasetMap == null) {
                 return null;
             }
 
-            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> indexMap =
+            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> indexMap =
                     datasetMap.get(stat.getDatasetName());
             if (indexMap == null) {
                 return null;
             }
 
-            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterList =
+            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> fieldMap =
                     indexMap.get(stat.getIndexName());
+            if (fieldMap == null) {
+                return null;
+            }
+
+            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterList =
+                    fieldMap.get(stat.getFieldName());
             if (matterAntimatterList == null) {
                 return null;
             }
@@ -513,22 +525,28 @@ public class MetadataCache {
         }
     }
 
-    public Statistics getStatistics(String dataverseName, String datasetName, String indexName, String node,
-            String partition, ComponentStatisticsId componentId, boolean isAntimatter) {
+    public Statistics getStatistics(String dataverseName, String datasetName, String indexName, String fieldName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter) {
         synchronized (statistics) {
-            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetMap =
+            Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetMap =
                     statistics.get(dataverseName);
             if (datasetMap == null) {
                 return null;
             }
 
-            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> indexMap =
+            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> indexMap =
                     datasetMap.get(datasetName);
             if (indexMap == null) {
                 return null;
             }
 
-            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] antimatterMap = indexMap.get(indexName);
+            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> fieldMap =
+                    indexMap.get(indexName);
+            if (fieldMap == null) {
+                return null;
+            }
+
+            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] antimatterMap = fieldMap.get(fieldName);
             if (antimatterMap == null) {
                 return null;
             }
@@ -552,23 +570,28 @@ public class MetadataCache {
         }
     }
 
-    public List<Statistics> getIndexStatistics(String dataverseName, String datasetName, String indexName,
-            boolean isAntimatter) {
+    public List<Statistics> getFieldStatistics(String dataverseName, String datasetName, String indexName,
+            String fieldName, boolean isAntimatter) {
         synchronized (statistics) {
             List<Statistics> results = new ArrayList<>();
 
-            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> datasetMap =
+            Map<String, Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>>> datasetMap =
                     statistics.get(dataverseName);
             if (datasetMap == null) {
                 return null;
             }
-            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> indexMap =
+            Map<String, Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]>> indexMap =
                     datasetMap.get(datasetName);
             if (indexMap == null) {
                 return null;
             }
-            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterList =
+            Map<String, Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[]> fieldMap =
                     indexMap.get(indexName);
+            if (fieldMap == null) {
+                return null;
+            }
+            Map<String, Map<String, Map<ComponentStatisticsId, Statistics>>>[] matterAntimatterList =
+                    fieldMap.get(fieldName);
             if (matterAntimatterList == null) {
                 return null;
             }

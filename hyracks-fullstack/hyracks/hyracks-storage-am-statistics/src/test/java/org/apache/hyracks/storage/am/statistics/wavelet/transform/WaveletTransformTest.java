@@ -45,7 +45,7 @@ public abstract class WaveletTransformTest extends WaveletTest {
     public void init() throws HyracksDataException {
         synopsis = new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
                 new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        builder = new PrefixSumWaveletTransform(synopsis, false, null, null);
+        builder = new PrefixSumWaveletTransform(synopsis, "", "", "", "", false, null, null);
     }
 
     public PeekingIterator<WaveletCoefficient> runTest(List<TransformTuple> initialData) throws Exception {

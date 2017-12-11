@@ -31,5 +31,6 @@ public interface IStatisticsManager {
     void sendMergeStatistics(ILSMDiskComponent newComponent, List<ILSMDiskComponent> mergedCompoments)
             throws HyracksDataException;
 
-    void addStatistics(ISynopsis statisticsBuilder, boolean isAntimatter, ILSMDiskComponent component);
+    void addStatistics(ISynopsis statisticsBuilder, String dataverse, String dataset, String index, String field,
+            boolean isAntimatter, ILSMDiskComponent component);
 }

@@ -504,23 +504,24 @@ public final class MetadataRecordTypes {
     public static final int STATISTICS_ARECORD_DATAVERSE_NAME_FIELD_INDEX = 0;
     public static final int STATISTICS_ARECORD_DATASET_NAME_FIELD_INDEX = 1;
     public static final int STATISTICS_ARECORD_INDEX_NAME_FIELD_INDEX = 2;
-    public static final int STATISTICS_ARECORD_ISANTIMATTER_FIELD_INDEX = 3;
-    public static final int STATISTICS_ARECORD_NODE_FIELD_INDEX = 4;
-    public static final int STATISTICS_ARECORD_PARTITION_FIELD_INDEX = 5;
-    public static final int STATISTICS_ARECORD_COMPONENT_MIN_TIMESTAMP_INDEX = 6;
-    public static final int STATISTICS_ARECORD_COMPONENT_MAX_TIMESTAMP_INDEX = 7;
-    public static final int STATISTICS_ARECORD_SYNOPSIS_FIELD_INDEX = 8;
+    public static final int STATISTICS_ARECORD_FIELD_NAME_FIELD_INDEX = 3;
+    public static final int STATISTICS_ARECORD_ISANTIMATTER_FIELD_INDEX = 4;
+    public static final int STATISTICS_ARECORD_NODE_FIELD_INDEX = 5;
+    public static final int STATISTICS_ARECORD_PARTITION_FIELD_INDEX = 6;
+    public static final int STATISTICS_ARECORD_COMPONENT_MIN_TIMESTAMP_INDEX = 7;
+    public static final int STATISTICS_ARECORD_COMPONENT_MAX_TIMESTAMP_INDEX = 8;
+    public static final int STATISTICS_ARECORD_SYNOPSIS_FIELD_INDEX = 9;
     public static ARecordType STATISTICS_RECORDTYPE = createRecordType(
             // RecordTypeName
             RECORD_NAME_STATISTICS,
             // FieldNames
             new String[] { FIELD_NAME_DATAVERSE_NAME, FIELD_NAME_DATASET_NAME, FIELD_NAME_INDEX_NAME,
-                    FIELD_NAME_IS_ANTIMATTER, FIELD_NAME_NODE_NAME, FIELD_NAME_PARTITION, FIELD_NAME_MIN_ID,
-                    FIELD_NAME_MAX_ID, FIELD_NAME_SYNOPSIS },
+                    FIELD_NAME_FIELD_NAME, FIELD_NAME_IS_ANTIMATTER, FIELD_NAME_NODE_NAME, FIELD_NAME_PARTITION,
+                    FIELD_NAME_MIN_ID, FIELD_NAME_MAX_ID, FIELD_NAME_SYNOPSIS },
             // FieldTypes
-            new IAType[] { BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ABOOLEAN,
-                    BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING,
-                    STATISTICS_SYNOPSIS_RECORDTYPE },
+            new IAType[] { BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING,
+                    BuiltinType.ABOOLEAN, BuiltinType.ASTRING, BuiltinType.ASTRING, BuiltinType.ASTRING,
+                    BuiltinType.ASTRING, STATISTICS_SYNOPSIS_RECORDTYPE },
             //IsOpen?
             true);
 

@@ -38,7 +38,8 @@ import org.apache.asterix.formats.nontagged.TypeTraitProvider;
 import org.apache.asterix.metadata.MetadataNode;
 import org.apache.asterix.metadata.bootstrap.MetadataPrimaryIndexes;
 import org.apache.asterix.metadata.bootstrap.MetadataRecordTypes;
-import org.apache.asterix.metadata.entities.Index;
+import org.apache.asterix.metadata.entities.Dataset;
+import org.apache.asterix.metadata.entities.Datatype;
 import org.apache.asterix.metadata.entities.Statistics;
 import org.apache.asterix.om.base.ABoolean;
 import org.apache.asterix.om.base.ADouble;
@@ -52,6 +53,7 @@ import org.apache.asterix.om.base.ARecord;
 import org.apache.asterix.om.base.AString;
 import org.apache.asterix.om.base.IACursor;
 import org.apache.asterix.om.types.AOrderedListType;
+import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.BuiltinType;
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
@@ -109,6 +111,8 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
                 .getValueByPos(MetadataRecordTypes.STATISTICS_ARECORD_DATASET_NAME_FIELD_INDEX)).getStringValue();
         String indexName = ((AString) statisticsRecord
                 .getValueByPos(MetadataRecordTypes.STATISTICS_ARECORD_INDEX_NAME_FIELD_INDEX)).getStringValue();
+        String fieldName = ((AString) statisticsRecord
+                .getValueByPos(MetadataRecordTypes.STATISTICS_ARECORD_FIELD_NAME_FIELD_INDEX)).getStringValue();
         boolean isAntimatter = ((ABoolean) statisticsRecord
                 .getValueByPos(MetadataRecordTypes.STATISTICS_ARECORD_ISANTIMATTER_FIELD_INDEX)).getBoolean();
         String nodeName =
@@ -133,14 +137,11 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
                 .getValueByPos(MetadataRecordTypes.STATISTICS_SYNOPSIS_ARECORD_ELEMENTS_FIELD_INDEX);
         IACursor cursor = elementsList.getCursor();
         List<ISynopsisElement> elems = new ArrayList<>(elementsList.size());
-        Index idx = metadataNode.getIndex(jobId, dataverseName, datasetName, indexName);
-        if (idx.getKeyFieldTypes().size() > 1) {
-            throw new MetadataException("Cannot support statistics on composite fields");
-        }
-        ITypeTraits keyTypeTraits;
+        Dataset ds = metadataNode.getDataset(jobId, dataverseName, datasetName);
+        Datatype type = metadataNode.getDatatype(jobId, ds.getItemTypeDataverseName(), ds.getItemTypeName());
+        ITypeTraits keyTypeTraits =
+                TypeTraitProvider.INSTANCE.getTypeTrait(((ARecordType) type.getDatatype()).getFieldType(fieldName));
         try {
-            keyTypeTraits = TypeTraitProvider.INSTANCE
-                    .getTypeTrait(Index.getNonNullableType(idx.getKeyFieldTypes().get(0)).first);
             while (cursor.next()) {
                 ARecord coeff = (ARecord) cursor.get();
                 long uniqueValNum = 0l;
@@ -156,7 +157,7 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
                         .getDoubleValue(), uniqueValNum, keyTypeTraits));
 
             }
-            return new Statistics(dataverseName, datasetName, indexName, nodeName, partitionName,
+            return new Statistics(dataverseName, datasetName, indexName, fieldName, nodeName, partitionName,
                     new ComponentStatisticsId(componentMinId, componentMaxId), false, isAntimatter,
                     SynopsisFactory.createSynopsis(synopsisType, keyTypeTraits, elems, elems.size(), synopsisSize));
         } catch (DateTimeParseException | HyracksDataException e) {
@@ -170,7 +171,7 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
         IARecordBuilder synopsisRecordBuilder = new RecordBuilder();
         synopsisRecordBuilder.reset(MetadataRecordTypes.STATISTICS_SYNOPSIS_RECORDTYPE);
 
-        // write the key in the first 7 fields of the tuple
+        // write the key in the first 8 fields of the tuple
         tupleBuilder.reset();
         aString.setValue(metadataEntity.getDataverseName());
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
@@ -179,6 +180,9 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
         tupleBuilder.addFieldEndOffset();
         aString.setValue(metadataEntity.getIndexName());
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+        aString.setValue(metadataEntity.getFieldName());
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
         tupleBuilder.addFieldEndOffset();
         booleanSerde.serialize(metadataEntity.isAntimatter() ? ABoolean.TRUE : ABoolean.FALSE,
@@ -195,7 +199,7 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
         tupleBuilder.addFieldEndOffset();
 
-        // write the payload in the 8th field of the tuple
+        // write the payload in the 9th field of the tuple
         recordBuilder.reset(MetadataRecordTypes.STATISTICS_RECORDTYPE);
         // write field 0
         fieldValue.reset();
@@ -214,6 +218,12 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
         aString.setValue(metadataEntity.getIndexName());
         stringSerde.serialize(aString, fieldValue.getDataOutput());
         recordBuilder.addField(MetadataRecordTypes.STATISTICS_ARECORD_INDEX_NAME_FIELD_INDEX, fieldValue);
+
+        // write field 3
+        fieldValue.reset();
+        aString.setValue(metadataEntity.getFieldName());
+        stringSerde.serialize(aString, fieldValue.getDataOutput());
+        recordBuilder.addField(MetadataRecordTypes.STATISTICS_ARECORD_FIELD_NAME_FIELD_INDEX, fieldValue);
 
         // write field 4
         fieldValue.reset();

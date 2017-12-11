@@ -59,7 +59,7 @@ public class GroupCountSketchBuilderTest {
     public void init() throws HyracksDataException {
         synopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, synopsisSize,
                 new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        builder = new GroupCountSketchBuilder(synopsis, false, null, new ComponentStatistics(-1L, -1L), fanout,
-                FAILURE_PROBABILITY, ACCURACY, ENERGY_ACCURACY, inputSize, (int) System.currentTimeMillis());
+        builder = new GroupCountSketchBuilder(synopsis, "", "", "", "", false, null, new ComponentStatistics(-1L, -1L),
+                fanout, FAILURE_PROBABILITY, ACCURACY, ENERGY_ACCURACY, inputSize, (int) System.currentTimeMillis());
     }
 }

@@ -212,7 +212,7 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
         }
         if (statistics != null) {
             statistics = new ComponentStatistics(numElementsHint, numAntimatterElementsHint);
-            // using the fact that cleanupEmptyComponent == true for component bulkload to distinguish it from flush\merge
+            // utilizing that cleanupEmptyComponent == true for bulkloaded component to distinguish it from flush\merge
             chainedBulkLoader.addBulkLoader(new StatisticsBulkLoader(
                     statisticsFactory.createStatistics(statistics, cleanupEmptyComponent), statisticsManager, this));
         }

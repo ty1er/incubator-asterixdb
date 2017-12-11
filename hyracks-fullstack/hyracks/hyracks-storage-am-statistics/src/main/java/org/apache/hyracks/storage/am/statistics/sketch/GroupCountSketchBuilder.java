@@ -41,10 +41,10 @@ public class GroupCountSketchBuilder extends AbstractSynopsisBuilder<WaveletSyno
 
     private GroupCountSketch[] sketches;
 
-    public GroupCountSketchBuilder(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
-            ComponentStatistics componentStatistics, int fanout, double failureProbability, double accuracy,
-            double energyAccuracy, long inputSize, int seed) {
-        super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
+    public GroupCountSketchBuilder(WaveletSynopsis synopsis, String dataverse, String dataset, String index,
+            String field, boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics,
+            int fanout, double failureProbability, double accuracy, double energyAccuracy, long inputSize, int seed) {
+        super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
         this.fanout = fanout;
         fanoutLog = (int) Math.round(Math.log(fanout) / Math.log(2.0));
         levelNum = synopsis.getMaxLevel() / fanoutLog;

@@ -663,6 +663,15 @@ public class MetadataNode implements IMetadataNode {
                         dropIndex(jobId, dataverseName, datasetName, index.getIndexName());
                     }
                 }
+                // Delete related entry(s) from the 'statistics' dataset.
+                List<Statistics> indexStatistics = getDatasetStatistics(jobId, dataverseName, datasetName);
+                if (indexStatistics != null) {
+                    for (Statistics stats : indexStatistics) {
+                        dropStatistics(jobId, stats.getDataverseName(), stats.getDatasetName(), stats.getIndexName(),
+                                stats.getFieldName(), stats.getNode(), stats.getPartition(), stats.getComponentID(),
+                                stats.isAntimatter());
+                    }
+                }
 
                 if (dataset.getDatasetType() == DatasetType.EXTERNAL) {
                     // Delete External Files
@@ -695,12 +704,15 @@ public class MetadataNode implements IMetadataNode {
     public void dropIndex(JobId jobId, String dataverseName, String datasetName, String indexName)
             throws MetadataException, RemoteException {
         try {
+            Index deletedIndex = getIndex(jobId, dataverseName, datasetName, indexName);
             // Delete related entry(s) from the 'statistics' dataset.
-            List<Statistics> indexStatistics = getIndexStatistics(jobId, dataverseName, datasetName, indexName);
+            List<Statistics> indexStatistics = getFullFieldStatistics(jobId, dataverseName, datasetName, indexName,
+                    String.join(".", deletedIndex.getKeyFieldNames().get(0)));
             if (indexStatistics != null) {
                 for (Statistics stats : indexStatistics) {
                     dropStatistics(jobId, stats.getDataverseName(), stats.getDatasetName(), stats.getIndexName(),
-                            stats.getNode(), stats.getPartition(), stats.getComponentID(), stats.isAntimatter());
+                            stats.getFieldName(), stats.getNode(), stats.getPartition(), stats.getComponentID(),
+                            stats.isAntimatter());
                 }
             }
 
@@ -1993,7 +2005,7 @@ public class MetadataNode implements IMetadataNode {
                 // In this case We can safely ignore the flushed statistics, the info is reflected in merged statistics.
             } else {
                 throw new MetadataException("A statistics with this name "
-                        + String.join(".", statistics.getDatasetName(), statistics.getIndexName(), statistics.getNode(),
+                        + String.join(".", statistics.getDatasetName(), statistics.getFieldName(), statistics.getNode(),
                                 statistics.getPartition(), statistics.getComponentID().toString())
                         + " already exists in dataverse '" + statistics.getDataverseName() + "'.", e);
             }
@@ -2004,10 +2016,11 @@ public class MetadataNode implements IMetadataNode {
     }
 
     @Override
-    public List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index,
-            boolean isAntimatter) throws MetadataException, RemoteException {
+    public List<Statistics> getFieldStatistics(JobId jobId, String dataverse, String dataset, String index,
+            String field, boolean isAntimatter) throws MetadataException, RemoteException {
         try {
-            ITupleReference searchKey = createIndexStatisticsSearchTuple(dataverse, dataset, index, isAntimatter);
+            ITupleReference searchKey =
+                    createFieldStatisticsSearchTuple(dataverse, dataset, index, field, isAntimatter);
             StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
             IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
             List<Statistics> results = new ArrayList<>();
@@ -2019,10 +2032,25 @@ public class MetadataNode implements IMetadataNode {
     }
 
     @Override
-    public List<Statistics> getIndexStatistics(JobId jobId, String dataverse, String dataset, String index)
+    public List<Statistics> getFullFieldStatistics(JobId jobId, String dataverse, String dataset, String index,
+            String field) throws MetadataException, RemoteException {
+        try {
+            ITupleReference searchKey = createTuple(dataverse, dataset, index, field);
+            StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
+            IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
+            List<Statistics> results = new ArrayList<>();
+            searchIndex(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey, valueExtractor, results);
+            return results;
+        } catch (Exception e) {
+            throw new MetadataException(e);
+        }
+    }
+
+    @Override
+    public List<Statistics> getDatasetStatistics(JobId jobId, String dataverse, String dataset)
             throws MetadataException, RemoteException {
         try {
-            ITupleReference searchKey = createTuple(dataverse, dataset, index);
+            ITupleReference searchKey = createTuple(dataverse, dataset);
             StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
             IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
             List<Statistics> results = new ArrayList<>();
@@ -2035,11 +2063,11 @@ public class MetadataNode implements IMetadataNode {
 
     @Override
     public Statistics getStatistics(JobId jobId, String dataverseName, String datasetName, String indexName,
-            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            String fieldName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws MetadataException, RemoteException {
         try {
-            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, node,
-                    partition, componentId, isAntimatter);
+            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, fieldName,
+                    node, partition, componentId, isAntimatter);
             StatisticsTupleTranslator tupleReaderWriter = new StatisticsTupleTranslator(jobId, this, false);
             List<Statistics> results = new ArrayList<>();
             IValueExtractor<Statistics> valueExtractor = new MetadataEntityValueExtractor<>(tupleReaderWriter);
@@ -2053,15 +2081,15 @@ public class MetadataNode implements IMetadataNode {
         }
     }
 
-    public ITupleReference createIndexStatisticsSearchTuple(String dataverseName, String datasetName, String indexName,
-            boolean isAntimatter) throws HyracksDataException {
+    public ITupleReference createFieldStatisticsSearchTuple(String dataverseName, String datasetName, String indexName,
+            String fieldName, boolean isAntimatter) throws HyracksDataException {
         ISerializerDeserializer<AString> stringSerde =
                 SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ASTRING);
         ISerializerDeserializer<ABoolean> boolSerde =
                 SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ABOOLEAN);
 
         AMutableString aString = new AMutableString("");
-        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(4);
+        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(5);
 
         //dataverse field
         aString.setValue(dataverseName);
@@ -2075,6 +2103,11 @@ public class MetadataNode implements IMetadataNode {
 
         //index field
         aString.setValue(indexName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //field field
+        aString.setValue(fieldName);
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
         tupleBuilder.addFieldEndOffset();
 
@@ -2090,7 +2123,7 @@ public class MetadataNode implements IMetadataNode {
     // This method is used to create a search tuple for statistics since the search tuple has an non-string fields
     @SuppressWarnings("unchecked")
     public ITupleReference createStatisticsSearchTuple(String dataverseName, String datasetName, String indexName,
-            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            String fieldName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws HyracksDataException {
         ISerializerDeserializer<AString> stringSerde =
                 SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ASTRING);
@@ -2098,7 +2131,7 @@ public class MetadataNode implements IMetadataNode {
                 SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(BuiltinType.ABOOLEAN);
 
         AMutableString aString = new AMutableString("");
-        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(7);
+        ArrayTupleBuilder tupleBuilder = new ArrayTupleBuilder(8);
 
         //dataverse field
         aString.setValue(dataverseName);
@@ -2112,6 +2145,11 @@ public class MetadataNode implements IMetadataNode {
 
         //index field
         aString.setValue(indexName);
+        stringSerde.serialize(aString, tupleBuilder.getDataOutput());
+        tupleBuilder.addFieldEndOffset();
+
+        //field field
+        aString.setValue(fieldName);
         stringSerde.serialize(aString, tupleBuilder.getDataOutput());
         tupleBuilder.addFieldEndOffset();
 
@@ -2140,12 +2178,12 @@ public class MetadataNode implements IMetadataNode {
     }
 
     @Override
-    public void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName, String node,
-            String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+    public void dropStatistics(JobId jobId, String dataverseName, String datasetName, String indexName,
+            String fieldName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws MetadataException, RemoteException {
         try {
-            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, node,
-                    partition, componentId, isAntimatter);
+            ITupleReference searchKey = createStatisticsSearchTuple(dataverseName, datasetName, indexName, fieldName,
+                    node, partition, componentId, isAntimatter);
             // Searches the index for the tuple to be deleted. Acquires an S lock on the 'Statistics' dataset.
             ITupleReference datasetTuple =
                     getTupleToBeDeleted(jobId, MetadataPrimaryIndexes.STATISTICS_DATASET, searchKey);

@@ -153,4 +153,13 @@ public class TypeUtil {
         return recordNameTypesMap;
     }
 
+    public static int[] getFieldIds(ARecordType recordType, String[] fieldNames) {
+        int[] res = new int[fieldNames.length];
+        int i = 0;
+        for (String field : fieldNames) {
+            res[i++] = recordType.getFieldIndex(field);
+        }
+        return res;
+
+    }
 }
