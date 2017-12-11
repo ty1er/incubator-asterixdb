@@ -509,9 +509,10 @@ public class MetadataManager implements IMetadataManager {
     }
 
     private List<Statistics> getMergedStatistics(MetadataTransactionContext ctx, String dataverseName,
-            String datasetName, String indexName, boolean isAntimatter) throws MetadataException {
-        List<Statistics> indexStats = getIndexStatistics(ctx, dataverseName, datasetName, indexName, isAntimatter);
-        if (!indexStats.isEmpty()) {
+            String datasetName, String indexName, String fieldName, boolean isAntimatter) throws MetadataException {
+        List<Statistics> fieldStats =
+                getFieldStatistics(ctx, dataverseName, datasetName, indexName, fieldName, isAntimatter);
+        if (!fieldStats.isEmpty()) {
             Statistics mergedStats = null;
             boolean isMergeable = true;
             SynopsisType type = null;
@@ -521,7 +522,7 @@ public class MetadataManager implements IMetadataManager {
             int synopsisSize = 0;
             int maxSynopsisElements = 0;
             //TODO : proactively merge only stats only within a node/partition?
-            for (Statistics stat : indexStats) {
+            for (Statistics stat : fieldStats) {
                 type = stat.getSynopsis().getType();
                 isMergeable &= stat.getSynopsis().getType().isMergeable();
                 // Check whether the latest statistic is the merged one
@@ -551,11 +552,10 @@ public class MetadataManager implements IMetadataManager {
                     cache.dropStatistics(mergedStats);
                 }
                 if (maxSynopsisElements > 0 && isMergeable) {
-                    Index idx = getIndex(ctx, dataverseName, datasetName, indexName);
-                    if (idx.getKeyFieldTypes().size() > 1) {
-                        throw new MetadataException("Cannot support statistics on composite fields");
-                    }
-                    ITypeTraits keyTypeTraits = TypeTraitProvider.INSTANCE.getTypeTrait(idx.getKeyFieldTypes().get(0));
+                    Dataset ds = getDataset(ctx, dataverseName, datasetName);
+                    Datatype datasetType = getDatatype(ctx, ds.getItemTypeDataverseName(), ds.getItemTypeName());
+                    ITypeTraits keyTypeTraits = TypeTraitProvider.INSTANCE
+                            .getTypeTrait(((ARecordType) datasetType.getDatatype()).getFieldType(fieldName));
 
                     try {
                         ISynopsis mergedSynopsis = SynopsisFactory.createSynopsis(type, keyTypeTraits,
@@ -563,9 +563,10 @@ public class MetadataManager implements IMetadataManager {
                                 maxSynopsisElements, synopsisSize);
                         //trigger stats merge routine manually
                         mergedSynopsis.merge(synopsisList);
-                        mergedStats = new Statistics(dataverseName, datasetName, indexName, Statistics.MERGED_STATS_ID,
-                                Statistics.MERGED_STATS_ID, new ComponentStatisticsId(minComponentId, maxComponentId),
-                                true, isAntimatter, mergedSynopsis);
+                        mergedStats = new Statistics(dataverseName, datasetName, indexName, fieldName,
+                                Statistics.MERGED_STATS_ID, Statistics.MERGED_STATS_ID,
+                                new ComponentStatisticsId(minComponentId, maxComponentId), true, isAntimatter,
+                                mergedSynopsis);
                         //put the merged statistic ONLY into the cache
                         cache.addStatisticsIfNotExists(mergedStats);
                         List<Statistics> result = new ArrayList(1);
@@ -577,35 +578,35 @@ public class MetadataManager implements IMetadataManager {
                 }
             }
         }
-        return indexStats;
+        return fieldStats;
     }
 
     @Override
     public List<Statistics> getMergedStatistics(MetadataTransactionContext ctx, String dataverseName,
-            String datasetName, String indexName) throws MetadataException {
-        List<Statistics> stats = getMergedStatistics(ctx, dataverseName, datasetName, indexName, false);
-        stats.addAll(getMergedStatistics(ctx, dataverseName, datasetName, indexName, true));
+            String datasetName, String indexName, String fieldName) throws MetadataException {
+        List<Statistics> stats = getMergedStatistics(ctx, dataverseName, datasetName, indexName, fieldName, false);
+        stats.addAll(getMergedStatistics(ctx, dataverseName, datasetName, indexName, fieldName, true));
         return stats;
     }
 
     @Override
-    public List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName, boolean isAntimatter) throws MetadataException {
+    public List<Statistics> getFieldStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+            String indexName, String fieldName, boolean isAntimatter) throws MetadataException {
         // First look in the context to see if this transaction created the
         // requested statistics itself (but it is still uncommitted).
-        List<Statistics> stats = ctx.getIndexStatistics(dataverseName, datasetName, indexName, isAntimatter);
+        List<Statistics> stats = ctx.getFieldStatistics(dataverseName, datasetName, indexName, fieldName, isAntimatter);
         if (stats != null) {
             // Don't add these statistics to the cache, since they are still uncommitted.
             return stats;
         }
 
-        stats = cache.getIndexStatistics(dataverseName, datasetName, indexName, isAntimatter);
+        stats = cache.getFieldStatistics(dataverseName, datasetName, indexName, fieldName, isAntimatter);
         if (stats != null) {
             // Statistics are already in the cache, don't add it again.
             return stats;
         }
         try {
-            stats = metadataNode.getIndexStatistics(ctx.getJobId(), dataverseName, datasetName, indexName,
+            stats = metadataNode.getFieldStatistics(ctx.getJobId(), dataverseName, datasetName, indexName, fieldName,
                     isAntimatter);
         } catch (RemoteException e) {
             throw new MetadataException(e);
@@ -1100,11 +1101,12 @@ public class MetadataManager implements IMetadataManager {
     }
 
     private Statistics findStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter) {
-        Statistics stats =
-                ctx.getStatistics(dataverseName, datasetName, indexName, node, partition, componentId, isAntimatter);
+            String indexName, String fieldName, String node, String partition, ComponentStatisticsId componentId,
+            boolean isAntimatter) {
+        Statistics stats = ctx.getStatistics(dataverseName, datasetName, indexName, fieldName, node, partition,
+                componentId, isAntimatter);
         if (stats == null) {
-            stats = cache.getStatistics(dataverseName, datasetName, indexName, node, partition, componentId,
+            stats = cache.getStatistics(dataverseName, datasetName, indexName, fieldName, node, partition, componentId,
                     isAntimatter);
         }
         return stats;
@@ -1112,20 +1114,21 @@ public class MetadataManager implements IMetadataManager {
 
     @Override
     public void dropStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
-            throws MetadataException {
-        Statistics stat =
-                findStatistics(ctx, dataverseName, datasetName, indexName, node, partition, componentId, isAntimatter);
+            String indexName, String fieldName, String node, String partition, ComponentStatisticsId componentId,
+            boolean isAntimatter) throws MetadataException {
+        Statistics stat = findStatistics(ctx, dataverseName, datasetName, indexName, fieldName, node, partition,
+                componentId, isAntimatter);
         if (stat == null || !stat.isTemp()) {
             try {
-                metadataNode.dropStatistics(ctx.getJobId(), dataverseName, datasetName, indexName, node, partition,
-                        componentId, isAntimatter);
+                metadataNode.dropStatistics(ctx.getJobId(), dataverseName, datasetName, indexName, fieldName, node,
+                        partition, componentId, isAntimatter);
             } catch (RemoteException e) {
                 throw new MetadataException(e);
             }
         }
         // Drops the stat from cache
-        ctx.dropStatistics(dataverseName, datasetName, indexName, isAntimatter, node, partition, componentId);
+        ctx.dropStatistics(dataverseName, datasetName, indexName, fieldName, isAntimatter, node, partition,
+                componentId);
     }
 
     @Override

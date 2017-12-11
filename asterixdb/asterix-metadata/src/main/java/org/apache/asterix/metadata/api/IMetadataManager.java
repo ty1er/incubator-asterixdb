@@ -648,15 +648,15 @@ public interface IMetadataManager extends IMetadataBootstrap {
             Integer fileNumber) throws MetadataException;
 
     List<Statistics> getMergedStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName) throws MetadataException;
+            String indexName, String fieldName) throws MetadataException;
 
-    List<Statistics> getIndexStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName, boolean isAntimatter) throws MetadataException;
+    List<Statistics> getFieldStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
+            String indexName, String fieldName, boolean isAntimatter) throws MetadataException;
 
     void addStatistics(MetadataTransactionContext mdTxnCtx, Statistics statistics) throws MetadataException;
 
-    void dropStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName,
-            String indexName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+    void dropStatistics(MetadataTransactionContext ctx, String dataverseName, String datasetName, String indexName,
+            String fieldName, String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
             throws MetadataException;
 
     /**

@@ -20,6 +20,7 @@
 package org.apache.hyracks.storage.am.statistics.common;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,24 +45,30 @@ import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
 public class StatisticsCollectorFactory implements IStatisticsFactory, Serializable {
     private static final Logger LOGGER = Logger.getLogger(StatisticsCollectorFactory.class.getName());
 
-    private final int[] fields;
+    private final String dataverseName;
+    private final String datasetName;
+    private final String indexName;
+    private final List<String> fields;
+    private final List<ITypeTraits> fieldTypeTraits;
+    private final List<IFieldExtractor> fieldValueExtractors;
     private final int size;
-    private final ITypeTraits[] fieldTypeTraits;
     private final double energyAccuracy;
     private final SynopsisType type;
-    private final IFieldExtractor[] fieldValueExtractors;
     private final int fanout;
     private double failureProbability;
     private double accuracy;
 
-    public StatisticsCollectorFactory(SynopsisType type, int[] fields, int size, ITypeTraits[] fieldTypeTraits,
-            IFieldExtractor[] fieldValueExtractors, int fanout, double failureProbability, double accuracy,
-            double energyAccuracy) {
+    public StatisticsCollectorFactory(SynopsisType type, String dataverseName, String datasetName, String indexName,
+            List<String> fields, List<ITypeTraits> fieldTypeTraits, List<IFieldExtractor> fieldValueExtractors,
+            int size, int fanout, double failureProbability, double accuracy, double energyAccuracy) {
         this.type = type;
+        this.dataverseName = dataverseName;
+        this.datasetName = datasetName;
+        this.indexName = indexName;
         this.fields = fields;
-        this.size = size;
         this.fieldTypeTraits = fieldTypeTraits;
         this.fieldValueExtractors = fieldValueExtractors;
+        this.size = size;
         this.fanout = fanout;
         this.failureProbability = failureProbability;
         this.accuracy = accuracy;
@@ -73,24 +80,11 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
         if (unorderedTuples && type.needsSortedOrder()) {
             return false;
         }
-        if (!unorderedTuples && fields.length > 1) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Unable to collect statistics on composite keys");
-            }
-            return false;
-        }
-        for (int i = 0; i < fieldTypeTraits.length; i++) {
-            if (!fieldTypeTraits[i].isFixedLength()) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning("Unable to collect statistics for non-fixed length keys");
-                }
-                return false;
-            }
+        for (ITypeTraits typeTraits : fieldTypeTraits) {
             //check if the key can be mapped on long domain, i.e. key length  <= 8 bytes. 1 byte is reserved for typeTag
-            if (fieldTypeTraits[i].getFixedLength() > (8 + 1)) {
+            if (typeTraits.getFixedLength() > (8 + 1)) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
-                            + fieldTypeTraits[i]);
+                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes" + typeTraits);
                 }
                 return false;
             }
@@ -101,15 +95,15 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        ISynopsisBuilder[] builders = new ISynopsisBuilder[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            AbstractSynopsisBuilder synopsisBuilder =
-                    createSynopsisBuilder(componentStatistics, false, fieldTypeTraits[i], fieldValueExtractors[i]);
+        ISynopsisBuilder[] builders = new ISynopsisBuilder[fields.size()];
+        for (int i = 0; i < fields.size(); i++) {
+            AbstractSynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, fields.get(i),
+                    fieldTypeTraits.get(i), fieldValueExtractors.get(i));
             if (isBulkload) {
                 builders[i] = synopsisBuilder;
             } else {
-                AbstractSynopsisBuilder antimatterSynopsisBuilder =
-                        createSynopsisBuilder(componentStatistics, true, fieldTypeTraits[i], fieldValueExtractors[i]);
+                AbstractSynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true,
+                        fields.get(i), fieldTypeTraits.get(i), fieldValueExtractors.get(i));
                 builders[i] = new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
             }
         }
@@ -117,7 +111,7 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
     }
 
     private AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics, boolean isAntimatter,
-            ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
+            String fieldName, ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
             throws HyracksDataException {
         long numElements =
                 isAntimatter ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples();
@@ -127,21 +121,21 @@ public class StatisticsCollectorFactory implements IStatisticsFactory, Serializa
             case UniformHistogram:
             case ContinuousHistogram:
             case EquiWidthHistogram:
-                return new HistogramBuilder((HistogramSynopsis<? extends HistogramBucket>) synopsis, isAntimatter,
-                        fieldExtractor, componentStatistics);
+                return new HistogramBuilder((HistogramSynopsis<? extends HistogramBucket>) synopsis, dataverseName,
+                        datasetName, indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics);
             case PrefixSumWavelet:
-                return new PrefixSumWaveletTransform((PrefixSumWaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
-                        componentStatistics);
+                return new PrefixSumWaveletTransform((PrefixSumWaveletSynopsis) synopsis, dataverseName, datasetName,
+                        indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics);
             case Wavelet:
-                return new WaveletTransform((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
-                        componentStatistics);
+                return new WaveletTransform((WaveletSynopsis) synopsis, dataverseName, datasetName, indexName,
+                        fieldName, isAntimatter, fieldExtractor, componentStatistics);
             case GroupCountSketch:
-                return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, isAntimatter, fieldExtractor,
-                        componentStatistics, fanout,
-                        failureProbability, accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
+                return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, dataverseName, datasetName, indexName,
+                        fieldName, isAntimatter, fieldExtractor, componentStatistics, fanout, failureProbability,
+                        accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
             case QuantileSketch:
-                return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, isAntimatter, fieldExtractor,
-                        componentStatistics, accuracy);
+                return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, dataverseName, datasetName,
+                        indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics, accuracy);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);
         }

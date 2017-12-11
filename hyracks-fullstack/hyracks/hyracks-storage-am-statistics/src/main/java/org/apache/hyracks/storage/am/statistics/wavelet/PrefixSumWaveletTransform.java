@@ -35,9 +35,10 @@ public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSy
     protected double transformFrequency;
     protected double prefixSumFrequency;
 
-    public PrefixSumWaveletTransform(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
+    public PrefixSumWaveletTransform(WaveletSynopsis synopsis, String dataverse, String dataset, String index,
+            String field, boolean isAntimatter, IFieldExtractor fieldExtractor,
             ComponentStatistics componentStatistics) {
-        super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
+        super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
         avgStack = new Stack<>();
         avgStackObjectPool = new MapObjectPool<>();
         IObjectFactory<WaveletCoefficient, Integer> waveletFactory = level -> new WaveletCoefficient(0.0, level, -1);

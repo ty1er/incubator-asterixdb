@@ -45,9 +45,9 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
     protected List<ComponentStatisticsId> mergeComponentIds;
 
     public ReportMergeComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement> synopsis, String dataverse,
-            String dataset, String index, String node, String partition, ComponentStatisticsId newComponentId,
+            String dataset, String index, String field, String node, String partition, ComponentStatisticsId newComponentId,
             boolean isAntimatter, List<ComponentStatisticsId> mergeComponentsIds) {
-        super(synopsis, dataverse, dataset, index, node, partition, newComponentId, isAntimatter);
+        super(synopsis, dataverse, dataset, index, field, node, partition, newComponentId, isAntimatter);
         this.mergeComponentIds = mergeComponentsIds;
     }
 
@@ -59,7 +59,7 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
     public void handle(ICcApplicationContext cs) throws HyracksDataException, InterruptedException {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this + "] message for idx ["
-                    + dataverse + "." + dataset + "." + index + "] received from the node=" + node + ", partition="
+                    + dataverse + "." + dataset + "." + field + "] received from the node=" + node + ", partition="
                     + partition + ",componentId=" + componentId);
         }
         boolean bActiveTxn = false;
@@ -71,11 +71,11 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
             mdProvider.setMetadataTxnContext(mdTxnCtx);
             bActiveTxn = true;
             MetadataLockUtil.insertStatisticsBegin(cs.getMetadataLockManager(), mdProvider.getLocks(),
-                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, index, node, partition, isAntimatter);
+                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, field, node, partition, isAntimatter);
 
             // delete old stats. Even if the new stats are empty we need to invalidate earlier synopses
             for (ComponentStatisticsId mergedComponentId : mergeComponentIds) {
-                insertDeleteStats(mdTxnCtx, dataverse, dataset, index, node, partition, mergedComponentId,
+                insertDeleteStats(mdTxnCtx, dataverse, dataset, index, field, node, partition, mergedComponentId,
                         isAntimatter, null, false);
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this
@@ -84,8 +84,8 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
             }
             // insert statistics on merged component only if synopsis is not empty, i.e. skip empty statistics
             if (synopsis != null) {
-                insertDeleteStats(mdTxnCtx, dataverse, dataset, index, node, partition, componentId, isAntimatter,
-                        synopsis, true);
+                insertDeleteStats(mdTxnCtx, dataverse, dataset, index, field, node, partition, componentId,
+                        isAntimatter, synopsis, true);
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this
                             + "] Adding new stat with componentId " + componentId);

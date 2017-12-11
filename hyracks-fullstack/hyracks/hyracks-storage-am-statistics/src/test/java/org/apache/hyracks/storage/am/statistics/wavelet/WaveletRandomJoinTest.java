@@ -70,7 +70,7 @@ public class WaveletRandomJoinTest extends WaveletTest {
 
         public NonEmptyWaveletTransform(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
                 ComponentStatistics componentStatistics) {
-            super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
+            super(synopsis, "", "", "", "", isAntimatter, fieldExtractor, componentStatistics);
         }
 
         @Override

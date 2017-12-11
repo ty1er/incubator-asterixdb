@@ -18,8 +18,11 @@
  */
 package org.apache.asterix.metadata.declared;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.asterix.common.config.DatasetConfig.DatasetType;
 import org.apache.asterix.common.context.AsterixVirtualBufferCacheProvider;
@@ -35,6 +38,7 @@ import org.apache.asterix.metadata.entities.Dataset;
 import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.metadata.utils.DatasetUtil;
 import org.apache.asterix.metadata.utils.IndexUtil;
+import org.apache.asterix.metadata.utils.TypeUtil;
 import org.apache.asterix.om.pointables.nonvisitor.ARecordPointable;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.ATypeTag;
@@ -56,6 +60,7 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.common.StatisticsCollectorFactory;
 import org.apache.hyracks.storage.am.statistics.common.TupleFieldExtractor;
@@ -105,52 +110,58 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             case INTERNAL:
                 AsterixVirtualBufferCacheProvider vbcProvider =
                         new AsterixVirtualBufferCacheProvider(dataset.getDatasetId());
-                ISynopsis.SynopsisType statsType =
-                        mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType();
-                IStatisticsFactory statisticsFactory = null;
-                if (statsType != null && statsType != ISynopsis.SynopsisType.None) {
-                    // check statistics hint
-                    String statisticsFieldNames = dataset.getHints().get(DatasetStatisticsHint.NAME);
-                    int[] statisticsFields;
-                    ITypeTraits[] statisticsTypeTraits;
-                    IFieldExtractor[] statisticsFieldExtractors;
-                    if (!statsType.needsSortedOrder() && statisticsFieldNames != null) {
-                        statisticsFields = getStatisticsFields(recordType, statisticsFieldNames);
-                        statisticsFieldExtractors = new IFieldExtractor[statisticsFields.length];
-                        for (int i = 0; i < statisticsFields.length; i++) {
-                            statisticsFieldExtractors[i] = getFieldExtractor(recordType, statisticsFields[i]);
-                        }
-                        statisticsTypeTraits =
-                                DatasetUtil.computeStatisticsTypeTraits(statisticsFieldNames, recordType);
-                    } else {
-                        // if hint is not specified collect statistics on index key, which is always the first field
-                        statisticsFields = IndexUtil.getSecondaryKeys(dataset, index);
-                        statisticsFieldExtractors = new IFieldExtractor[statisticsFields.length];
-                        for (int i = 0; i < statisticsFields.length; i++) {
-                            statisticsFieldExtractors[i] =
-                                    new TupleFieldExtractor(AqlOrdinalPrimitiveValueProviderFactory.INSTANCE
-                                            .createOrdinalPrimitiveValueProvider(), statisticsFields[i]);
-                        }
-                        statisticsTypeTraits = IndexUtil.getSecondaryKeyTypeTraits(statisticsFields, typeTraits);
-                    }
-                    statisticsFactory = new StatisticsCollectorFactory(statsType, statisticsFields,
-                            mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
-                            statisticsTypeTraits, statisticsFieldExtractors,
-                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
-                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
-                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchAccuracy(),
-                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchEnergyAccuracy());
-                }
                 return new LSMBTreeLocalResourceFactory(storageManager, typeTraits, cmpFactories, filterTypeTraits,
                         filterCmpFactories, filterFields, opTrackerFactory, ioOpCallbackFactory,
                         metadataPageManagerFactory, vbcProvider, ioSchedulerProvider, mergePolicyFactory,
                         mergePolicyProperties, durable, bloomFilterFields, bloomFilterFalsePositiveRate,
-                        index.isPrimaryIndex(), btreeFields, statisticsFactory,
+                        index.isPrimaryIndex(), btreeFields,
+                        prepareStatisticsFactory(mdProvider, dataset, index, recordType, typeTraits,
+                                mdProvider.getApplicationContext().getStatisticsProperties()
+                                        .getStatisticsSynopsisType()),
                         mdProvider.getStorageComponentProvider().getStatisticsManagerProvider());
             default:
                 throw new CompilationException(ErrorCode.COMPILATION_UNKNOWN_DATASET_TYPE,
                         dataset.getDatasetType().toString());
         }
+    }
+
+    private IStatisticsFactory prepareStatisticsFactory(MetadataProvider mdProvider, Dataset dataset, Index index,
+            ARecordType recordType, ITypeTraits[] typeTraits, SynopsisType statsType) throws AlgebricksException {
+        if (statsType != null && statsType != SynopsisType.None) {
+            // collect statistics on index key, which is always the first field
+            List<String> statisticsFields =
+                    index.getKeyFieldNames().stream().map(l -> String.join(".", l)).collect(Collectors.toList());
+            int[] indexKeyFieldIds = IndexUtil.getSecondaryKeys(dataset, index);
+            List<ITypeTraits> statisticsTypeTraits = new ArrayList<>();
+            List<IFieldExtractor> statisticsFieldExtractors = new ArrayList<>();
+            if (indexKeyFieldIds.length == 1) {
+                statisticsTypeTraits.addAll(IndexUtil.getSecondaryKeyTypeTraits(indexKeyFieldIds, typeTraits));
+                for (int indexKeyFieldId : indexKeyFieldIds) {
+                    statisticsFieldExtractors.add(new TupleFieldExtractor(
+                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider(),
+                            indexKeyFieldId));
+                }
+            }
+            // check statistics hint
+            String statisticsFieldsHint = dataset.getHints().get(DatasetStatisticsHint.NAME);
+            if (index.isPrimaryIndex() && !statsType.needsSortedOrder() && statisticsFieldsHint != null) {
+                String[] unorderedStatisticsFields = statisticsFieldsHint.split(",");
+                statisticsFields.addAll(Arrays.asList(unorderedStatisticsFields));
+                int[] unorderedStatisticsFieldIds = TypeUtil.getFieldIds(recordType, unorderedStatisticsFields);
+                for (int i = 0; i < unorderedStatisticsFields.length; i++) {
+                    statisticsFieldExtractors.add(getFieldExtractor(recordType, unorderedStatisticsFieldIds[i]));
+                }
+                statisticsTypeTraits.addAll(DatasetUtil.computeFieldTypeTraits(unorderedStatisticsFields, recordType));
+            }
+            return new StatisticsCollectorFactory(statsType, dataset.getDataverseName(), dataset.getDatasetName(),
+                    index.getIndexName(), statisticsFields, statisticsTypeTraits, statisticsFieldExtractors,
+                    mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
+                    mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
+                    mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
+                    mdProvider.getApplicationContext().getStatisticsProperties().getSketchAccuracy(),
+                    mdProvider.getApplicationContext().getStatisticsProperties().getSketchEnergyAccuracy());
+        }
+        return null;
     }
 
     private static ITypeTraits[] getTypeTraits(MetadataProvider metadataProvider, Dataset dataset, Index index,
@@ -238,20 +249,6 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             bloomFilterKeyFields[i] = i;
         }
         return bloomFilterKeyFields;
-    }
-
-    private static int[] getStatisticsFields(ARecordType recordType, String statisticsHint) {
-        String[] hintFields = statisticsHint.split(",");
-        int[] res = new int[hintFields.length];
-        int i = 0;
-        for (String field : hintFields) {
-            int fieldIdx = recordType.getFieldIndex(field);
-            if (fieldIdx != -1) {
-                res[i++] = fieldIdx;
-            }
-        }
-        return res;
-
     }
 
     private IFieldExtractor getFieldExtractor(ARecordType recordType, int statisticsField) {

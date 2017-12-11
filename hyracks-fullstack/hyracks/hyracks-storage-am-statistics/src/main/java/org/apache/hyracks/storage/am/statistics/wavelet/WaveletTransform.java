@@ -30,9 +30,9 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
     private double transformFrequency;
     private WaveletCoefficient[] straddlingCoeffs;
 
-    public WaveletTransform(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
-            ComponentStatistics componentStatistics) {
-        super(synopsis, isAntimatter, fieldExtractor, componentStatistics);
+    public WaveletTransform(WaveletSynopsis synopsis, String dataverse, String dataset, String index, String field,
+            boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics) {
+        super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
         // keep straddling coefficients for each level of error tree + additional coefficient for main average
         straddlingCoeffs = new WaveletCoefficient[synopsis.getMaxLevel() + 1];
         for (int i = 0; i < synopsis.getMaxLevel(); i++) {

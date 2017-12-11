@@ -232,9 +232,9 @@ public class BTreeAccessMethod implements IAccessMethod {
                 replacedFuncExprs)) {
             return null;
         }
-        long selectivity = context.getCardinalityEstimator()
-                .getSelectivity(searchArg, context.getMetadataProvider(), chosenIndex.getDataverseName(),
-                        chosenIndex.getDatasetName(), chosenIndex.getIndexName());
+        long selectivity = context.getCardinalityEstimator().getSelectivity(searchArg, context.getMetadataProvider(),
+                chosenIndex.getDataverseName(), chosenIndex.getDatasetName(), chosenIndex.getIndexName(),
+                String.join(".", chosenIndex.getKeyFieldNames().get(0)));
 
         // If the select condition contains mixed open/closed intervals on multiple keys, then we make all intervals
         // closed to obtain a superset of answers and leave the original selection in place.
