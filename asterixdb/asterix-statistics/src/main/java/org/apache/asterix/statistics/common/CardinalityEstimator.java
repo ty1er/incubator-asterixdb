@@ -20,22 +20,13 @@ package org.apache.asterix.statistics.common;
 
 import java.util.List;
 
-import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.metadata.declared.MetadataProvider;
+import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.metadata.entities.Statistics;
-import org.apache.asterix.om.base.IAIntegerObject;
-import org.apache.asterix.om.base.IAObject;
-import org.apache.asterix.om.constants.AsterixConstantValue;
-import org.apache.asterix.om.types.hierachy.ATypeHierarchy;
-import org.apache.asterix.optimizer.rules.am.BTreeSearchArgument;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
-import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
-import org.apache.hyracks.algebricks.core.algebra.base.LogicalExpressionTag;
-import org.apache.hyracks.algebricks.core.algebra.expressions.ConstantExpression;
 import org.apache.hyracks.algebricks.core.algebra.metadata.IMetadataProvider;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.visitors.CardinalityInferenceVisitor;
 import org.apache.hyracks.algebricks.core.rewriter.base.ICardinalityEstimator;
-import org.apache.hyracks.storage.am.common.api.IIndexSearchArgument;
 
 public class CardinalityEstimator implements ICardinalityEstimator {
 
@@ -46,61 +37,34 @@ public class CardinalityEstimator implements ICardinalityEstimator {
     private CardinalityEstimator() {
     }
 
-    @Override public long getSelectivity(IIndexSearchArgument searchArg, IMetadataProvider metadataProvider,
-            String dataverseName, String datasetName, String indexName, String fieldName) throws AlgebricksException {
-        if (!(searchArg instanceof BTreeSearchArgument)) {
-            //estimation works only for B-Trees
-            return CardinalityInferenceVisitor.UNKNOWN;
-        }
-        BTreeSearchArgument btreeSearchArg = (BTreeSearchArgument) searchArg;
-        if (btreeSearchArg.getNumSecondaryKeys() > 1) {
-            //estimation works only for non-composite indexes
-            return CardinalityInferenceVisitor.UNKNOWN;
-        }
-        long startTime = System.nanoTime();
-        List<Statistics> stats = ((MetadataProvider) metadataProvider).getMergedStatistics(dataverseName, datasetName,
-                indexName, fieldName);
-        double estimate = 0.0;
-        for (Statistics s : stats) {
-            try {
-                double synopsisEstimate = 0.0;
-                //point query estimation
-                if (btreeSearchArg.isEqCondition()) {
-                    //assumes selection with a constant value for point queries
-                    long point = extractConstantIntegerExpr(btreeSearchArg.getHighKeyExprs()[0]).longValue();
+    @Override
+    public long getRangeCardinality(IMetadataProvider metadataProvider, String dataverseName, String datasetName,
+            List<String> fieldName, long rangeStart, long rangeStop) throws AlgebricksException {
 
-                    synopsisEstimate = s.getSynopsis().pointQuery(point);
-                } else {
-                    IAIntegerObject lowKey = extractConstantIntegerExpr(btreeSearchArg.getLowKeyExprs()[0]);
-                    IAIntegerObject highKey = extractConstantIntegerExpr(btreeSearchArg.getHighKeyExprs()[0]);
-                    long lowKeyValue;
-                    int lowKeyAdjustment = 0;
-                    if (lowKey == null) {
-                        lowKeyValue = highKey.minDomainValue();
-                    } else {
-                        lowKeyValue = lowKey.longValue();
-                        lowKeyAdjustment = btreeSearchArg.getLowKeyInclusive()[0] ? 0 : 1;
-                    }
-                    long highKeyValue;
-                    int highKeyAdjustment = 0;
-                    if (highKey == null) {
-                        highKeyValue = lowKey.maxDomainValue();
-                    } else {
-                        highKeyValue = highKey.longValue();
-                        highKeyAdjustment = btreeSearchArg.getHighKeyInclusive()[0] ? 0 : 1;
-                    }
-                    //check validity of range argument
-                    if (lowKeyValue < highKeyValue) {
-                        synopsisEstimate = s.getSynopsis()
-                                .rangeQuery(lowKeyValue + lowKeyAdjustment, highKeyValue - highKeyAdjustment);
-                    } else if (lowKeyValue + lowKeyAdjustment == highKeyValue - highKeyAdjustment) {
-                        synopsisEstimate = s.getSynopsis().pointQuery(lowKeyValue + lowKeyAdjustment);
-                    }
-                }
-                estimate += synopsisEstimate * (s.isAntimatter() ? -1 : 1);
-            } catch (AsterixException e) {
-                throw new AlgebricksException(e);
+        List<Statistics> stats = null;
+        List<Index> datasetIndexes =
+                ((MetadataProvider) metadataProvider).getDatasetIndexes(dataverseName, datasetName);
+        for (Index idx : datasetIndexes) {
+            // TODO : allow statistics on nested fields
+            // use the last if multiple stats on the same field are available
+            stats = ((MetadataProvider) metadataProvider).getMergedStatistics(dataverseName, datasetName,
+                    idx.getIndexName(), String.join(".", fieldName));
+        }
+        if (stats == null || stats.isEmpty()) {
+            return CardinalityInferenceVisitor.UNKNOWN;
+        }
+
+        long startTime = System.nanoTime();
+        double estimate = 0.0;
+
+        for (Statistics s : stats) {
+            double synopsisEstimate = 0.0;
+            if (rangeStart < rangeStop) {
+                synopsisEstimate = s.getSynopsis().rangeQuery(rangeStart, rangeStop);
+            } else if (rangeStart == rangeStop) {
+                synopsisEstimate = s.getSynopsis().pointQuery(rangeStart);
             }
+            estimate += synopsisEstimate * (s.isAntimatter() ? -1 : 1);
         }
         long endTime = System.nanoTime();
         estimationTime = endTime - startTime;
@@ -111,22 +75,15 @@ public class CardinalityEstimator implements ICardinalityEstimator {
     }
 
     @Override
-    public long getEstimationTime() {
-        return estimationTime;
+    public long getJoinCardinality(IMetadataProvider metadataProvider, String innerDataverseName,
+            String innerDatasetName, List<String> innerFieldName, String outerDataverseName, String outerDatasetName,
+            List<String> outerFieldName) {
+        return CardinalityInferenceVisitor.UNKNOWN;
     }
 
-    private IAIntegerObject extractConstantIntegerExpr(ILogicalExpression expr) throws AsterixException {
-        if (expr == null) {
-            return null;
-        }
-        if (expr.getExpressionTag() == LogicalExpressionTag.CONSTANT) {
-            IAObject constExprValue = ((AsterixConstantValue) ((ConstantExpression) expr).getValue()).getObject();
-            if (ATypeHierarchy.belongsToDomain(constExprValue.getType().getTypeTag(), ATypeHierarchy.Domain.INTEGER)) {
-                return (IAIntegerObject) constExprValue;
-            }
-        }
-        return null;
-
+    @Override
+    public long getEstimationTime() {
+        return estimationTime;
     }
 
 }

@@ -21,6 +21,7 @@ package org.apache.asterix.optimizer.rules.am;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,11 +38,14 @@ import org.apache.asterix.metadata.entities.Dataset;
 import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.om.functions.BuiltinFunctions;
 import org.apache.asterix.om.types.ARecordType;
-import org.apache.asterix.optimizer.rules.am.BTreeSearchArgument.LimitType;
+import org.apache.asterix.om.types.AUnionType;
+import org.apache.asterix.om.types.IAType;
+import org.apache.asterix.om.utils.NonTaggedFormatUtil;
 import org.apache.asterix.optimizer.rules.util.EquivalenceClassUtils;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
+import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.base.IOptimizationContext;
@@ -54,6 +58,7 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.ScalarFunctionCall
 import org.apache.hyracks.algebricks.core.algebra.expressions.UnnestingFunctionCallExpression;
 import org.apache.hyracks.algebricks.core.algebra.expressions.VariableReferenceExpression;
 import org.apache.hyracks.algebricks.core.algebra.functions.AlgebricksBuiltinFunctions;
+import org.apache.hyracks.algebricks.core.algebra.functions.AlgebricksBuiltinFunctions.ComparisonKind;
 import org.apache.hyracks.algebricks.core.algebra.functions.FunctionIdentifier;
 import org.apache.hyracks.algebricks.core.algebra.functions.IFunctionInfo;
 import org.apache.hyracks.algebricks.core.algebra.operators.logical.AbstractBinaryJoinOperator;
@@ -71,6 +76,15 @@ import org.apache.hyracks.algebricks.core.algebra.util.OperatorManipulationUtil;
  * Class for helping rewrite rules to choose and apply BTree indexes.
  */
 public class BTreeAccessMethod implements IAccessMethod {
+
+    // Describes whether a search predicate is an open/closed interval.
+    public enum LimitType {
+        LOW_INCLUSIVE,
+        LOW_EXCLUSIVE,
+        HIGH_INCLUSIVE,
+        HIGH_EXCLUSIVE,
+        EQUAL
+    }
 
     private static final List<FunctionIdentifier> FUNC_IDENTIFIERS =
             Collections.unmodifiableList(Arrays.asList(
@@ -220,56 +234,220 @@ public class BTreeAccessMethod implements IAccessMethod {
         ARecordType recordType = indexSubTree.getRecordType();
         ARecordType metaRecordType = indexSubTree.getMetaRecordType();
         // we made sure indexSubTree has datasource scan
-        AbstractDataSourceOperator dataSourceOp = (AbstractDataSourceOperator) indexSubTree.getDataSourceRef().
-                getValue();
+        AbstractDataSourceOperator dataSourceOp =
+                (AbstractDataSourceOperator) indexSubTree.getDataSourceRef().getValue();
+        List<Pair<Integer, Integer>> exprAndVarList = analysisCtx.getIndexExprsFromIndexExprsAndVars(chosenIndex);
         int numSecondaryKeys = analysisCtx.getNumberOfMatchedKeys(chosenIndex);
         // List of function expressions that will be replaced by the secondary-index search.
         // These func exprs will be removed from the select condition at the very end of this method.
         Set<ILogicalExpression> replacedFuncExprs = new HashSet<>();
 
-        BTreeSearchArgument searchArg = new BTreeSearchArgument(numSecondaryKeys);
-        if (searchArg.createSearchArgument(indexSubTree, probeSubTree, chosenIndex, analysisCtx, context,
-                replacedFuncExprs)) {
+        // Info on high and low keys for the BTree search predicate.
+        ILogicalExpression[] lowKeyExprs = new ILogicalExpression[numSecondaryKeys];
+        ILogicalExpression[] highKeyExprs = new ILogicalExpression[numSecondaryKeys];
+        LimitType[] lowKeyLimits = new LimitType[numSecondaryKeys];
+        LimitType[] highKeyLimits = new LimitType[numSecondaryKeys];
+        boolean[] lowKeyInclusive = new boolean[numSecondaryKeys];
+        boolean[] highKeyInclusive = new boolean[numSecondaryKeys];
+        ILogicalExpression[] constantAtRuntimeExpressions = new ILogicalExpression[numSecondaryKeys];
+        LogicalVariable[] constAtRuntimeExprVars = new LogicalVariable[numSecondaryKeys];
+
+        /* TODO: For now we don't do any sophisticated analysis of the func exprs to come up with "the best" range
+         * predicate. If we can't figure out how to integrate a certain funcExpr into the current predicate,
+         * we just bail by setting this flag.*/
+        boolean couldntFigureOut = false;
+        boolean doneWithExprs = false;
+        boolean isEqCondition = false;
+        BitSet setLowKeys = new BitSet(numSecondaryKeys);
+        BitSet setHighKeys = new BitSet(numSecondaryKeys);
+        // Go through the func exprs listed as optimizable by the chosen index,
+        // and formulate a range predicate on the secondary-index keys.
+        for (Pair<Integer, Integer> exprIndex : exprAndVarList) {
+            // Position of the field of matchedFuncExprs.get(exprIndex) in the chosen index's indexed exprs.
+            IOptimizableFuncExpr optFuncExpr = analysisCtx.getMatchedFuncExpr(exprIndex.first);
+            int keyPos = indexOf(optFuncExpr.getFieldName(0), chosenIndex.getKeyFieldNames());
+            if (keyPos < 0 && optFuncExpr.getNumLogicalVars() > 1) {
+                // If we are optimizing a join, the matching field may be the second field name.
+                keyPos = indexOf(optFuncExpr.getFieldName(1), chosenIndex.getKeyFieldNames());
+            }
+            if (keyPos < 0) {
+                throw CompilationException.create(ErrorCode.NO_INDEX_FIELD_NAME_FOR_GIVEN_FUNC_EXPR);
+            }
+            IAType indexedFieldType = chosenIndex.getKeyFieldTypes().get(keyPos);
+            Pair<ILogicalExpression, Boolean> returnedSearchKeyExpr = AccessMethodUtils.createSearchKeyExpr(
+                    chosenIndex.isEnforced(), optFuncExpr, indexedFieldType, indexSubTree, probeSubTree);
+            ILogicalExpression searchKeyExpr = returnedSearchKeyExpr.first;
+            if (searchKeyExpr.getExpressionTag() == LogicalExpressionTag.FUNCTION_CALL) {
+                constantAtRuntimeExpressions[keyPos] = searchKeyExpr;
+                constAtRuntimeExprVars[keyPos] = context.newVar();
+                searchKeyExpr = new VariableReferenceExpression(constAtRuntimeExprVars[keyPos]);
+            }
+
+            LimitType limit = getLimitType(optFuncExpr, probeSubTree);
+            if (limit == null) {
+                return null;
+            }
+
+            // checks whether a type casting happened from a real (FLOAT, DOUBLE) value to an INT value
+            // since we have a round issues when dealing with LT(<) OR GT(>) operator.
+            boolean realTypeConvertedToIntegerType = returnedSearchKeyExpr.second;
+
+            if (relaxLimitTypeToInclusive(chosenIndex, keyPos, realTypeConvertedToIntegerType)) {
+                if (limit == LimitType.HIGH_EXCLUSIVE) {
+                    limit = LimitType.HIGH_INCLUSIVE;
+                } else if (limit == LimitType.LOW_EXCLUSIVE) {
+                    limit = LimitType.LOW_INCLUSIVE;
+                }
+            }
+
+            switch (limit) {
+                case EQUAL: {
+                    if (lowKeyLimits[keyPos] == null && highKeyLimits[keyPos] == null) {
+                        lowKeyLimits[keyPos] = highKeyLimits[keyPos] = limit;
+                        lowKeyInclusive[keyPos] = highKeyInclusive[keyPos] = true;
+                        lowKeyExprs[keyPos] = highKeyExprs[keyPos] = searchKeyExpr;
+                        setLowKeys.set(keyPos);
+                        setHighKeys.set(keyPos);
+                        isEqCondition = true;
+                    } else {
+                        // Has already been set to the identical values.
+                        // When optimizing join we may encounter the same optimizable expression twice
+                        // (once from analyzing each side of the join)
+                        if (lowKeyLimits[keyPos] == limit && lowKeyInclusive[keyPos] == true
+                                && lowKeyExprs[keyPos].equals(searchKeyExpr) && highKeyLimits[keyPos] == limit
+                                && highKeyInclusive[keyPos] == true && highKeyExprs[keyPos].equals(searchKeyExpr)) {
+                            isEqCondition = true;
+                            break;
+                        }
+                        couldntFigureOut = true;
+                    }
+                    // TODO: For now don't consider prefix searches.
+                    // If high and low keys are set, we exit for now.
+                    if (setLowKeys.cardinality() == numSecondaryKeys && setHighKeys.cardinality() == numSecondaryKeys) {
+                        doneWithExprs = true;
+                    }
+                    break;
+                }
+                case HIGH_EXCLUSIVE: {
+                    if (highKeyLimits[keyPos] == null || (highKeyLimits[keyPos] != null && highKeyInclusive[keyPos])) {
+                        highKeyLimits[keyPos] = limit;
+                        highKeyExprs[keyPos] = searchKeyExpr;
+                        highKeyInclusive[keyPos] = false;
+                    } else {
+                        // Has already been set to the identical values. When optimizing join we may encounter the
+                        // same optimizable expression twice
+                        // (once from analyzing each side of the join)
+                        if (highKeyLimits[keyPos] == limit && highKeyInclusive[keyPos] == false
+                                && highKeyExprs[keyPos].equals(searchKeyExpr)) {
+                            break;
+                        }
+                        couldntFigureOut = true;
+                        doneWithExprs = true;
+                    }
+                    break;
+                }
+                case HIGH_INCLUSIVE: {
+                    if (highKeyLimits[keyPos] == null) {
+                        highKeyLimits[keyPos] = limit;
+                        highKeyExprs[keyPos] = searchKeyExpr;
+                        highKeyInclusive[keyPos] = true;
+                    } else {
+                        // Has already been set to the identical values. When optimizing join we may encounter the
+                        // same optimizable expression twice
+                        // (once from analyzing each side of the join)
+                        if (highKeyLimits[keyPos] == limit && highKeyInclusive[keyPos] == true
+                                && highKeyExprs[keyPos].equals(searchKeyExpr)) {
+                            break;
+                        }
+                        couldntFigureOut = true;
+                        doneWithExprs = true;
+                    }
+                    break;
+                }
+                case LOW_EXCLUSIVE: {
+                    if (lowKeyLimits[keyPos] == null || (lowKeyLimits[keyPos] != null && lowKeyInclusive[keyPos])) {
+                        lowKeyLimits[keyPos] = limit;
+                        lowKeyExprs[keyPos] = searchKeyExpr;
+                        lowKeyInclusive[keyPos] = false;
+                    } else {
+                        // Has already been set to the identical values. When optimizing join we may encounter the
+                        // same optimizable expression twice
+                        // (once from analyzing each side of the join)
+                        if (lowKeyLimits[keyPos] == limit && lowKeyInclusive[keyPos] == false
+                                && lowKeyExprs[keyPos].equals(searchKeyExpr)) {
+                            break;
+                        }
+                        couldntFigureOut = true;
+                        doneWithExprs = true;
+                    }
+                    break;
+                }
+                case LOW_INCLUSIVE: {
+                    if (lowKeyLimits[keyPos] == null) {
+                        lowKeyLimits[keyPos] = limit;
+                        lowKeyExprs[keyPos] = searchKeyExpr;
+                        lowKeyInclusive[keyPos] = true;
+                    } else {
+                        // Has already been set to the identical values. When optimizing join we may encounter the
+                        // same optimizable expression twice
+                        // (once from analyzing each side of the join)
+                        if (lowKeyLimits[keyPos] == limit && lowKeyInclusive[keyPos] == true
+                                && lowKeyExprs[keyPos].equals(searchKeyExpr)) {
+                            break;
+                        }
+                        couldntFigureOut = true;
+                        doneWithExprs = true;
+                    }
+                    break;
+                }
+                default: {
+                    throw new IllegalStateException();
+                }
+            }
+            if (!couldntFigureOut) {
+                // Remember to remove this funcExpr later.
+                replacedFuncExprs.add(analysisCtx.getMatchedFuncExpr(exprIndex.first).getFuncExpr());
+            }
+            if (doneWithExprs) {
+                break;
+            }
+        }
+        if (couldntFigureOut) {
             return null;
         }
-        long selectivity = context.getCardinalityEstimator().getSelectivity(searchArg, context.getMetadataProvider(),
-                chosenIndex.getDataverseName(), chosenIndex.getDatasetName(), chosenIndex.getIndexName(),
-                String.join(".", chosenIndex.getKeyFieldNames().get(0)));
 
         // If the select condition contains mixed open/closed intervals on multiple keys, then we make all intervals
         // closed to obtain a superset of answers and leave the original selection in place.
         boolean primaryIndexPostProccessingIsNeeded = false;
         for (int i = 1; i < numSecondaryKeys; ++i) {
-            if (searchArg.getLowKeyInclusive()[i] != searchArg.getLowKeyInclusive()[0]) {
-                Arrays.fill(searchArg.getLowKeyInclusive(), true);
+            if (lowKeyInclusive[i] != lowKeyInclusive[0]) {
+                Arrays.fill(lowKeyInclusive, true);
                 primaryIndexPostProccessingIsNeeded = true;
                 break;
             }
         }
         for (int i = 1; i < numSecondaryKeys; ++i) {
-            if (searchArg.getHighKeyInclusive()[i] != searchArg.getHighKeyInclusive()[0]) {
-                Arrays.fill(searchArg.getHighKeyInclusive(), true);
+            if (highKeyInclusive[i] != highKeyInclusive[0]) {
+                Arrays.fill(highKeyInclusive, true);
                 primaryIndexPostProccessingIsNeeded = true;
                 break;
             }
         }
 
-        if (searchArg.getLowKeyLimits()[0] == null) {
-            searchArg.getLowKeyInclusive()[0] = true;
-        }
-        if (searchArg.getHighKeyLimits()[0] == null) {
-            searchArg.getHighKeyInclusive()[0] = true;
-        }
-
         // determine cases when prefix search could be applied
-        for (int i = 1; i < searchArg.getLowKeyExprs().length; i++) {
-            if (searchArg.getLowKeyLimits()[0] == null && searchArg.getLowKeyLimits()[i] != null
-                    || searchArg.getLowKeyLimits()[0] != null && searchArg.getLowKeyLimits()[i] == null
-                    || searchArg.getHighKeyLimits()[0] == null && searchArg.getHighKeyLimits()[i] != null
-                    || searchArg.getHighKeyLimits()[0] != null && searchArg.getHighKeyLimits()[i] == null) {
+        for (int i = 1; i < lowKeyExprs.length; i++) {
+            if (lowKeyLimits[0] == null && lowKeyLimits[i] != null || lowKeyLimits[0] != null && lowKeyLimits[i] == null
+                    || highKeyLimits[0] == null && highKeyLimits[i] != null
+                    || highKeyLimits[0] != null && highKeyLimits[i] == null) {
                 numSecondaryKeys--;
                 primaryIndexPostProccessingIsNeeded = true;
             }
+        }
+        if (lowKeyLimits[0] == null) {
+            lowKeyInclusive[0] = true;
+        }
+        if (highKeyLimits[0] == null) {
+            highKeyInclusive[0] = true;
         }
 
         // Here we generate vars and funcs for assigning the secondary-index keys to be fed into the secondary-index
@@ -279,20 +457,16 @@ public class BTreeAccessMethod implements IAccessMethod {
         // List of variables and expressions for the assign.
         ArrayList<LogicalVariable> assignKeyVarList = new ArrayList<>();
         ArrayList<Mutable<ILogicalExpression>> assignKeyExprList = new ArrayList<>();
-        int numLowKeys =
-                createKeyVarsAndExprs(numSecondaryKeys, searchArg.getLowKeyLimits(), searchArg.getLowKeyExprs(),
-                        assignKeyVarList, assignKeyExprList, keyVarList, context,
-                        searchArg.getConstantAtRuntimeExpressions(), searchArg.getConstAtRuntimeExprVars());
-        int numHighKeys =
-                createKeyVarsAndExprs(numSecondaryKeys, searchArg.getHighKeyLimits(), searchArg.getHighKeyExprs(),
-                        assignKeyVarList, assignKeyExprList, keyVarList, context,
-                        searchArg.getConstantAtRuntimeExpressions(), searchArg.getConstAtRuntimeExprVars());
+        int numLowKeys = createKeyVarsAndExprs(numSecondaryKeys, lowKeyLimits, lowKeyExprs, assignKeyVarList,
+                assignKeyExprList, keyVarList, context, constantAtRuntimeExpressions, constAtRuntimeExprVars);
+        int numHighKeys = createKeyVarsAndExprs(numSecondaryKeys, highKeyLimits, highKeyExprs, assignKeyVarList,
+                assignKeyExprList, keyVarList, context, constantAtRuntimeExpressions, constAtRuntimeExprVars);
 
         BTreeJobGenParams jobGenParams = new BTreeJobGenParams(chosenIndex.getIndexName(), IndexType.BTREE,
                 dataset.getDataverseName(), dataset.getDatasetName(), retainInput, requiresBroadcast);
-        jobGenParams.setLowKeyInclusive(searchArg.getLowKeyInclusive()[0]);
-        jobGenParams.setHighKeyInclusive(searchArg.getHighKeyInclusive()[0]);
-        jobGenParams.setIsEqCondition(searchArg.isEqCondition());
+        jobGenParams.setLowKeyInclusive(lowKeyInclusive[0]);
+        jobGenParams.setHighKeyInclusive(highKeyInclusive[0]);
+        jobGenParams.setIsEqCondition(isEqCondition);
         jobGenParams.setLowKeyVarList(keyVarList, 0, numLowKeys);
         jobGenParams.setHighKeyVarList(keyVarList, numLowKeys, numHighKeys);
 
@@ -340,7 +514,7 @@ public class BTreeAccessMethod implements IAccessMethod {
             UnnestMapOperator externalDataAccessOp = AccessMethodUtils.createExternalDataLookupUnnestMap(dataSourceOp,
                     dataset, recordType, secondaryIndexUnnestOp, context, retainInput, retainNull);
             indexSubTree.getDataSourceRef().setValue(externalDataAccessOp);
-            primaryIndexUnnestOp = externalDataAccessOp;
+            return externalDataAccessOp;
         } else if (!isPrimaryIndex) {
             primaryIndexUnnestOp = AccessMethodUtils.createPrimaryIndexUnnestMap(dataSourceOp, dataset, recordType,
                     metaRecordType, secondaryIndexUnnestOp, context, true, retainInput, retainNull, false);
@@ -487,6 +661,110 @@ public class BTreeAccessMethod implements IAccessMethod {
             if (!replacedFuncExprs.contains(argExpr)) {
                 remainingFuncExprs.add(arg);
             }
+        }
+    }
+
+    private <T> int indexOf(T value, List<T> coll) {
+        int i = 0;
+        for (T member : coll) {
+            if (member.equals(value)) {
+                return i;
+            }
+            i++;
+        }
+        return -1;
+    }
+
+    public static LimitType getLimitType(IOptimizableFuncExpr optFuncExpr, OptimizableOperatorSubTree probeSubTree) {
+        ComparisonKind ck =
+                AlgebricksBuiltinFunctions.getComparisonType(optFuncExpr.getFuncExpr().getFunctionIdentifier());
+        LimitType limit = null;
+        switch (ck) {
+            case EQ: {
+                limit = LimitType.EQUAL;
+                break;
+            }
+            case GE: {
+                limit = probeIsOnLhs(optFuncExpr, probeSubTree) ? LimitType.HIGH_INCLUSIVE : LimitType.LOW_INCLUSIVE;
+                break;
+            }
+            case GT: {
+                limit = probeIsOnLhs(optFuncExpr, probeSubTree) ? LimitType.HIGH_EXCLUSIVE : LimitType.LOW_EXCLUSIVE;
+                break;
+            }
+            case LE: {
+                limit = probeIsOnLhs(optFuncExpr, probeSubTree) ? LimitType.LOW_INCLUSIVE : LimitType.HIGH_INCLUSIVE;
+                break;
+            }
+            case LT: {
+                limit = probeIsOnLhs(optFuncExpr, probeSubTree) ? LimitType.LOW_EXCLUSIVE : LimitType.HIGH_EXCLUSIVE;
+                break;
+            }
+            case NEQ: {
+                limit = null;
+                break;
+            }
+            default: {
+                throw new IllegalStateException();
+            }
+        }
+        return limit;
+    }
+
+    private boolean relaxLimitTypeToInclusive(Index chosenIndex, int keyPos, boolean realTypeConvertedToIntegerType) {
+        // If a DOUBLE or FLOAT constant is converted to an INT type value,
+        // we need to check a corner case where two real values are located between an INT value.
+        // For example, for the following query,
+        //
+        // for $emp in dataset empDataset
+        // where $emp.age > double("2.3") and $emp.age < double("3.3")
+        // return $emp.id
+        //
+        // It should generate a result if there is a tuple that satisfies the condition, which is 3,
+        // however, it does not generate the desired result since finding candidates
+        // fail after truncating the fraction part (there is no INT whose value is greater than 2 and less than 3.)
+        //
+        // Therefore, we convert LT(<) to LE(<=) and GT(>) to GE(>=) to find candidates.
+        // This does not change the result of an actual comparison since this conversion is only applied
+        // for finding candidates from an index.
+        //
+        // We also need to do this for a non-enforced index that overrides key field type (for a numeric type)
+
+        if (realTypeConvertedToIntegerType) {
+            return true;
+        }
+
+        if (chosenIndex.isOverridingKeyFieldTypes() && !chosenIndex.isEnforced()) {
+            IAType indexedKeyType = chosenIndex.getKeyFieldTypes().get(keyPos);
+            if (NonTaggedFormatUtil.isOptional(indexedKeyType)) {
+                indexedKeyType = ((AUnionType) indexedKeyType).getActualType();
+            }
+            switch (indexedKeyType.getTypeTag()) {
+                case TINYINT:
+                case SMALLINT:
+                case INTEGER:
+                case BIGINT:
+                case FLOAT:
+                case DOUBLE:
+                    return true;
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean probeIsOnLhs(IOptimizableFuncExpr optFuncExpr, OptimizableOperatorSubTree probeSubTree) {
+        if (probeSubTree == null) {
+            if (optFuncExpr.getConstantExpressions().length == 0) {
+                return optFuncExpr.getLogicalExpr(0) == null;
+            }
+            // We are optimizing a selection query. Search key is a constant. Return true if constant is on lhs.
+            return optFuncExpr.getFuncExpr().getArguments().get(0) == optFuncExpr.getConstantExpr(0);
+        } else {
+            // We are optimizing a join query. Determine whether the feeding variable is on the lhs.
+            return (optFuncExpr.getOperatorSubTree(0) == null || optFuncExpr.getOperatorSubTree(0) == probeSubTree);
         }
     }
 

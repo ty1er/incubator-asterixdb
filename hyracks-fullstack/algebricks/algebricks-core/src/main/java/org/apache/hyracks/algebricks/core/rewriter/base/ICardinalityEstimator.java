@@ -18,14 +18,19 @@
  */
 package org.apache.hyracks.algebricks.core.rewriter.base;
 
+import java.util.List;
+
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.metadata.IMetadataProvider;
-import org.apache.hyracks.storage.am.common.api.IIndexSearchArgument;
 
 public interface ICardinalityEstimator {
 
-    long getSelectivity(IIndexSearchArgument searchArg, IMetadataProvider metadataProvider, String dataverseName,
-            String datasetName, String indexName, String fieldName) throws AlgebricksException;
+    long getRangeCardinality(IMetadataProvider metadataProvider, String dataverseName, String datasetName,
+            List<String> fieldName, long rangeStart, long rangeStop) throws AlgebricksException;
+
+    long getJoinCardinality(IMetadataProvider metadataProvider, String innerDataverseName, String innerDatasetName,
+            List<String> innerFieldName, String outerDataverseName, String outerDatasetName,
+            List<String> outerFieldName);
 
     long getEstimationTime();
 }
