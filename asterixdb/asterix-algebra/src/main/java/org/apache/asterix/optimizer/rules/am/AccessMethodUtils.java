@@ -389,9 +389,9 @@ public class AccessMethodUtils {
      *
      * @throws AlgebricksException
      */
-    public static Pair<ILogicalExpression, Boolean> createSearchKeyExpr(Index index, IOptimizableFuncExpr optFuncExpr,
-            IAType indexedFieldType, OptimizableOperatorSubTree indexSubTree, OptimizableOperatorSubTree probeSubTree)
-            throws AlgebricksException {
+    public static Pair<ILogicalExpression, Boolean> createSearchKeyExpr(boolean isEnforcedIndex,
+            IOptimizableFuncExpr optFuncExpr, IAType indexedFieldType, OptimizableOperatorSubTree indexSubTree,
+            OptimizableOperatorSubTree probeSubTree) throws AlgebricksException {
 
         if (probeSubTree == null) {
             // We are optimizing a selection query. Search key is a constant.
@@ -421,7 +421,7 @@ public class AccessMethodUtils {
             if (constantValueTag != indexedFieldTypeTag && constantValue != null) {
                 try {
                     replacedConstantValue = ATypeHierarchy.getAsterixConstantValueFromNumericTypeObject(
-                            constantValue.getObject(), indexedFieldTypeTag, index.isEnforced());
+                            constantValue.getObject(), indexedFieldTypeTag, isEnforcedIndex);
                     realTypeConvertedToIntegerType =
                             isRealTypeConvertedToIntegerType(constantValueTag, indexedFieldTypeTag);
                 } catch (HyracksDataException e) {
