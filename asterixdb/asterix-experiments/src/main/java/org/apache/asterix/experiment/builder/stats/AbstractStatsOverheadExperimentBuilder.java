@@ -26,33 +26,22 @@ import java.util.logging.Logger;
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
-import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.builder.cluster.ICluster4Partition2Builder;
-import org.apache.asterix.experiment.client.LSMExperimentConstants;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public abstract class AbstractStatsAccuracyExperimentBuilder extends AbstractStatsExperimentBuilder
+public abstract class AbstractStatsOverheadExperimentBuilder extends AbstractStatsExperimentBuilder
         implements ICluster4Partition2Builder {
 
-    private static final Logger LOGGER = Logger.getLogger(AbstractStatsAccuracyExperimentBuilder.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AbstractStatsOverheadExperimentBuilder.class.getName());
 
-    public AbstractStatsAccuracyExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
+    public AbstractStatsOverheadExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
     }
 
     @Override
     protected void listIngestedData(ActionList experimentActions) throws IOException {
         //no listing of ingested data
-    }
-
-    protected void doPost(ActionList execs) throws IOException {
-        execs.addLast(new SleepAction(1000));
-        //clean up dataset
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
-                        .resolve(LSMExperimentConstants.BASE_CLEANUP)));
     }
 
     protected void assembleExperiment(ActionList execs) throws Exception {

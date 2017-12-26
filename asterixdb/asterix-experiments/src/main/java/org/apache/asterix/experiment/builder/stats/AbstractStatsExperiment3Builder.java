@@ -51,6 +51,7 @@ public abstract class AbstractStatsExperiment3Builder extends AbstractStatsQuery
         listIngestedData(execs);
 
         doPost(execs);
+        cleanupData(execs);
     }
 
 }
