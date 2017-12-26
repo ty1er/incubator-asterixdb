@@ -21,13 +21,11 @@ package org.apache.asterix.experiment.builder.stats;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
@@ -50,8 +48,8 @@ import org.apache.hyracks.http.server.utils.HttpUtil;
 public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuilder
         implements IIngestFeeds1Builder, IPrefixMergePolicy {
 
-    private Supplier<String[]> domainMins;
-    private Supplier<String[]> domainMaxs;
+    private List<String> fieldMinimums = new ArrayList<>();
+    private List<String> fieldMaximum = new ArrayList<>();
 
     public WorldCupExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
@@ -84,8 +82,8 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
                         .toString();
                 for (int i = 0; i < getFieldNames().length; i++) {
                     if (getFieldNames()[i].equals(fieldName)) {
-                        aql = aql.replaceAll("FIELD_MIN", domainMins.get()[i]);
-                        aql = aql.replaceAll("FIELD_MAX", domainMaxs.get()[i]);
+                        aql = aql.replaceAll("FIELD_MIN", fieldMinimums.get(i));
+                        aql = aql.replaceAll("FIELD_MAX", fieldMaximum.get(i));
                         aql = aql.replaceAll("FIELD", fieldName);
                         performAqlAction(aql);
                         break;
@@ -115,29 +113,37 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
     protected void verifyIngestedData(ActionList experimentActions) throws IOException {
         super.verifyIngestedData(experimentActions);
         experimentActions.addLast(new SleepAction(1000));
-        domainMins = getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setLowerBound, "min");
-        domainMaxs = getMinMax(experimentActions, ((LSMStatsExperimentSetRunnerConfig) config)::setUpperBound, "max");
+        getMinMax(experimentActions, (LSMStatsExperimentSetRunnerConfig) config);
     }
 
-    private Supplier<String[]> getMinMax(ActionList experimentActions, Consumer<String> f, String func) {
-        new StringWriter();
-        final ByteArrayOutputStream countResultStream = new ByteArrayOutputStream();
-        experimentActions
-                .addLast(new RunAQLStringAction(httpClient, restHost, restPort, getMinMaxAql(func), countResultStream));
-        experimentActions.addLast(() -> f.accept("\"" + new String(countResultStream.toByteArray()) + "\""));
-        experimentActions
-                .addLast(new LogAction(() -> "Domain " + func + ":" + new String(countResultStream.toByteArray())));
-        return () -> new String(countResultStream.toByteArray()).split("\n");
-    }
+    private void getMinMax(ActionList experimentActions, LSMStatsExperimentSetRunnerConfig statisConfig) {
 
-    private String getMinMaxAql(String function) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("use dataverse experiments;\n");
         for (int i = 0; i < WorldCupQueryGenerator.fieldNames.length; i++) {
-            sb.append(function).append("(for $x in dataset WorldCup return $x.")
-                    .append(WorldCupQueryGenerator.fieldNames[i]).append(")\n");
+            final ByteArrayOutputStream resultStream = new ByteArrayOutputStream();
+            StringBuilder query = new StringBuilder();
+            final String fieldName = WorldCupQueryGenerator.fieldNames[i];
+            query.append("use dataverse experiments;\n\n");
+            query.append("let $wc := for $x in dataset WorldCup where $x.").append(fieldName)
+                    .append(" >= -2147483648 return $x.").append(fieldName).append("\n");
+            query.append("return {\"min\": min($wc),\"max\": max($wc)};");
+
+            experimentActions.addLast(new RunAQLStringAction(httpClient, restHost, restPort, query.toString(),
+                    resultStream, HttpUtil.ContentType.CSV));
+            experimentActions.addLast(() -> {
+                for (String s : new String(resultStream.toByteArray()).split("\r\n")) {
+                    String[] minMax = s.split(",");
+                    fieldMinimums.add(minMax[0]);
+                    fieldMaximum.add(minMax[1]);
+                }
+            });
+            experimentActions.addLast(() -> {
+                statisConfig.setLowerBound(String.join("\t", fieldMinimums));
+                statisConfig.setUpperBound(String.join("\t", fieldMaximum));
+            });
+            experimentActions.addLast(new LogAction(
+                    () -> "Min/max values for field \"" + fieldName + "\":" + new String(resultStream.toByteArray())));
         }
-        return sb.toString();
+
     }
 
     @Override

@@ -24,7 +24,7 @@ import org.apache.asterix.experiment.builder.ingest.IPrefixMergePolicy;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public abstract class StatisticsExperiment1Builder extends AbstractStatsAccuracyExperimentBuilder
+public abstract class StatisticsExperiment1Builder extends AbstractStatsOverheadExperimentBuilder
         implements IExperiment1Builder, IPrefixMergePolicy, ITweetRecordsCounterBuilder {
 
     public StatisticsExperiment1Builder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {

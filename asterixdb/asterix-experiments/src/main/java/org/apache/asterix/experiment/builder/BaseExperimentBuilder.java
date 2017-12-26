@@ -160,10 +160,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected void doPost(ActionList execs) throws IOException {
         execs.addLast(new SleepAction(1000));
-        //clean up dataset
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
-                .resolve(LSMExperimentConstants.AQL_DIR).resolve(LSMExperimentConstants.BASE_CLEANUP)));
-        execs.addLast(new SleepAction(1000));
         //collect logs form the instance
         execs.addLast(
                 new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, logDir.toString()));
@@ -402,6 +398,13 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     protected void queryData(ActionList execs) throws IOException {
     }
 
+    protected void cleanupData(ActionList execs) throws IOException {
+        execs.addLast(new SleepAction(1000));
+        //clean up dataset
+        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.AQL_DIR).resolve(LSMExperimentConstants.BASE_CLEANUP)));
+    }
+
     protected void assembleExperiment(ActionList execs) throws Exception {
         execs.addLast(new SleepAction(2000));
         //run ddl statements
@@ -412,9 +415,9 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         ingestData(execs);
         execs.addLast(new SleepAction(2000));
         queryData(execs);
-        //init log dirs
         listIngestedData(execs);
 
         doPost(execs);
+        cleanupData(execs);
     }
 }

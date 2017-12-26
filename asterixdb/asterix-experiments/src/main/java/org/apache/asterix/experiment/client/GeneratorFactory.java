@@ -105,16 +105,13 @@ public class GeneratorFactory {
     public static String getQueryGenCmd(LSMExperimentSetRunnerConfig config, int partition, int partitionsNum) {
         StringBuilder sb = new StringBuilder();
         Path binaryPath = Paths.get(config.getLocalExperimentRoot()).resolve("bin").resolve("querygenrunner");
-        //        String remoteDebug = "JAVA_OPTS=\"-Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3000,suspend=y\" ";
-        //        sb.append(remoteDebug);
         LSMStatsExperimentSetRunnerConfig statsConfig = (LSMStatsExperimentSetRunnerConfig) config;
-        sb.append("JAVA_HOME=").append(statsConfig.getJavaHome()).append(" ").append(binaryPath).append(" -wt ")
-                .append(statsConfig.getWorkloadType()).append(" -rh ").append(statsConfig.getRESTHost()).append(" -rp ")
-                .append(statsConfig.getRESTPort()).append(" -o ").append(statsConfig.getQgenOutputFilePath())
-                .append(" -qc ").append(statsConfig.getQueryCount()).append(" -p ").append(partitionsNum)
-                .append(" -pr ").append(statsConfig.getRangePercent()).append(" -ub ")
-                .append(statsConfig.getUpperBound()).append(" -lb ").append(statsConfig.getLowerBound()).append(" -s ")
-                .append(statsConfig.getSeed() + partition);
+        sb.append(binaryPath).append(" -wt ").append(statsConfig.getWorkloadType()).append(" -rh ")
+                .append(statsConfig.getRESTHost()).append(" -rp ").append(statsConfig.getRESTPort()).append(" -o ")
+                .append(statsConfig.getQgenOutputFilePath()).append(" -qc ").append(statsConfig.getQueryCount())
+                .append(" -p ").append(partitionsNum).append(" -pr ").append(statsConfig.getRangePercent())
+                .append(" -ub ").append(statsConfig.getUpperBound()).append(" -lb ").append(statsConfig.getLowerBound())
+                .append(" -s ").append(statsConfig.getSeed() + partition);
 
         switch (statsConfig.getWorkloadType()) {
             case InsertOnly:
