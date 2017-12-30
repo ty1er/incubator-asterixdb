@@ -118,7 +118,8 @@ public class LSMBTreeRangeSearchCursor extends LSMIndexSearchCursor {
                     // if there are no memory components. no need to lock at all
                     // since whatever the search reads will never changes
                     if (includeMutableComponent) {
-                        if (!searchCallback.proceed(queueHead.getTuple())) {
+                        resultOfSearchCallBackProceed = searchCallback.proceed(queueHead.getTuple());
+                        if (!resultOfSearchCallBackProceed) {
                             // In case proceed() fails and there is an in-memory component,
                             // we can't simply use this element since there might be a change.
                             PriorityQueueElement mutableElement = removeMutable(outputPriorityQueue);
