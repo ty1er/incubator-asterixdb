@@ -18,20 +18,84 @@
  */
 package org.apache.hyracks.storage.am.statistics.wavelet;
 
+import java.util.PriorityQueue;
+
+import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.test.support.RepeatRule;
+import org.junit.Rule;
+import org.junit.experimental.theories.DataPoint;
+
 public abstract class WaveletTest {
-    protected final long domainStart;
-    protected final long domainEnd;
-    protected final int maxLevel;
     protected final int threshold;
-    protected final boolean normalize;
 
     protected static double epsilon = 0.001;
 
-    public WaveletTest(int threshold, int maxLevel, boolean normalize, long domainStart, long domainEnd) {
+    public static class DomainConstants {
+        protected final long domainStart;
+        protected final long domainEnd;
+        protected final int maxLevel;
+
+        public DomainConstants(long domainStart, long domainEnd, int maxLevel) {
+            this.domainStart = domainStart;
+            this.domainEnd = domainEnd;
+            this.maxLevel = maxLevel;
+        }
+    }
+
+    @Rule
+    public RepeatRule repeatRule = new RepeatRule();
+
+    protected static DomainConstants Domain_0_15 = new DomainConstants(0, 15, 4);
+    protected static DomainConstants Domain_Minus15_0 = new DomainConstants(-15, 0, 4);
+    protected static DomainConstants Domain_Minus8_7 = new DomainConstants(-8, 7, 4);
+    protected static DomainConstants Domain_Long = new DomainConstants(Long.MIN_VALUE, Long.MAX_VALUE, Long.SIZE);
+    protected static DomainConstants Domain_Integer =
+            new DomainConstants(Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.SIZE);
+    protected static DomainConstants Domain_Short = new DomainConstants(Short.MIN_VALUE, Short.MAX_VALUE, Short.SIZE);
+    protected static DomainConstants Domain_Byte = new DomainConstants(Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.SIZE);
+
+    interface WaveletSynopsisSupplier {
+
+        WaveletSynopsis createSynopsis(DomainConstants domain, int threshold, boolean normalize);
+
+        AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis);
+    }
+
+    @DataPoint("prefixSumWavelet")
+    public static WaveletSynopsisSupplier prefixSumWaveletSupplier = new WaveletSynopsisSupplier() {
+        @Override
+        public WaveletSynopsis createSynopsis(DomainConstants domain, int threshold, boolean normalize) {
+            return new PrefixSumWaveletSynopsis(domain.domainStart, domain.domainEnd, domain.maxLevel, threshold,
+                    new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
+        }
+
+        @Override
+        public AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
+            return new PrefixSumWaveletTransform(synopsis, "", "", "", "", false, null, null);
+        }
+    };
+
+    @DataPoint("rawWavelet")
+    public static WaveletSynopsisSupplier rawWaveletSupplier = new WaveletSynopsisSupplier() {
+        @Override
+        public WaveletSynopsis createSynopsis(DomainConstants domain, int threshold, boolean normalize) {
+            return new WaveletSynopsis(domain.domainStart, domain.domainEnd, domain.maxLevel, threshold,
+                    new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
+        }
+
+        @Override
+        public AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
+            return new WaveletTransform(synopsis, "", "", "", "", false, null, null);
+        }
+    };
+
+    @DataPoint("normalizationOn")
+    public static boolean normalizationOn = true;
+
+    @DataPoint("normalizationOff")
+    public static boolean normalizationOff = false;
+
+    public WaveletTest(int threshold) {
         this.threshold = threshold;
-        this.maxLevel = maxLevel;
-        this.normalize = normalize;
-        this.domainStart = domainStart;
-        this.domainEnd = domainEnd;
     }
 }

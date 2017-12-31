@@ -50,14 +50,16 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
         }
         transformFrequency += 1.0;
         transformPosition = tuplePosition;
+        isEmpty = false;
     }
 
     private void transformTuple(long tuplePosition, double frequency) {
         WaveletCoefficient coeff = new WaveletCoefficient(frequency, 0, tuplePosition);
+        int sign = (((tuplePosition - synopsis.getDomainStart()) & 0x1) == 1) ? -1 : 1;
         for (int i = 0; i < synopsis.getMaxLevel(); i++) {
-            int sign = ((coeff.getKey() & 0x1) == 1) ? -1 : 1;
             coeff.reset(Math.abs(coeff.getValue()) * sign / 2, coeff.getLevel() + 1,
                     coeff.getParentCoeffIndex(synopsis.getDomainStart(), synopsis.getMaxLevel()));
+            sign = ((coeff.getKey() & 0x1) == 1) ? -1 : 1;
             if (straddlingCoeffs[i].covers(tuplePosition, synopsis.getMaxLevel(), synopsis.getDomainStart())) {
                 straddlingCoeffs[i].reset(straddlingCoeffs[i].getValue() + coeff.getValue(), coeff.getLevel(),
                         coeff.getKey());
@@ -82,7 +84,7 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
         for (int i = 0; i <= synopsis.getMaxLevel(); i++) {
             synopsis.addElement(straddlingCoeffs[i]);
         }
-        synopsis.createBinaryPreorder();
+        synopsis.orderByKeys();
     }
 
     @Override

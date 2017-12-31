@@ -16,36 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet.transform;
+package org.apache.hyracks.storage.am.statistics.wavelet;
 
 import java.util.List;
-import java.util.PriorityQueue;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
-import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
-import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
-import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
-import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTest;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
-import org.junit.Before;
 
 public abstract class WaveletTransformTest extends WaveletTest {
 
     protected AbstractSynopsisBuilder builder;
-    protected PrefixSumWaveletSynopsis synopsis;
+    protected WaveletSynopsis synopsis;
 
-    public WaveletTransformTest(long domainStart, long domainEnd, int maxLevel, int threshold, boolean normalize) {
-        super(threshold, maxLevel, normalize, domainStart, domainEnd);
+    public WaveletTransformTest(int threshold) {
+        super(threshold);
     }
 
-    @Before
-    public void init() throws HyracksDataException {
-        synopsis = new PrefixSumWaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        builder = new PrefixSumWaveletTransform(synopsis, "", "", "", "", false, null, null);
+    protected void init(WaveletSynopsisSupplier synopsisSupplier, DomainConstants domainConsts, Boolean normalize)
+            throws HyracksDataException {
+        synopsis = synopsisSupplier.createSynopsis(domainConsts, threshold, normalize);
+        builder = synopsisSupplier.createSynopsisBuilder(synopsis);
     }
 
     public PeekingIterator<WaveletCoefficient> runTest(List<TransformTuple> initialData) throws Exception {

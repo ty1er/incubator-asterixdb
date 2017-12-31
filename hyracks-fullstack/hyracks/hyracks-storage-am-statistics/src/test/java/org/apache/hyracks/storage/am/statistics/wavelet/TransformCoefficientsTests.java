@@ -16,27 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.wavelet.transform;
+package org.apache.hyracks.storage.am.statistics.wavelet;
 
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
-import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.FromDataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
-public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTest {
+@RunWith(Theories.class)
+public class TransformCoefficientsTests extends WaveletTransformTest {
 
-    public TransformCoefficientsNegativeDomainTests() {
-        super(-8, 7, 4, 16, false);
+    public TransformCoefficientsTests() {
+        super(Integer.MAX_VALUE);
     }
 
-    @Test
-    public void IncreasingLevelTestUpperBoarder() throws Exception {
-        List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-8l, 4), new TransformTuple(0l, 2), new TransformTuple(4l, 3));
+    @DataPoints
+    public static List<DomainConstants> domains = Arrays.asList(Domain_0_15, Domain_Minus8_7, Domain_Minus15_0);
+
+    @Theory
+    public void IncreasingLevelTestUpperBoarder(
+            @FromDataPoints("prefixSumWavelet") WaveletSynopsisSupplier waveletSupplier, DomainConstants consts,
+            @FromDataPoints("normalizationOff") Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(consts.domainStart, 4),
+                new TransformTuple(consts.domainStart + 8, 2), new TransformTuple(consts.domainStart + 12, 3));
+
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(5.75, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -44,10 +55,14 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTe
         Assert.assertEquals((-1.5), synopsis.findCoeffValue(it, 3L, 3), epsilon);
     }
 
-    @Test
-    public void IncreasingLevelTestLowerBoarder() throws Exception {
-        List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 4), new TransformTuple(3l, 2), new TransformTuple(5l, 3));
+    @Theory
+    public void IncreasingLevelTestLowerBoarder(
+            @FromDataPoints("prefixSumWavelet") WaveletSynopsisSupplier waveletSupplier, DomainConstants consts,
+            @FromDataPoints("normalizationOff") Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(consts.domainStart + 7, 4),
+                new TransformTuple(consts.domainStart + 11, 2), new TransformTuple(consts.domainStart + 13, 3));
+
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(3.4375, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -62,10 +77,14 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTe
         Assert.assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
     }
 
-    @Test
-    public void IncreasingLevelTestMixedBoarder() throws Exception {
-        List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 4), new TransformTuple(0l, 2), new TransformTuple(5l, 3));
+    @Theory
+    public void IncreasingLevelTestMixedBoarder(
+            @FromDataPoints("prefixSumWavelet") WaveletSynopsisSupplier waveletSupplier, DomainConstants consts,
+            @FromDataPoints("normalizationOff") Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(consts.domainStart + 7, 4),
+                new TransformTuple(consts.domainStart + 8, 2), new TransformTuple(consts.domainStart + 13, 3));
+
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(3.8125, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -78,11 +97,14 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTe
         Assert.assertEquals(-1.5, synopsis.findCoeffValue(it, 14L, 1), epsilon);
     }
 
-    @Test
-    public void DecreasingLevelTest() throws Exception {
+    @Theory
+    public void DecreasingLevelTest(@FromDataPoints("prefixSumWavelet") WaveletSynopsisSupplier waveletSupplier,
+            DomainConstants consts, @FromDataPoints("normalizationOff") Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
         List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-8l, 2), new TransformTuple(-6l, 4), new TransformTuple(-4l, 6),
-                        new TransformTuple(0l, 8));
+                Arrays.asList(new TransformTuple(consts.domainStart, 2), new TransformTuple(consts.domainStart + 2, 4),
+                        new TransformTuple(consts.domainStart + 4, 6), new TransformTuple(consts.domainStart + 8, 8));
+
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(14, synopsis.findCoeffValue(it, 0L, 4), epsilon);
@@ -91,11 +113,14 @@ public class TransformCoefficientsNegativeDomainTests extends WaveletTransformTe
         Assert.assertEquals(-2, synopsis.findCoeffValue(it, 4L, 2), epsilon);
     }
 
-    @Test
-    public void MixedLevelTest() throws Exception {
-        List<TransformTuple> initialData =
-                Arrays.asList(new TransformTuple(-1l, 8), new TransformTuple(0l, 2), new TransformTuple(3l, 4),
-                        new TransformTuple(7l, 6));
+    @Theory
+    public void MixedLevelTest(@FromDataPoints("prefixSumWavelet") WaveletSynopsisSupplier waveletSupplier,
+            DomainConstants consts, @FromDataPoints("normalizationOff") Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
+        List<TransformTuple> initialData = Arrays.asList(new TransformTuple(consts.domainStart + 7, 8),
+                new TransformTuple(consts.domainStart + 8, 2), new TransformTuple(consts.domainStart + 11, 4),
+                new TransformTuple(consts.domainEnd, 6));
+
         PeekingIterator<WaveletCoefficient> it = runTest(initialData);
 
         Assert.assertEquals(7.125, synopsis.findCoeffValue(it, 0L, 4), epsilon);

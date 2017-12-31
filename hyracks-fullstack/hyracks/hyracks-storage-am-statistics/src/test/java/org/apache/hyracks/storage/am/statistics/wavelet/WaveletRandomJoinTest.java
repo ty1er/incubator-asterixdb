@@ -22,35 +22,30 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
-import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
-import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 import org.apache.hyracks.test.support.RepeatRule;
 import org.apache.hyracks.test.support.RepeatRule.Repeat;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.FromDataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
+@RunWith(Theories.class)
 public class WaveletRandomJoinTest extends WaveletTest {
 
     private WaveletSynopsis leftSynopsis;
@@ -61,40 +56,21 @@ public class WaveletRandomJoinTest extends WaveletTest {
 
     private static int NUM_RECORDS = 50;
 
-    public WaveletRandomJoinTest(int maxLevel, long domainStart, long domainEnd) {
-        super(Integer.MAX_VALUE, maxLevel, true, domainStart, domainEnd);
+    public WaveletRandomJoinTest() {
+        super(Integer.MAX_VALUE);
         rnd = new RandomDataGenerator();
     }
 
-    private class NonEmptyWaveletTransform extends WaveletTransform {
+    @DataPoints
+    public static List<DomainConstants> domains = Arrays.asList(Domain_Long, Domain_Integer, Domain_Short, Domain_Byte);
 
-        public NonEmptyWaveletTransform(WaveletSynopsis synopsis, boolean isAntimatter, IFieldExtractor fieldExtractor,
-                ComponentStatistics componentStatistics) {
-            super(synopsis, "", "", "", "", isAntimatter, fieldExtractor, componentStatistics);
-        }
-
-        @Override
-        public void addValue(long tuplePosition) {
-            super.addValue(tuplePosition);
-            isEmpty = false;
-        }
-    }
-
-    @Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] { { Byte.SIZE, Byte.MIN_VALUE, Byte.MAX_VALUE },
-                { Short.SIZE, Short.MIN_VALUE, Short.MAX_VALUE },
-                { Integer.SIZE, Integer.MIN_VALUE, Integer.MAX_VALUE },
-                { Long.SIZE, Long.MIN_VALUE, Long.MAX_VALUE } });
-    }
-
-    private List<TransformTuple> generateRandomData(int numRecords) {
+    private List<TransformTuple> generateRandomData(DomainConstants consts, int numRecords) {
         List<TransformTuple> result = new ArrayList<>();
         Set<Long> generatedPositions = new HashSet<>();
         for (int i = 0; i < numRecords; i++) {
             Long newPosition;
             do {
-                newPosition = rnd.nextLong(domainStart, domainEnd);
+                newPosition = rnd.nextLong(consts.domainStart, consts.domainEnd);
             } while (generatedPositions.contains(newPosition));
             generatedPositions.add(newPosition);
             result.add(new TransformTuple(newPosition, rnd.nextLong(1, 10)));
@@ -102,8 +78,8 @@ public class WaveletRandomJoinTest extends WaveletTest {
         return result;
     }
 
-    private List<TransformTuple> generateCorrelatedData(List<TransformTuple> inputData) {
-        List<TransformTuple> result = generateRandomData(NUM_RECORDS / 2);
+    private List<TransformTuple> generateCorrelatedData(DomainConstants consts, List<TransformTuple> inputData) {
+        List<TransformTuple> result = generateRandomData(consts, NUM_RECORDS / 2);
         Set<Long> generatedPositions = result.stream().map(x -> x.position).collect(Collectors.toSet());
         while (result.size() < NUM_RECORDS) {
             TransformTuple t = inputData.get(RandomUtils.nextInt(0, inputData.size()));
@@ -138,35 +114,31 @@ public class WaveletRandomJoinTest extends WaveletTest {
     private List<TransformTuple> rightData;
     private List<TransformTuple> joinedData;
 
-    @Before
-    public void init() throws Exception {
-        leftSynopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        rightSynopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        joinedSynopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        expectedSynopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-        AbstractSynopsisBuilder leftBuilder = new NonEmptyWaveletTransform(leftSynopsis, false, null, null);
-        AbstractSynopsisBuilder rightBuilder = new NonEmptyWaveletTransform(rightSynopsis, false, null, null);
-        AbstractSynopsisBuilder joinedBuilder = new NonEmptyWaveletTransform(expectedSynopsis, false, null, null);
-        leftData = generateRandomData(NUM_RECORDS);
-        rightData = generateCorrelatedData(leftData);
+    private void init(WaveletSynopsisSupplier waveletSupplier, DomainConstants consts, Boolean normalize)
+            throws Exception {
+        leftSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        rightSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        joinedSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        expectedSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        AbstractSynopsisBuilder leftBuilder = waveletSupplier.createSynopsisBuilder(leftSynopsis);
+        AbstractSynopsisBuilder rightBuilder = waveletSupplier.createSynopsisBuilder(rightSynopsis);
+        AbstractSynopsisBuilder joinedBuilder = waveletSupplier.createSynopsisBuilder(expectedSynopsis);
+        leftData = generateRandomData(consts, NUM_RECORDS);
+        rightData = generateCorrelatedData(consts, leftData);
         joinedData = getJoinedData(leftData, rightData);
         TransformHelper.runTransform(leftData, leftBuilder);
         TransformHelper.runTransform(rightData, rightBuilder);
         TransformHelper.runTransform(joinedData, joinedBuilder);
     }
 
-    @Rule
-    public RepeatRule repeatRule = new RepeatRule();
-
-    @Test
+    @Theory
     @Repeat(times = 100)
-    public void testJoinRelations() throws HyracksDataException {
+    public void testJoinRelations(@FromDataPoints("rawWavelet") WaveletSynopsisSupplier waveletSupplier,
+            DomainConstants consts, Boolean normalize) throws Exception {
+        init(waveletSupplier, consts, normalize);
         joinedSynopsis.join(leftSynopsis, rightSynopsis);
         joinedSynopsis.createBinaryPreorder();
+        expectedSynopsis.createBinaryPreorder();
         PeekingIterator<WaveletCoefficient> joinedIt = new PeekingIterator<>(joinedSynopsis.getElements().iterator());
         Iterator<WaveletCoefficient> compareIt = expectedSynopsis.getElements().iterator();
         while (compareIt.hasNext()) {

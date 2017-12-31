@@ -184,17 +184,18 @@ public class WaveletCoefficient implements ISynopsisElement {
         }
     }
 
-    public DyadicTupleRange convertCoeffToSupportInterval(long domainMin, long domainMax) {
-        long intervalStart = convertCoeffToPosition(domainMin, domainMax);
-        return new DyadicTupleRange(intervalStart, intervalStart + (1L << level) - 1, 0.0);
+    public DyadicTupleRange convertCoeffToSupportInterval(long domainMin, long domainMax, int maxLevel) {
+        if (level == maxLevel) {
+            return new DyadicTupleRange(domainMin, domainMax, 0.0);
+        } else {
+            long intervalStart = convertCoeffToPosition(domainMin, domainMax);
+            return new DyadicTupleRange(intervalStart, intervalStart + (1L << level) - 1, 0.0);
+        }
     }
 
     // Method calculates coefficient level based on it's index and maximum level of transform. Since coefficient level
     // is a transient information the method is used to initialize coefficient with appropriate level value.
     public static int getLevel(long coeffIdx, int maxLevel) {
-        if (coeffIdx == -1) {
-            return -1;
-        }
         if (coeffIdx == 0) {
             return maxLevel + 1;
         }

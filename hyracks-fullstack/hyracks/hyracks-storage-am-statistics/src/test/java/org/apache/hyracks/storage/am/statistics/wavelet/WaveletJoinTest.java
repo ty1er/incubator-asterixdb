@@ -22,16 +22,16 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.PriorityQueue;
+import java.util.List;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.FromDataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
+@RunWith(Theories.class)
 public class WaveletJoinTest extends WaveletTest {
 
     protected WaveletSynopsis leftSynopsis;
@@ -40,30 +40,29 @@ public class WaveletJoinTest extends WaveletTest {
     protected Collection<WaveletCoefficient> leftCoefficients;
     protected Collection<WaveletCoefficient> rightCoefficients;
 
-    @Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] { { 4, 0, 15 }, { 4, -8, 7 }, { 4, -15, 0 } });
+    @DataPoints
+    public static List<DomainConstants> domains = Arrays.asList(Domain_0_15, Domain_Minus8_7, Domain_Minus15_0);
+
+    public WaveletJoinTest() {
+        super(10);
     }
 
-    public WaveletJoinTest(int maxLevel, long domainStart, long domainEnd) {
-        super(10, maxLevel, false, domainStart, domainEnd);
-        leftCoefficients = new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR);
-        rightCoefficients = new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR);
+    public void init(WaveletSynopsisSupplier waveletSupplier, DomainConstants consts, Boolean normalize) {
+        leftSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        leftCoefficients = leftSynopsis.getElements();
+
+        rightSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
+        rightCoefficients = rightSynopsis.getElements();
+
+        joinedSynopsis = waveletSupplier.createSynopsis(consts, threshold, normalize);
     }
 
-    @Before
-    public void init() throws Exception {
-        leftSynopsis =
-                new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold, leftCoefficients, normalize, false);
-        rightSynopsis =
-                new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold, rightCoefficients, normalize, false);
-        joinedSynopsis = new WaveletSynopsis(domainStart, domainEnd, maxLevel, threshold,
-                new PriorityQueue<>(WaveletCoefficient.VALUE_COMPARATOR), normalize, false);
-    }
-
-    @Test
+    @Theory
     // [1,2,5] ⋈ [2,2,4] = [2,2]
-    public void testJoinCoefficients() {
+    public void testJoinCoefficients(@FromDataPoints("rawWavelet") WaveletSynopsisSupplier waveletSupplier,
+            DomainConstants consts, @FromDataPoints("normalizationOff") Boolean normalize) {
+        init(waveletSupplier, consts, normalize);
+
         // init coefficients for transformed relation [2,2,4]
         leftCoefficients.add(new WaveletCoefficient(0.1875, 5, 0));
         leftCoefficients.add(new WaveletCoefficient(-0.1875, 4, 1));
