@@ -295,47 +295,47 @@ public class WaveletCoefficientTest {
     @Test
     public void testSupportIntervalLevel0() {
         assertEquals(new DyadicTupleRange(domainStart, domainStart, 0.0),
-                input0.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input0.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 1, domainStart + 1, 0.0),
-                input1.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input1.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 2, domainStart + 2, 0.0),
-                input2.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input2.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 3, domainStart + 3, 0.0),
-                input3.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input3.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 4, domainStart + 4, 0.0),
-                input4.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input4.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 5, domainStart + 5, 0.0),
-                input5.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input5.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 6, domainStart + 6, 0.0),
-                input6.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input6.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 7, domainStart + 7, 0.0),
-                input7.convertCoeffToSupportInterval(domainStart, domainEnd));
+                input7.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
     }
 
     @Test
     public void testSupportIntervalLevel1() {
         assertEquals(new DyadicTupleRange(domainStart, domainStart + 1, 0.0),
-                coeff4.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff4.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 2, domainStart + 3, 0.0),
-                coeff5.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff5.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 4, domainStart + 5, 0.0),
-                coeff6.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff6.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 6, domainStart + 7, 0.0),
-                coeff7.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff7.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
     }
 
     @Test
     public void testSupportIntervalLevel2() {
         assertEquals(new DyadicTupleRange(domainStart, domainStart + 3, 0.0),
-                coeff2.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff2.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
         assertEquals(new DyadicTupleRange(domainStart + 4, domainStart + 7, 0.0),
-                coeff3.convertCoeffToSupportInterval(domainStart, domainEnd));
+                coeff3.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
     }
 
     @Test
     public void testSupportIntervalLevel3() {
-        assertEquals(new DyadicTupleRange(domainStart, domainStart + 7, 0.0),
-                coeff1.convertCoeffToSupportInterval(domainStart, domainEnd));
+        assertEquals(new DyadicTupleRange(domainStart, domainEnd, 0.0),
+                coeff1.convertCoeffToSupportInterval(domainStart, domainEnd, MAX_LEVEL));
     }
 
     @Test

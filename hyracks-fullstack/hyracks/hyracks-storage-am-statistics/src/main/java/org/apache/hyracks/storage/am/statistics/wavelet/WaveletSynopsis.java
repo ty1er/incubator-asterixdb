@@ -34,6 +34,7 @@ import org.apache.commons.collections4.iterators.ReverseListIterator;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsis;
+import org.apache.hyracks.storage.am.statistics.common.MathUtils;
 
 public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
 
@@ -60,7 +61,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         return SynopsisType.Wavelet;
     }
 
-    public List<WaveletCoefficient> sortOnKeys() {
+    private List<WaveletCoefficient> sortOnKeys() {
         List<WaveletCoefficient> sortedCoefficients = new ArrayList<>(synopsisElements);
         Collections.sort(sortedCoefficients, WaveletCoefficient.KEY_COMPARATOR);
         return sortedCoefficients;
@@ -134,7 +135,6 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                 //create fake main average for the sake of correctness of the algorithm
                 transformTreeRoot = new TreeNode(new WaveletCoefficient(0.0, maxLevel, 1));
                 fakeRoot = true;
-                continue;
             }
             TreeNode insertedNode = new TreeNode(w);
             //traverse the tree root to leaf finding a place to insert the new node
@@ -245,7 +245,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         }
     }
 
-    public double findCoeffValue(PeekingIterator<WaveletCoefficient> it, long coeffIdx, int coeffLevel) {
+    protected double findCoeffValue(PeekingIterator<WaveletCoefficient> it, long coeffIdx, int coeffLevel) {
         WaveletCoefficient curr = it.peek();
         if (curr == null)
             return 0.0;
@@ -360,9 +360,9 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                     if (currCoeff.getKey() == leftBorderCoeff.getKey()
                             || currCoeff.getKey() == rightBorderCoeff.getKey()) {
                         DyadicTupleRange supportInterval =
-                                currCoeff.convertCoeffToSupportInterval(domainStart, domainEnd);
+                                currCoeff.convertCoeffToSupportInterval(domainStart, domainEnd, maxLevel);
                         //border between left child's range and right child's range
-                        long border = (supportInterval.getStart() + supportInterval.getEnd()) / 2;
+                        long border = MathUtils.safeAverage(supportInterval.getStart(), supportInterval.getEnd());
                         long leftLeavesNum =
                                 intersectInterval(supportInterval.getStart(), border, startPosition, endPosition);
                         long rightLeavesNum =
@@ -385,7 +385,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
             }
             // Compute root coefficient's contribution
             if (currCoeff.getKey() == 0) {
-                result += (Math.subtractExact(endPosition, startPosition) + 1) * currCoeff.getValue()
+                result += MathUtils.safeRangeMultiply(endPosition, startPosition, currCoeff.getValue())
                         * (normalize ? WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel) : 1);
             }
         }

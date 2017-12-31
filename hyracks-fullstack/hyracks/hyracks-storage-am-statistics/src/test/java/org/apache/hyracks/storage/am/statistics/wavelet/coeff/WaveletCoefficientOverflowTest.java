@@ -82,4 +82,10 @@ public class WaveletCoefficientOverflowTest {
         assertEquals(domainEnd, overflowCoeff.getRightChildCoeffIndex(domainStart, maxLevel));
 
     }
+
+    @Test
+    public void testGetLevelOverflow() {
+        assertEquals(1, WaveletCoefficient.getLevel(minIndex, maxLevel));
+        assertEquals(1, WaveletCoefficient.getLevel(maxIndex, maxLevel));
+    }
 }
