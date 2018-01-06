@@ -1340,6 +1340,8 @@ public class AccessMethodUtils {
             newSelectOpInLeftPath.getInputs().add(new MutableObject<ILogicalOperator>(primaryIndexUnnestMapOp));
         }
         newSelectOpInLeftPath.setExecutionMode(ExecutionMode.PARTITIONED);
+        // copy over cardinality estimate from the old topOp
+        newSelectOpInLeftPath.setCardinality(topOpRef.getValue().getCardinality());
         context.computeAndSetTypeEnvironmentForOperator(newSelectOpInLeftPath);
 
         // Now, we take care of the right path (instantTryLock on PK success path).

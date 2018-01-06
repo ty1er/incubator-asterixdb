@@ -74,14 +74,14 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         MetadataProvider metadataProvider = (MetadataProvider) context.getMetadataProvider();
         if (op.getOperatorTag() == LogicalOperatorTag.SELECT || op.getOperatorTag() == LogicalOperatorTag.INNERJOIN) {
             leftSubTree = new OptimizableOperatorSubTree();
-            leftSubTree.initFromSubTree(op.getInputs().get(0));
+            leftSubTree.initFromSubTree(op.getInputs().get(0), context);
             leftSubTree.setDatasetAndTypeMetadata(metadataProvider);
         } else {
             return false;
         }
         if (op.getOperatorTag() == LogicalOperatorTag.INNERJOIN) {
             rightSubTree = new OptimizableOperatorSubTree();
-            rightSubTree.initFromSubTree(op.getInputs().get(1));
+            rightSubTree.initFromSubTree(op.getInputs().get(1), context);
             rightSubTree.setDatasetAndTypeMetadata(metadataProvider);
         }
         return true;
@@ -142,7 +142,7 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         for (IOptimizableFuncExpr optFuncExpr : analysisCtx.getMatchedFuncExprs()) {
             OptimizableOperatorSubTree optSubTree = optFuncExpr.getOperatorSubTree(0);
             ILogicalExpression expr =
-                    AccessMethodUtils.createSearchKeyExpr(false, optFuncExpr, optFuncExpr.getFieldType(0), optSubTree,
+                    AccessMethodUtils.createSearchKeyExpr(false, optFuncExpr, optFuncExpr.getFieldType(0),
                             optFuncExpr.getNumLogicalVars() > 1 ? optFuncExpr.getOperatorSubTree(1) : null).first;
             LimitType limit = BTreeAccessMethod.getLimitType(optFuncExpr, optSubTree);
             if (expr.getExpressionTag() == LogicalExpressionTag.VARIABLE) {
