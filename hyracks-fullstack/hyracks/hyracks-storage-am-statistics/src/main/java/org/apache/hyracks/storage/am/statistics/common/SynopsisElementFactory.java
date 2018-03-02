@@ -56,12 +56,10 @@ public class SynopsisElementFactory {
             case UniformHistogram:
             case ContinuousHistogram:
             case EquiWidthHistogram:
-            case QuantileSketch:
                 elements = new ArrayList<>(elementsNum);
                 break;
             case Wavelet:
             case PrefixSumWavelet:
-            case GroupCountSketch:
                 elements = new PriorityQueue<>(elementsNum, WaveletCoefficient.VALUE_COMPARATOR);
                 break;
             default:
