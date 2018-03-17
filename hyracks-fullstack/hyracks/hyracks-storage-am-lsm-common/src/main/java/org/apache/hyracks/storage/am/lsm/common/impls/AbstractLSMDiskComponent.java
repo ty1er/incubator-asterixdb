@@ -193,8 +193,8 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
         if (withFilter && getLsmIndex().getFilterFields() != null) {
             chainedBulkLoader.addBulkLoader(createFilterBulkLoader());
         }
-        chainedBulkLoader
-                .addBulkLoader(createIndexBulkLoader(fillFactor, verifyInput, numElementsHint, checkIfEmptyIndex));
+        chainedBulkLoader.addBulkLoader(createIndexBulkLoader(fillFactor, verifyInput,
+                numElementsHint + numAntimatterElementsHint, checkIfEmptyIndex));
         return chainedBulkLoader;
     }
 }

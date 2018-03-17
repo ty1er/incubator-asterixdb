@@ -97,8 +97,8 @@ public abstract class AbstractLSMWithBloomFilterDiskComponent extends AbstractLS
             boolean cleanupEmptyComponent) throws HyracksDataException {
         ChainedLSMDiskComponentBulkLoader chainedBulkLoader = super.createBulkLoader(fillFactor, verifyInput,
                 numElementsHint, numAntimatterElementsHint, checkIfEmptyIndex, withFilter, cleanupEmptyComponent);
-        if (numElementsHint > 0) {
-            chainedBulkLoader.addBulkLoader(createBloomFilterBulkLoader(numElementsHint));
+        if (numElementsHint + numAntimatterElementsHint > 0) {
+            chainedBulkLoader.addBulkLoader(createBloomFilterBulkLoader(numElementsHint + numAntimatterElementsHint));
         }
         return chainedBulkLoader;
     }
