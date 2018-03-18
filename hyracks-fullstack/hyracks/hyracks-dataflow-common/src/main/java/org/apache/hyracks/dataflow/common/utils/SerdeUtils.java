@@ -25,6 +25,7 @@ import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.data.std.accessors.PointableBinaryComparatorFactory;
 import org.apache.hyracks.data.std.primitive.BooleanPointable;
+import org.apache.hyracks.data.std.primitive.BytePointable;
 import org.apache.hyracks.data.std.primitive.DoublePointable;
 import org.apache.hyracks.data.std.primitive.FloatPointable;
 import org.apache.hyracks.data.std.primitive.IntegerPointable;
@@ -32,6 +33,7 @@ import org.apache.hyracks.data.std.primitive.LongPointable;
 import org.apache.hyracks.data.std.primitive.ShortPointable;
 import org.apache.hyracks.data.std.primitive.UTF8StringPointable;
 import org.apache.hyracks.dataflow.common.data.marshalling.BooleanSerializerDeserializer;
+import org.apache.hyracks.dataflow.common.data.marshalling.ByteSerializerDeserializer;
 import org.apache.hyracks.dataflow.common.data.marshalling.DoubleSerializerDeserializer;
 import org.apache.hyracks.dataflow.common.data.marshalling.FloatSerializerDeserializer;
 import org.apache.hyracks.dataflow.common.data.marshalling.Integer64SerializerDeserializer;
@@ -78,6 +80,9 @@ public class SerdeUtils {
     }
 
     public static ITypeTraits serdeToTypeTrait(ISerializerDeserializer serde) {
+        if (serde instanceof ByteSerializerDeserializer) {
+            return BytePointable.TYPE_TRAITS;
+        }
         if (serde instanceof ShortSerializerDeserializer) {
             return ShortPointable.TYPE_TRAITS;
         }
@@ -112,7 +117,8 @@ public class SerdeUtils {
         return f.createBinaryComparator();
     }
 
-    public static IBinaryComparatorFactory[] serdesToComparatorFactories(ISerializerDeserializer[] serdes, int numSerdes) {
+    public static IBinaryComparatorFactory[] serdesToComparatorFactories(ISerializerDeserializer[] serdes,
+            int numSerdes) {
         IBinaryComparatorFactory[] comparatorsFactories = new IBinaryComparatorFactory[numSerdes];
         for (int i = 0; i < numSerdes; i++) {
             comparatorsFactories[i] = serdeToComparatorFactory(serdes[i]);
@@ -121,6 +127,9 @@ public class SerdeUtils {
     }
 
     public static IBinaryComparatorFactory serdeToComparatorFactory(ISerializerDeserializer serde) {
+        if (serde instanceof ByteSerializerDeserializer) {
+            return PointableBinaryComparatorFactory.of(BytePointable.FACTORY);
+        }
         if (serde instanceof ShortSerializerDeserializer) {
             return PointableBinaryComparatorFactory.of(ShortPointable.FACTORY);
         }

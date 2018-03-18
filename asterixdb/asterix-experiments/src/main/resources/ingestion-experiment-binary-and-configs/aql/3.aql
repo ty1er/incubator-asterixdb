@@ -18,8 +18,23 @@
  */
 use dataverse experiments;
 
-create dataset Tweets(TweetMessageType) primary key tweetid;
-create index BtreeExtraFieldIdx on Tweets(btree-extra-field1) type btree;
-create index RtreeLocationIdx on Tweets(sender-location) type rtree;
-create index InvMessageKeywordIdx on Tweets(message-text) type keyword;
-create index InvMessagetNgramIdx on Tweets(message-text) type ngram(3);
+create dataset Tweets(TweetMessageType) with meta(MetaType) primary key meta().id;
+
+create index BtreeExtraField1Idx on Tweets(btree-extra-field1) type btree;
+create index BtreeExtraField2Idx on Tweets(btree-extra-field2) type btree;
+create index BtreeExtraField3Idx on Tweets(btree-extra-field3) type btree;
+create index BtreeExtraField4Idx on Tweets(btree-extra-field4) type btree;
+create index BtreeExtraField5Idx on Tweets(btree-extra-field5) type btree;
+create index BtreeExtraField6Idx on Tweets(btree-extra-field6) type btree;
+create index BtreeExtraField7Idx on Tweets(btree-extra-field7) type btree;
+create index BtreeExtraField8Idx on Tweets(btree-extra-field8) type btree;
+create index BtreeExtraField9Idx on Tweets(btree-extra-field9) type btree;
+create index BtreeExtraField10Idx on Tweets(btree-extra-field10) type btree;
+create index BtreeExtraField11Idx on Tweets(btree-extra-field11) type btree;
+create index BtreeExtraField12Idx on Tweets(btree-extra-field12) type btree;
+create index BtreeExtraField13Idx on Tweets(btree-extra-field13) type btree;
+create index BtreeExtraField14Idx on Tweets(btree-extra-field14) type btree;
+create index BtreeExtraField15Idx on Tweets(btree-extra-field15) type btree;
+create index BtreeExtraField16Idx on Tweets(btree-extra-field16) type btree;
+create index BtreeExtraField17Idx on Tweets(btree-extra-field17) type btree;
+create index BtreeExtraField18Idx on Tweets(btree-extra-field18) type btree;

@@ -161,6 +161,14 @@ public class RecordBuilder implements IARecordBuilder {
         }
     }
 
+    public void addNonTaggedField(int fid, IValueReference value) {
+        closedPartOffsets[fid] = closedPartOutputStream.size();
+        int len = value.getLength();
+        closedPartOutputStream.write(value.getByteArray(), value.getStartOffset(), len);
+        numberOfClosedFields++;
+        addNullOrMissingField(fid, value.getByteArray(), value.getStartOffset());
+    }
+
     @Override
     public void addField(int fid, IValueReference value) {
         closedPartOffsets[fid] = closedPartOutputStream.size();

@@ -31,7 +31,7 @@ import org.apache.asterix.external.api.AsterixInputStream;
 import org.apache.asterix.external.util.ExternalDataConstants;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 
-public class SemiStructuredRecordReader extends StreamRecordReader {
+public class SemiStructuredRecordReader extends CharStreamRecordReader {
 
     private int depth;
     private boolean prevCharEscape;

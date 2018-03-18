@@ -39,22 +39,24 @@ public class OrchestratorServer {
     private final int nDataGens;
 
     private final int nIntervals;
+    private final IAction startAction;
+    private final IAction stopAction;
 
     private final AtomicBoolean running;
 
-    private final IAction[] protocolActions;
+    private final IAction[] batchActions;
 
-    private final boolean flagStopResume;
-
-    public OrchestratorServer(int port, int nDataGens, int nIntervals, IAction[] protocolActions) {
+    public OrchestratorServer(int port, int nDataGens, int nIntervals, IAction startAction, IAction[] batchActions,
+            IAction stopAction) {
         this.port = port;
         this.nDataGens = nDataGens;
         this.nIntervals = nIntervals;
+        this.startAction = startAction;
+        this.stopAction = stopAction;
         running = new AtomicBoolean();
-        this.protocolActions = protocolActions;
-        this.flagStopResume = true;
+        this.batchActions = batchActions;
     }
-    
+
     public synchronized void start() throws IOException, InterruptedException {
         final AtomicBoolean bound = new AtomicBoolean();
         running.set(true);
@@ -64,6 +66,7 @@ public class OrchestratorServer {
             public void run() {
                 try {
                     ServerSocket ss = new ServerSocket(port);
+                    ss.setSoTimeout(0);
                     synchronized (bound) {
                         bound.set(true);
                         bound.notifyAll();
@@ -73,26 +76,38 @@ public class OrchestratorServer {
                         for (int i = 0; i < nDataGens; i++) {
                             conn[i] = ss.accept();
                         }
+                        long startTS = -1;
+                        for (int i = 0; i < nDataGens; i++) {
+                            receiveMsg(conn[i], OrchestratorDGProtocol.START);
+                            startTS = startTS == -1 ? System.nanoTime() : startTS;
+                        }
+                        startAction.perform();
                         for (int n = 0; n < nIntervals; ++n) {
-                            //TODO refactor operations according to the protocol message
-                            if (flagStopResume) {
+
+                            long endTS = -1;
+                            for (int i = 0; i < nDataGens; i++) {
+                                receiveMsg(conn[i], OrchestratorDGProtocol.REACHED);
+                                endTS = System.nanoTime();
+                            }
+                            if (LOGGER.isLoggable(Level.INFO)) {
+                                LOGGER.info(
+                                        "Generating batch#" + (n + 1) + " took " + (endTS - startTS) / 1000000 + " ms");
+                            }
+                            startTS = endTS;
+                            batchActions[n].perform();
+                            if (n != nIntervals - 1) {
                                 for (int i = 0; i < nDataGens; i++) {
-                                    receiveStopped(conn[i]);
+                                    sendResume(conn[i]);
                                 }
-                                protocolActions[n].perform();
-                                if (n != nIntervals - 1) {
-                                    for (int i = 0; i < nDataGens; i++) {
-                                        sendResume(conn[i]);
-                                    }
-                                }
-                            } else {
-                                for (int i = 0; i < nDataGens; i++) {
-                                    receiveReached(conn[i]);
-                                }
-                                protocolActions[n].perform();
                             }
                         }
+                    } catch (Throwable t) {
+                        LOGGER.log(Level.SEVERE, "Exception in Orchestrator loop", t);
                     } finally {
+                        for (int i = 0; i < nDataGens; i++) {
+                            receiveMsg(conn[i], OrchestratorDGProtocol.STOPPED);
+                        }
+                        stopAction.perform();
                         for (int i = 0; i < conn.length; ++i) {
                             if (conn[i] != null) {
                                 conn[i].close();
@@ -105,7 +120,7 @@ public class OrchestratorServer {
                         OrchestratorServer.this.notifyAll();
                     }
                 } catch (Throwable t) {
-                    t.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Exception in Orchestrator loop", t);
                 }
             }
 
@@ -121,32 +136,20 @@ public class OrchestratorServer {
     private void sendResume(Socket conn) throws IOException {
         new DataOutputStream(conn.getOutputStream()).writeInt(OrchestratorDGProtocol.RESUME.ordinal());
         conn.getOutputStream().flush();
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info("Sent " + OrchestratorDGProtocol.RESUME + " to " + conn.getRemoteSocketAddress());
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Sent " + OrchestratorDGProtocol.RESUME + " to " + conn.getRemoteSocketAddress());
         }
     }
 
-    private void receiveStopped(Socket conn) throws IOException {
+    private void receiveMsg(Socket conn, OrchestratorDGProtocol msgType) throws IOException {
         int msg = new DataInputStream(conn.getInputStream()).readInt();
-        OrchestratorDGProtocol msgType = OrchestratorDGProtocol.values()[msg];
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info("Received " + msgType + " from " + conn.getRemoteSocketAddress());
+        OrchestratorDGProtocol receivedType = OrchestratorDGProtocol.values()[msg];
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Received " + msgType + " from " + conn.getRemoteSocketAddress());
         }
-        if (msgType != OrchestratorDGProtocol.STOPPED) {
-            throw new IllegalStateException("Encounted unknown message type " + msgType);
+        if (receivedType != msgType) {
+            throw new IllegalStateException("Encountered unknown message type " + msgType);
         }
-    }
-
-    private void receiveReached(Socket conn) throws IOException {
-        int msg = new DataInputStream(conn.getInputStream()).readInt();
-        OrchestratorDGProtocol msgType = OrchestratorDGProtocol.values()[msg];
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info("Received " + msgType + " from " + conn.getRemoteSocketAddress());
-        }
-        if (msgType != OrchestratorDGProtocol.REACHED) {
-            throw new IllegalStateException("Encounted unknown message type " + msgType);
-        }
-
     }
 
     public synchronized void awaitFinished() throws InterruptedException {

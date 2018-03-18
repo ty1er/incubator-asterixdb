@@ -18,6 +18,8 @@
  */
 package org.apache.asterix.external.api;
 
+import java.io.IOException;
+
 /**
  * This interface represents a raw record that is not parsed yet.
  * @param <T>
@@ -49,4 +51,8 @@ public interface IRawRecord<T> {
      * @param t
      */
     public void set(T t);
+
+    public void append(T recordBuffer, int offset, int length) throws IOException;
+
+    public void endRecord() throws IOException;
 }

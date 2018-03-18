@@ -19,18 +19,14 @@
 
 package org.apache.asterix.experiment.action.base;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class SequentialActionList extends AbstractAction {
-    private final List<IAction> actions;
+public class SequentialActionList extends ActionList {
 
     public SequentialActionList() {
-        actions = new ArrayList<>();
+        super(null);
     }
 
-    public void add(IAction exec) {
-        actions.add(exec);
+    public SequentialActionList(String name) {
+        super(name);
     }
 
     @Override

@@ -20,6 +20,7 @@
 package org.apache.asterix.experiment.action.derived;
 
 import java.io.OutputStream;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,30 +33,45 @@ public class TimedAction extends AbstractAction {
 
     private final IAction action;
     private final OutputStream os;
+    private final Function<Long, String> logMessage;
 
     public TimedAction(IAction action) {
-        this.action = action;
-        os = null;
+        this(action, null, null);
+    }
+
+    public TimedAction(IAction action, Function<Long, String> logMessage) {
+        this(action, null, logMessage);
     }
 
     public TimedAction(IAction action, OutputStream os) {
+        this(action, os, null);
+    }
+
+    public TimedAction(IAction action, OutputStream os, Function<Long, String> logMessage) {
         this.action = action;
         this.os = os;
+        this.logMessage = logMessage;
     }
 
     @Override
     protected void doPerform() throws Exception {
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         action.perform();
-        long end = System.currentTimeMillis();
-        if (LOGGER.isLoggable(Level.SEVERE)) {
-            if (os == null) {
-                System.out.println("Elapsed time = " + (end - start) + " for action " + action);
-                System.out.flush();
-            } else {
-                os.write(("Elapsed time = " + (end - start) + " for action " + action).getBytes());
-                os.flush();
-            }
+        long end = System.nanoTime();
+        long elapsedMs = (end - start) / 1000000;
+        String output;
+        if (logMessage != null) {
+            output = logMessage.apply(elapsedMs);
+        } else if (os == null) {
+            output = "Elapsed time = " + elapsedMs + " for action " + action;
+        } else
+            output = elapsedMs + "\n";
+
+        if (LOGGER.isLoggable(Level.INFO) && os == null) {
+            LOGGER.info(output);
+        } else {
+            os.write(output.getBytes());
+            os.flush();
         }
     }
 }

@@ -27,7 +27,7 @@ import java.util.Map;
 import org.apache.asterix.external.api.AsterixInputStream;
 import org.apache.asterix.external.util.ExternalDataConstants;
 
-public class EmptyLineSeparatedRecordReader extends StreamRecordReader {
+public class EmptyLineSeparatedRecordReader extends CharStreamRecordReader {
 
     private static final List<String> recordReaderFormats = Collections
             .unmodifiableList(Arrays.asList(ExternalDataConstants.FORMAT_LINE_SEPARATED));

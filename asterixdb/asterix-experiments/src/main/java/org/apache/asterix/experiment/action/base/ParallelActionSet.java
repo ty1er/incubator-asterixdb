@@ -27,13 +27,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ParallelActionSet extends AbstractAction {
+public class ParallelActionSet extends ActionList {
 
     private final ExecutorService executor;
 
-    private final List<IAction> actions;
-
     public ParallelActionSet() {
+        this("");
+    }
+
+    public ParallelActionSet(String setName) {
+        super(setName);
         executor = Executors.newCachedThreadPool(new ThreadFactory() {
 
             private final AtomicInteger tid = new AtomicInteger(0);
@@ -42,15 +45,10 @@ public class ParallelActionSet extends AbstractAction {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setDaemon(true);
-                t.setName("ParallelActionThread " + tid.getAndIncrement());
+                t.setName("ParallelActionThread(" + setName + ")" + tid.getAndIncrement());
                 return t;
             }
         });
-        actions = new ArrayList<>();
-    }
-
-    public void add(IAction action) {
-        actions.add(action);
     }
 
     @Override

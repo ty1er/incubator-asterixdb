@@ -28,10 +28,11 @@ import org.apache.asterix.experiment.action.derived.ManagixActions.DeleteAsterix
 import org.apache.asterix.experiment.action.derived.ManagixActions.LogAsterixManagixAction;
 import org.apache.asterix.experiment.action.derived.ManagixActions.StopAsterixManagixAction;
 import org.apache.asterix.experiment.client.LSMExperimentConstants;
-import org.apache.asterix.experiment.client.LSMExperimentSetRunner.LSMExperimentSetRunnerConfig;
+import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.asterix.experiment.client.LSMPerfConstants;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -53,7 +54,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
 
     private final String logDirSuffix;
 
-    protected final HttpClient httpClient;
+    protected final CloseableHttpClient httpClient;
 
     protected final String restHost;
 
@@ -79,20 +80,17 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
 
     protected final SequentialActionList lsAction;
 
-    protected final String openStreetMapFilePath;
-
-    protected final int locationSampleInterval;
-
     protected final String loadAQLFilePath;
 
     protected final String querySQLPPFileName;
 
     public AbstractPerfLoadBuilder(String name, LSMExperimentSetRunnerConfig config,
-                                   String clusterConfigFileName, String dgenFileName,
-                                   String countFileName, String loadAQLFileName, String querySQLPPFileName) {
-        super(name);
+            String clusterConfigFileName, String dgenFileName,
+            String countFileName, String loadAQLFileName, String querySQLPPFileName) {
         this.logDirSuffix = config.getLogDirSuffix();
-        this.httpClient = new DefaultHttpClient();
+        PoolingHttpClientConnectionManager poolingCCM = new PoolingHttpClientConnectionManager();
+        poolingCCM.setDefaultMaxPerRoute(10);
+        this.httpClient = HttpClients.custom().setConnectionManager(poolingCCM).setMaxConnPerRoute(10).build();
         this.restHost = config.getRESTHost();
         this.restPort = config.getRESTPort();
         this.managixHomePath = config.getManagixHome();
@@ -105,13 +103,11 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         this.countFileName = countFileName;
         this.statFile = config.getStatFile();
         this.lsAction = new SequentialActionList();
-        this.openStreetMapFilePath = config.getOpenStreetMapFilePath();
-        this.locationSampleInterval = config.getLocationSampleInterval();
         this.loadAQLFilePath = loadAQLFileName;
         this.querySQLPPFileName = querySQLPPFileName;
     }
 
-    protected abstract void doBuildDDL(SequentialActionList seq);
+    protected abstract void doBuildDDL(SequentialActionList seq) throws IOException;
 
     @Override
     protected void doBuild(Experiment e) throws IOException, JAXBException {
@@ -120,19 +116,19 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         String clusterConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
                 .resolve(clusterConfigFileName).toString();
         String asterixConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(LSMExperimentConstants.ASTERIX_CONFIGURATION).toString();
+                .resolve(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION).toString();
 
         //stop/delete/create instance
-        execs.add(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
-        execs.add(new DeleteAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
-        execs.add(new SleepAction(30000));
-        execs.add(new CreateAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, clusterConfigPath,
+        execs.addLast(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
+        execs.addLast(new DeleteAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
+        execs.addLast(new SleepAction(30000));
+        execs.addLast(new CreateAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, clusterConfigPath,
                 asterixConfigPath));
 
         //ddl statements
-        execs.add(new SleepAction(15000));
+        execs.addLast(new SleepAction(15000));
         // TODO: implement retry handler
-        execs.add(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve(LSMPerfConstants.BASE_TYPES)));
         doBuildDDL(execs);
 
@@ -148,7 +144,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         if (statFile != null) {
             ParallelActionSet ioCountActions = new ParallelActionSet();
             for (String ncHost : ncHosts) {
-                ioCountActions.add(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
+                ioCountActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
 
                     @Override
                     protected String getCommand() {
@@ -157,7 +153,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
                     }
                 });
             }
-            execs.add(ioCountActions);
+            execs.addLast(ioCountActions);
         }
 
         //prepare post ls action
@@ -170,11 +166,11 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         //---------- main experiment body begins -----------
 
         //run DDL + Load
-        execs.add(new TimedAction(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        execs.addLast(new TimedAction(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve(loadAQLFilePath))));
 
         //execute SQL++ Queries
-        execs.add(new TimedAction(new RunSQLPPFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        execs.addLast(new TimedAction(new RunSQLPPFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve(querySQLPPFileName),
                 localExperimentRoot.resolve(LSMPerfConstants.RESULT_FILE))));
 
@@ -184,7 +180,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         if (statFile != null) {
             ParallelActionSet ioCountKillActions = new ParallelActionSet();
             for (String ncHost : ncHosts) {
-                ioCountKillActions.add(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
+                ioCountKillActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
 
                     @Override
                     protected String getCommand() {
@@ -193,24 +189,23 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
                     }
                 });
             }
-            execs.add(ioCountKillActions);
+            execs.addLast(ioCountKillActions);
         }
 
         //total record count
-        execs.add(new SleepAction(10000));
+        execs.addLast(new SleepAction(10000));
         if (countFileName != null) {
-            execs.add(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+            execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                     LSMExperimentConstants.AQL_DIR).resolve(countFileName)));
         }
 
-
-        execs.add(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
+        execs.addLast(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
 
         //prepare to collect io state by putting the state file into asterix log dir
         if (statFile != null) {
             ParallelActionSet collectIOActions = new ParallelActionSet();
             for (String ncHost : ncHosts) {
-                collectIOActions.add(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
+                collectIOActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
 
                     @Override
                     protected String getCommand() {
@@ -219,11 +214,11 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
                     }
                 });
             }
-            execs.add(collectIOActions);
+            execs.addLast(collectIOActions);
         }
 
         //collect cc and nc logs
-        execs.add(new LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, localExperimentRoot
+        execs.addLast(new LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, localExperimentRoot
                 .resolve(LSMExperimentConstants.LOG_DIR + "-" + logDirSuffix).resolve(getName()).toString()));
 
         e.addBody(execs);

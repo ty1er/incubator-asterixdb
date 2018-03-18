@@ -24,7 +24,7 @@ import java.io.File;
 import java.util.EnumSet;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.hyracks.algebricks.core.config.AlgebricksConfig;
+import org.apache.hyracks.algebricks.common.config.AlgebricksConfig;
 import org.apache.hyracks.api.client.HyracksConnection;
 import org.apache.hyracks.api.client.IHyracksClientConnection;
 import org.apache.hyracks.api.job.JobFlag;

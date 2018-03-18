@@ -21,14 +21,20 @@ package org.apache.asterix.experiment.action.base;
 
 public abstract class AbstractAction implements IAction {
 
+    protected final String name;
     private final IExceptionListener el;
 
     protected AbstractAction() {
-        el = new DefaultExceptionListener();
+        this(new DefaultExceptionListener(), null);
     }
 
-    protected AbstractAction(IExceptionListener el) {
+    protected AbstractAction(String name) {
+        this(new DefaultExceptionListener(), name);
+    }
+
+    protected AbstractAction(IExceptionListener el, String name) {
         this.el = el;
+        this.name = name;
     }
 
     @Override

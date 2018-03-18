@@ -75,6 +75,9 @@ public interface IStatementExecutor {
         private long count;
         private long size;
         private long processedObjects;
+        private long execTime;
+        private long optimizationTime;
+        private long estimationTime;
 
         public long getCount() {
             return count;
@@ -98,6 +101,30 @@ public interface IStatementExecutor {
 
         public void setProcessedObjects(long processedObjects) {
             this.processedObjects = processedObjects;
+        }
+
+        public void setExecTime(long execTime) {
+            this.execTime = execTime;
+        }
+
+        public long getExecTime() {
+            return execTime;
+        }
+
+        public void setOptimizationTime(long optimizationTime) {
+            this.optimizationTime = optimizationTime;
+        }
+
+        public long getOptimizationTime() {
+            return optimizationTime;
+        }
+
+        public void setEstimationTime(long estimationTime) {
+            this.estimationTime = estimationTime;
+        }
+
+        public long getEstimationTime() {
+            return estimationTime;
         }
     }
 
@@ -130,7 +157,8 @@ public interface IStatementExecutor {
      * @throws ACIDException
      */
     JobSpecification rewriteCompileQuery(IClusterInfoCollector clusterInfoCollector, MetadataProvider metadataProvider,
-            Query query, ICompiledDmlStatement dmlStatement) throws RemoteException, AlgebricksException, ACIDException;
+            Query query, ICompiledDmlStatement dmlStatement, Stats stats)
+            throws RemoteException, AlgebricksException, ACIDException;
 
     /**
      * returns the active dataverse for an entity or a statement

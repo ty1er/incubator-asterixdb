@@ -27,16 +27,15 @@ import org.apache.asterix.external.api.IRawRecord;
 import org.apache.asterix.external.api.IRecordReader;
 import org.apache.asterix.external.api.IStreamNotificationHandler;
 import org.apache.asterix.external.dataflow.AbstractFeedDataFlowController;
-import org.apache.asterix.external.input.record.CharArrayRecord;
 import org.apache.asterix.external.input.stream.AsterixInputStreamReader;
 import org.apache.asterix.external.util.ExternalDataConstants;
 import org.apache.asterix.external.util.FeedLogManager;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 
-public abstract class StreamRecordReader implements IRecordReader<char[]>, IStreamNotificationHandler {
+public abstract class StreamRecordReader<T> implements IRecordReader<T>, IStreamNotificationHandler {
     protected AsterixInputStreamReader reader;
-    protected CharArrayRecord record;
-    protected char[] inputBuffer;
+    protected IRawRecord<T> record;
+    protected T inputBuffer;
     protected int bufferLength = 0;
     protected int bufferPosn = 0;
     protected boolean done = false;
@@ -44,12 +43,16 @@ public abstract class StreamRecordReader implements IRecordReader<char[]>, IStre
 
     public void configure(AsterixInputStream inputStream) {
         this.reader = new AsterixInputStreamReader(inputStream);
-        record = new CharArrayRecord();
-        inputBuffer = new char[ExternalDataConstants.DEFAULT_BUFFER_SIZE];
+        record = getNewRecord();
+        inputBuffer = getNewBuffer(ExternalDataConstants.DEFAULT_BUFFER_SIZE);
     }
 
+    protected abstract IRawRecord<T> getNewRecord();
+
+    protected abstract T getNewBuffer(int size);
+
     @Override
-    public IRawRecord<char[]> next() throws IOException {
+    public IRawRecord<T> next() throws IOException {
         return record;
     }
 

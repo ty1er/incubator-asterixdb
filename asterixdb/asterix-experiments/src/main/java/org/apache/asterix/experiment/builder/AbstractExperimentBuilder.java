@@ -19,19 +19,18 @@
 
 package org.apache.asterix.experiment.builder;
 
-public abstract class AbstractExperimentBuilder {
-    private final String name;
+import org.apache.asterix.experiment.action.base.SequentialActionList;
 
-    protected AbstractExperimentBuilder(String name) {
-        this.name = name;
-    }
+import java.io.IOException;
+
+public abstract class AbstractExperimentBuilder {
 
     public String getName() {
-        return name;
+        return this.getClass().getSimpleName();
     }
 
     public final Experiment build() throws Exception {
-        Experiment e = new Experiment(name);
+        Experiment e = new Experiment(getName());
         doBuild(e);
         return e;
     }

@@ -77,6 +77,7 @@ public class CharArrayRecord implements IRawRecord<char[]> {
         }
     }
 
+    @Override
     public void append(char[] recordBuffer, int offset, int length) throws IOException {
         ensureCapacity(size + length);
         System.arraycopy(recordBuffer, offset, value, size, length);
@@ -93,6 +94,7 @@ public class CharArrayRecord implements IRawRecord<char[]> {
         return String.valueOf(value, 0, size == 0 ? 0 : size - 1);
     }
 
+    @Override
     public void endRecord() throws IOException {
         if (size > 0 && value[size - 1] != ExternalDataConstants.LF) {
             appendChar(ExternalDataConstants.LF);

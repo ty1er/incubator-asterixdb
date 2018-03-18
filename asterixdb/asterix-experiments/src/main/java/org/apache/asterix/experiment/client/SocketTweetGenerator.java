@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -36,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.asterix.tools.external.data.TweetGeneratorForSpatialIndexEvaluation;
+import org.apache.asterix.external.generator.TweetGenerator;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class SocketTweetGenerator {
@@ -49,8 +48,6 @@ public class SocketTweetGenerator {
 
     private final int queryGenDuration;
 
-    private final long startDataInterval;
-
     private final int nDataIntervals;
 
     private final String orchHost;
@@ -59,21 +56,28 @@ public class SocketTweetGenerator {
 
     private final List<Pair<String, Integer>> receiverAddresses;
 
-    private final String openStreetMapFilePath;
-    private final int locationSampleInterval;
     private final int recordCountPerBatchDuringIngestionOnly;
     private final int recordCountPerBatchDuringQuery;
     private final long dataGenSleepTimeDuringIngestionOnly;
     private final long dataGenSleepTimeDuringQuery;
-
+    private final Map<String, String> properties;
     private final Mode mode;
+    private final int partitionsNum;
+    private final LSMExperimentSetRunnerConfig.WorkloadType workloadType;
+    private final double deletesPercentage;
+    private final double updatesPercentage;
+    private final long seed;
+    private final int dataGenCount;
+    private final int upperBound;
+    private final int lowerBound;
 
     private enum Mode {
         TIME,
         DATA
     }
 
-    public SocketTweetGenerator(SocketTweetGeneratorConfig config) {
+    public SocketTweetGenerator(SocketTweetGeneratorStatisticsConfig config, Map<String, String> propeties) {
+        this.properties = propeties;
         threadPool = Executors.newCachedThreadPool(new ThreadFactory() {
 
             private final AtomicInteger count = new AtomicInteger();
@@ -81,96 +85,115 @@ public class SocketTweetGenerator {
             @Override
             public Thread newThread(Runnable r) {
                 int tid = count.getAndIncrement();
-                Thread t = new Thread(r, "DataGeneratorThread: " + tid);
+                Thread t = new Thread(r, "SocketDataGeneratorThread: " + tid);
                 t.setDaemon(true);
                 return t;
             }
         });
 
-        partitionRangeStart = config.getPartitionRangeStart();
-        dataGenDuration = config.getDataGenDuration();
+        partitionRangeStart = config.getPartitionId();
+        partitionsNum = config.getPartitionsNum();
+        dataGenDuration = config.getDatagenDuration();
+        dataGenCount = config.getDatagenCount();
         queryGenDuration = config.getQueryGenDuration();
-        startDataInterval = config.getDataInterval();
         nDataIntervals = config.getNIntervals();
         orchHost = config.getOrchestratorHost();
         orchPort = config.getOrchestratorPort();
         receiverAddresses = config.getAddresses();
-        mode = startDataInterval > 0 ? Mode.DATA : Mode.TIME;
-        openStreetMapFilePath = config.getOpenStreetMapFilePath();
-        locationSampleInterval = config.getLocationSampleInterval();
+        upperBound = config.getUpperBound();
+        lowerBound = config.getLowerBound();
+        mode = dataGenCount > 0 ? Mode.DATA : Mode.TIME;
         recordCountPerBatchDuringIngestionOnly = config.getRecordCountPerBatchDuringIngestionOnly();
         recordCountPerBatchDuringQuery = config.getRecordCountPerBatchDuringQuery();
         dataGenSleepTimeDuringIngestionOnly = config.getDataGenSleepTimeDuringIngestionOnly();
         dataGenSleepTimeDuringQuery = config.getDataGenSleepTimeDuringQuery();
+        deletesPercentage = config.getDeletesPercentage();
+        updatesPercentage = config.getUpdatesPercentage();
+        this.workloadType = config.getWorkloadType();
+        seed = config.getSeed();
     }
 
     public void start() throws Exception {
         final Semaphore sem = new Semaphore((receiverAddresses.size() - 1) * -1);
         int i = 0;
         for (Pair<String, Integer> address : receiverAddresses) {
-            threadPool.submit(new DataGenerator(mode, sem, address.getLeft(), address.getRight(), i
-                    + partitionRangeStart, dataGenDuration, queryGenDuration, nDataIntervals, startDataInterval,
-                    orchHost, orchPort, openStreetMapFilePath, locationSampleInterval,
-                    recordCountPerBatchDuringIngestionOnly, recordCountPerBatchDuringQuery,
-                    dataGenSleepTimeDuringIngestionOnly, dataGenSleepTimeDuringQuery));
+            threadPool.submit(new SocketDataGenerator(mode, sem, address.getLeft(), address.getRight(),
+                    i + partitionRangeStart, partitionsNum, dataGenDuration, dataGenCount, upperBound, lowerBound,
+                    queryGenDuration, nDataIntervals, orchHost, orchPort, recordCountPerBatchDuringIngestionOnly,
+                    recordCountPerBatchDuringQuery, dataGenSleepTimeDuringIngestionOnly, dataGenSleepTimeDuringQuery,
+                    workloadType, deletesPercentage, updatesPercentage, seed, properties));
             ++i;
         }
         sem.acquire();
     }
 
-    public static class DataGenerator implements Runnable {
+    public static class SocketDataGenerator implements Runnable {
 
-        private static final Logger LOGGER = Logger.getLogger(DataGenerator.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(SocketDataGenerator.class.getName());
 
         private final Mode m;
         private final Semaphore sem;
         private final String host;
         private final int port;
         private final int partition;
+        private final int partitionsNum;
         private final int dataGenDuration;
         private final int queryGenDuration;
         private final int nDataIntervals;
+        private final Map<String, String> properties;
         private final String orchHost;
         private final int orchPort;
 
         private int currentInterval;
-        private long nextStopInterval;
+        private int nextStopInterval;
         private final long dataSizeInterval;
-        private final boolean flagStopResume;
-        private final String openStreetMapFilePath;
-        private final int locationSampleInterval;
         private final int recordCountPerBatchDuringIngestionOnly;
         private final int recordCountPerBatchDuringQuery;
         private final long dataGenSleepTimeDuringIngestionOnly;
         private final long dataGenSleepTimeDuringQuery;
+        private final LSMExperimentSetRunnerConfig.WorkloadType workloadType;
+        private final double deletesPercentage;
+        private final double updatesPercentage;
+        private final long seed;
+        private final int upperBound;
+        private final int lowerBound;
 
-        public DataGenerator(Mode m, Semaphore sem, String host, int port, int partition, int dataGenDuration,
-                int queryGenDuration, int nDataIntervals, long dataSizeInterval, String orchHost, int orchPort,
-                String openStreetMapFilePath, int locationSampleInterval, int recordCountPerBatchDuringIngestionOnly,
+        public SocketDataGenerator(Mode m, Semaphore sem, String host, int port, int partition, int partitionsNum,
+                int dataGenDuration, int dataGenCount, int upperBound, int lowerBound, int queryGenDuration,
+                int nDataIntervals, String orchHost, int orchPort, int recordCountPerBatchDuringIngestionOnly,
                 int recordCountPerBatchDuringQuery, long dataGenSleepTimeDuringIngestionOnly,
-                long dataGenSleepTimeDuringQuery) {
+                long dataGenSleepTimeDuringQuery, LSMExperimentSetRunnerConfig.WorkloadType workloadType,
+                double deletesPercentage, double updatesPercentage, long seed, Map<String, String> properties) {
             this.m = m;
             this.sem = sem;
             this.host = host;
             this.port = port;
             this.partition = partition;
+            this.partitionsNum = partitionsNum;
             this.dataGenDuration = dataGenDuration;
+            this.upperBound = upperBound;
+            this.lowerBound = lowerBound;
             this.queryGenDuration = queryGenDuration;
             this.nDataIntervals = nDataIntervals;
+            this.properties = properties;
             currentInterval = 0;
-            this.dataSizeInterval = dataSizeInterval;
-            this.nextStopInterval = dataSizeInterval;
+            this.dataSizeInterval = dataGenCount / (nDataIntervals * partitionsNum);
+            this.nextStopInterval = dataGenCount / (nDataIntervals * partitionsNum);
             this.orchHost = orchHost;
             this.orchPort = orchPort;
-            this.flagStopResume = false;
-            this.openStreetMapFilePath = openStreetMapFilePath;
-            //simple heuristic to generate different data from different data generator.
-            int lsi = locationSampleInterval + (partition + 1) * (partition <= 4 ? 7 : 9);
-            this.locationSampleInterval = lsi;
             this.recordCountPerBatchDuringIngestionOnly = recordCountPerBatchDuringIngestionOnly;
             this.recordCountPerBatchDuringQuery = recordCountPerBatchDuringQuery;
             this.dataGenSleepTimeDuringIngestionOnly = dataGenSleepTimeDuringIngestionOnly;
             this.dataGenSleepTimeDuringQuery = dataGenSleepTimeDuringQuery;
+            this.workloadType = workloadType;
+            //adjust percentages
+            if (nDataIntervals > 1) {
+                updatesPercentage *= (double) nDataIntervals / (nDataIntervals - 1);
+                deletesPercentage *= (double) nDataIntervals / (nDataIntervals - 1);
+            }
+            this.deletesPercentage = deletesPercentage;
+            this.updatesPercentage = updatesPercentage;
+            this.seed = seed;
         }
 
         @Override
@@ -181,167 +204,141 @@ public class SocketTweetGenerator {
                     + "recordCountPerBatchDuringIngestionOnly : " + recordCountPerBatchDuringIngestionOnly + "\n"
                     + "recordCountPerBatchDuringQuery : " + recordCountPerBatchDuringQuery + "\n"
                     + "dataGenSleepTimeDuringIngestionOnly : " + dataGenSleepTimeDuringIngestionOnly + "\n"
-                    + "dataGenSleepTimeDuringQuery : " + dataGenSleepTimeDuringQuery + "\n"
-                    + "locationSampleInterval : " + locationSampleInterval);
+                    + "dataGenSleepTimeDuringQuery : " + dataGenSleepTimeDuringQuery);
 
-            try {
-                Socket s = new Socket(host, port);
-                try {
-                    Socket orchSocket = null;
-                    if (m == Mode.DATA && orchHost != null) {
-                        orchSocket = new Socket(orchHost, orchPort);
-                    }
-                    TweetGeneratorForSpatialIndexEvaluation tg = null;
+            while (true) {
+                try (Socket s = new Socket(host, port)) {
                     try {
-                        Map<String, String> config = new HashMap<>();
-                        String durationVal = m == Mode.TIME ? String.valueOf(dataGenDuration) : "0";
-                        config.put(TweetGeneratorForSpatialIndexEvaluation.KEY_DURATION, String.valueOf(durationVal));
-                        if (openStreetMapFilePath != null) {
-                            config.put(TweetGeneratorForSpatialIndexEvaluation.KEY_OPENSTREETMAP_FILEPATH,
-                                    openStreetMapFilePath);
-                            config.put(TweetGeneratorForSpatialIndexEvaluation.KEY_LOCATION_SAMPLE_INTERVAL,
-                                    String.valueOf(locationSampleInterval));
+                        Socket orchSocket = null;
+                        if (m == Mode.DATA && orchHost != null) {
+                            orchSocket = new Socket(orchHost, orchPort);
                         }
-                        tg = new TweetGeneratorForSpatialIndexEvaluation(config, partition,
-                                TweetGeneratorForSpatialIndexEvaluation.OUTPUT_FORMAT_ADM_STRING, s.getOutputStream());
+                        TweetGenerator tg = null;
+                        String durationVal = m == Mode.TIME ? String.valueOf(dataGenDuration) : "0";
+                        properties.put(TweetGenerator.KEY_DURATION, String.valueOf(durationVal));
+                        properties.put(TweetGenerator.KEY_GUID_SEED, String.valueOf(seed));
+                        properties.put(TweetGenerator.KEY_PERCENTAGE_UPDATES, String.valueOf(updatesPercentage));
+                        properties.put(TweetGenerator.KEY_PERCENTAGE_DELETES, String.valueOf(deletesPercentage));
+                        properties.put(TweetGenerator.KEY_CHANGE_FEED,
+                                String.valueOf(workloadType == LSMExperimentSetRunnerConfig.WorkloadType.Varying));
+                        properties.put(TweetGenerator.KEY_GUID_INCREMENT, String.valueOf(partitionsNum));
+                        tg = new TweetGenerator(properties, partition,
+                                GeneratorFactory.getDataGenerator(workloadType, properties, upperBound, lowerBound,
+                                        partition),
+                                GeneratorFactory.getIDGenerator(workloadType, properties, partition));
+                        tg.registerSubscriber(s.getOutputStream());
                         long startTS = System.currentTimeMillis();
                         long prevTS = startTS;
                         long curTS = startTS;
                         int round = 0;
-                        while (tg.setNextRecordBatch(recordCountPerBatchDuringIngestionOnly)) {
-                            if (m == Mode.DATA) {
-                                if (tg.getNumFlushedTweets() >= nextStopInterval) {
-                                    //TODO stop/resume option
-                                    if (orchSocket != null) {
-                                        if (flagStopResume) {
-                                            // send stop to orchestrator
-                                            sendStopped(orchSocket);
-                                        } else {
-                                            sendReached(orchSocket);
+                        int numTweetsToGenerate = 0;
+                        if (m == Mode.DATA) {
+                            numTweetsToGenerate = Math.min(recordCountPerBatchDuringIngestionOnly,
+                                    nextStopInterval - tg.getNumFlushedTweets() - tg.getFrameTweetCount());
+                        } else if (m == Mode.TIME) {
+                            numTweetsToGenerate = recordCountPerBatchDuringIngestionOnly;
+                        }
+                        try {
+                            sendOrchestratorMessage(orchSocket, OrchestratorDGProtocol.START);
+                            while (tg.generateNextBatch(numTweetsToGenerate)) {
+                                if (m == Mode.DATA) {
+                                    if (tg.getNumFlushedTweets() + tg.getFrameTweetCount() >= nextStopInterval) {
+                                        tg.forceFlush();
+                                        //TODO stop/resume option
+                                        if (orchSocket != null) {
+                                            sendOrchestratorMessage(orchSocket, OrchestratorDGProtocol.REACHED);
                                         }
-                                    }
 
-                                    // update intervals
-                                    // TODO give options: exponential/linear interval
-                                    nextStopInterval += dataSizeInterval;
-                                    if (++currentInterval >= nDataIntervals) {
-                                        break;
-                                    }
+                                        // update intervals
+                                        // TODO give options: exponential/linear interval
+                                        nextStopInterval += dataSizeInterval;
+                                        if (++currentInterval >= nDataIntervals) {
+                                            break;
+                                        }
 
-                                    if (orchSocket != null) {
-                                        if (flagStopResume) {
+                                        if (orchSocket != null) {
                                             receiveResume(orchSocket);
                                         }
                                     }
                                 }
-                            }
-                            curTS = System.currentTimeMillis();
-                            if (LOGGER.isLoggable(Level.INFO)) {
-                                round++;
-                                if ((round * recordCountPerBatchDuringIngestionOnly) % 100000 == 0) {
-                                    System.out.println("DataGen[" + partition
-                                            + "][During ingestion only][TimeToInsert100000] " + (curTS - prevTS)
-                                            + " in milliseconds");
-                                    round = 0;
-                                    prevTS = curTS;
-                                }
-                            }
-                            //to prevent congestion in feed pipe line. 
-                            if (dataGenSleepTimeDuringIngestionOnly > 0) {
-                                Thread.sleep(dataGenSleepTimeDuringIngestionOnly);
-                            }
-                        }
-
-                        if (LOGGER.isLoggable(Level.INFO)) {
-                            LOGGER.info("DataGen[" + partition
-                                    + "][During ingestion only][InsertCount] Num tweets flushed = "
-                                    + tg.getNumFlushedTweets() + " in "
-                                    + ((System.currentTimeMillis() - startTS) / 1000) + " seconds from "
-                                    + InetAddress.getLocalHost() + " to " + host + ":" + port);
-                        }
-
-                        if (orchSocket != null && queryGenDuration > 0) {
-                            //wait until orchestrator server's resume message is received.
-                            receiveResume(orchSocket);
-
-                            //reset duration and flushed tweet count
-                            tg.resetDurationAndFlushedTweetCount(queryGenDuration);
-
-                            prevTS = System.currentTimeMillis();
-                            round = 0;
-                            //start sending record
-                            while (tg.setNextRecordBatch(recordCountPerBatchDuringQuery)) {
                                 curTS = System.currentTimeMillis();
                                 if (LOGGER.isLoggable(Level.INFO)) {
                                     round++;
-                                    if ((round * recordCountPerBatchDuringQuery) % 100000 == 0) {
-                                        System.out.println("DataGen[" + partition
-                                                + "][During ingestion + queries][TimeToInsert100000] "
-                                                + (curTS - prevTS) + " in milliseconds");
+                                    if ((round * recordCountPerBatchDuringIngestionOnly) % 100000 == 0) {
+                                        LOGGER.info(
+                                                "DataGen[" + partition + "][During ingestion only][TimeToInsert100000] "
+                                                        + (curTS - prevTS) + " in milliseconds");
                                         round = 0;
                                         prevTS = curTS;
                                     }
                                 }
-                                if (dataGenSleepTimeDuringQuery > 0) {
-                                    Thread.sleep(dataGenSleepTimeDuringQuery);
+                                //to prevent congestion in feed pipe line.
+                                if (dataGenSleepTimeDuringIngestionOnly > 0) {
+                                    Thread.sleep(dataGenSleepTimeDuringIngestionOnly);
                                 }
                             }
+
                             if (LOGGER.isLoggable(Level.INFO)) {
                                 LOGGER.info("DataGen[" + partition
-                                        + "][During ingestion + queries][InsertCount] Num tweets flushed = "
-                                        + tg.getNumFlushedTweets() + " in " + queryGenDuration + " seconds from "
+                                        + "][During ingestion only][InsertCount] Num tweets flushed = "
+                                        + tg.getNumFlushedTweets() + " in "
+                                        + ((System.currentTimeMillis() - startTS) / 1000) + " seconds from "
                                         + InetAddress.getLocalHost() + " to " + host + ":" + port);
                             }
-                            //send reached message to orchestrator server
-                            sendReached(orchSocket);
-                        }
 
+                            if (orchSocket != null) {
+                                //send stop message to orchestrator server
+                                sendOrchestratorMessage(orchSocket, OrchestratorDGProtocol.STOPPED);
+                            }
+                            break;
+                        } catch (Throwable t) {
+                            if (LOGGER.isLoggable(Level.SEVERE))
+                                LOGGER.log(Level.SEVERE, "Error during socket tweet generation", t);
+                        } finally {
+                            if (orchSocket != null) {
+                                orchSocket.close();
+                            }
+                            if (LOGGER.isLoggable(Level.INFO)) {
+                                long ingestionSeconds =
+                                        dataGenDuration > 0 ? dataGenDuration : System.currentTimeMillis() - startTS;
+                                LOGGER.info("Num tweets flushed = " + tg.getNumFlushedTweets() + " in "
+                                        + ingestionSeconds + " seconds from " + InetAddress.getLocalHost() + " to "
+                                        + host + ":" + port);
+                            }
+                        }
+                    } catch (Exception t) {
+                        if (LOGGER.isLoggable(Level.SEVERE))
+                            LOGGER.log(Level.SEVERE, "Error during socket tweet generation", t);
                     } finally {
-                        if (orchSocket != null) {
-                            orchSocket.close();
-                        }
-                        if (LOGGER.isLoggable(Level.INFO)) {
-                            LOGGER.info("Num tweets flushed = " + tg.getNumFlushedTweets() + " in " + dataGenDuration
-                                    + " seconds from " + InetAddress.getLocalHost() + " to " + host + ":" + port);
-                        }
+                        s.close();
                     }
-                } catch (Throwable t) {
-                    t.printStackTrace();
+                } catch (IOException t) {
+                    if (LOGGER.isLoggable(Level.SEVERE))
+                        LOGGER.log(Level.SEVERE, "Error connecting to " + host + ":" + port, t);
                 } finally {
-                    s.close();
+                    sem.release();
                 }
-            } catch (Throwable t) {
-                System.err.println("Error connecting to " + host + ":" + port);
-                t.printStackTrace();
-            } finally {
-                sem.release();
+                if (LOGGER.isLoggable(Level.SEVERE))
+                    LOGGER.log(Level.SEVERE, "Reconnecting...");
             }
         }
 
-        private void sendReached(Socket s) throws IOException {
-            new DataOutputStream(s.getOutputStream()).writeInt(OrchestratorDGProtocol.REACHED.ordinal());
+        private void sendOrchestratorMessage(Socket s, OrchestratorDGProtocol msgType) throws IOException {
+            new DataOutputStream(s.getOutputStream()).writeInt(msgType.ordinal());
             s.getOutputStream().flush();
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.info("Sent " + OrchestratorDGProtocol.REACHED + " to " + s.getRemoteSocketAddress());
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Sent " + msgType + " to " + s.getRemoteSocketAddress());
             }
         }
 
         private void receiveResume(Socket s) throws IOException {
             int msg = new DataInputStream(s.getInputStream()).readInt();
             OrchestratorDGProtocol msgType = OrchestratorDGProtocol.values()[msg];
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.info("Received " + msgType + " from " + s.getRemoteSocketAddress());
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Received " + msgType + " from " + s.getRemoteSocketAddress());
             }
             if (msgType != OrchestratorDGProtocol.RESUME) {
                 throw new IllegalStateException("Unknown protocol message received: " + msgType);
-            }
-        }
-
-        private void sendStopped(Socket s) throws IOException {
-            new DataOutputStream(s.getOutputStream()).writeInt(OrchestratorDGProtocol.STOPPED.ordinal());
-            s.getOutputStream().flush();
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.info("Sent " + OrchestratorDGProtocol.STOPPED + " to " + s.getRemoteSocketAddress());
             }
         }
 

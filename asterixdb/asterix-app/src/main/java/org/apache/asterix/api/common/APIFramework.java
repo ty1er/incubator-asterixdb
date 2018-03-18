@@ -86,6 +86,8 @@ import org.apache.hyracks.algebricks.core.algebra.expressions.IExpressionTypeCom
 import org.apache.hyracks.algebricks.core.algebra.expressions.IMergeAggregationExpressionFactory;
 import org.apache.hyracks.algebricks.core.algebra.expressions.IMissableTypeComputer;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.AlgebricksAppendable;
+import org.apache.hyracks.algebricks.core.algebra.prettyprint.JSONLogicalOperatorPrettyPrintVisitor;
+import org.apache.hyracks.algebricks.core.algebra.prettyprint.JsonPlanPrettyPrinter;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.LogicalOperatorPrettyPrintVisitor;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.PlanPrettyPrinter;
 import org.apache.hyracks.algebricks.core.rewriter.base.AlgebricksOptimizationContext;
@@ -147,9 +149,8 @@ public class APIFramework {
                 IExpressionEvalSizeComputer expressionEvalSizeComputer,
                 IMergeAggregationExpressionFactory mergeAggregationExpressionFactory,
                 IExpressionTypeComputer expressionTypeComputer, IMissableTypeComputer missableTypeComputer,
-                IConflictingTypeResolver conflictingTypeResolver,
-               ICardinalityEstimator cardinalityEstimator, PhysicalOptimizationConfig physicalOptimizationConfig,
-                AlgebricksPartitionConstraint clusterLocations) {
+                IConflictingTypeResolver conflictingTypeResolver, ICardinalityEstimator cardinalityEstimator,
+                PhysicalOptimizationConfig physicalOptimizationConfig, AlgebricksPartitionConstraint clusterLocations) {
             return new AlgebricksOptimizationContext(varCounter, expressionEvalSizeComputer,
                     mergeAggregationExpressionFactory, expressionTypeComputer, missableTypeComputer,
                     conflictingTypeResolver, cardinalityEstimator, physicalOptimizationConfig, clusterLocations);
@@ -160,7 +161,8 @@ public class APIFramework {
         if (output.config().is(SessionConfig.FORMAT_HTML)) {
             output.out().println("<h4>" + planName + ":</h4>");
             output.out().println("<pre>");
-        } else {
+        } else if (output.config().fmt() != SessionConfig.OutputFormat.CLEAN_JSON
+                || output.config().fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
             output.out().println("----------" + planName + ":");
         }
     }
@@ -190,8 +192,8 @@ public class APIFramework {
     }
 
     public JobSpecification compileQuery(IClusterInfoCollector clusterInfoCollector, MetadataProvider metadataProvider,
-            Query rwQ, int varCounter, String outputDatasetName, SessionOutput output, ICompiledDmlStatement statement)
-            throws AlgebricksException, RemoteException, ACIDException {
+            Query rwQ, int varCounter, String outputDatasetName, SessionOutput output, ICompiledDmlStatement statement,
+            Stats stats) throws AlgebricksException, RemoteException, ACIDException {
 
         SessionConfig conf = output.config();
         if (!conf.is(SessionConfig.FORMAT_ONLY_PHYSICAL_OPS) && conf.is(SessionConfig.OOB_REWRITTEN_EXPR_TREE)) {
@@ -222,8 +224,14 @@ public class APIFramework {
 
             printPlanPrefix(output, "Logical plan");
             if (rwQ != null || (statement != null && statement.getKind() == Statement.Kind.LOAD)) {
-                LogicalOperatorPrettyPrintVisitor pvisitor = new LogicalOperatorPrettyPrintVisitor(output.out());
-                PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
+                if (conf.is(SessionConfig.FORMAT_HTML)) {
+                    LogicalOperatorPrettyPrintVisitor pvisitor = new LogicalOperatorPrettyPrintVisitor(output.out());
+                    PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
+                } else if (conf.fmt() == SessionConfig.OutputFormat.CLEAN_JSON
+                        || conf.fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
+                    JsonPlanPrettyPrinter.printPlan(plan, "logical-plan", output.getJsonNode(),
+                            new JSONLogicalOperatorPrettyPrintVisitor());
+                }
             }
             printPlanPostfix(output);
         }
@@ -268,7 +276,13 @@ public class APIFramework {
 
         ICompiler compiler = compilerFactory.createCompiler(plan, metadataProvider, t.getVarCounter());
         if (conf.isOptimize()) {
+            long startTime = System.nanoTime();
             compiler.optimize();
+            long endTime = System.nanoTime();
+            if (stats != null) {
+                stats.setOptimizationTime(endTime - startTime);
+                stats.setEstimationTime(builder.getCardinalityEstimator().getEstimationTime());
+            }
             if (conf.is(SessionConfig.OOB_OPTIMIZED_LOGICAL_PLAN)) {
                 if (conf.is(SessionConfig.FORMAT_ONLY_PHYSICAL_OPS)) {
                     // For Optimizer tests.
@@ -277,9 +291,15 @@ public class APIFramework {
                 } else {
                     printPlanPrefix(output, "Optimized logical plan");
                     if (rwQ != null || (statement != null && statement.getKind() == Statement.Kind.LOAD)) {
-                        LogicalOperatorPrettyPrintVisitor pvisitor =
-                                new LogicalOperatorPrettyPrintVisitor(output.out());
-                        PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
+                        if (conf.is(SessionConfig.FORMAT_HTML)) {
+                            LogicalOperatorPrettyPrintVisitor pvisitor =
+                                    new LogicalOperatorPrettyPrintVisitor(output.out());
+                            PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
+                        } else if (conf.fmt() == SessionConfig.OutputFormat.CLEAN_JSON
+                                || conf.fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
+                            JsonPlanPrettyPrinter.printPlan(plan, "optimized-plan", output.getJsonNode(),
+                                    new JSONLogicalOperatorPrettyPrintVisitor());
+                        }
                     }
                     printPlanPostfix(output);
                 }
@@ -287,10 +307,16 @@ public class APIFramework {
         }
         if (rwQ != null && rwQ.isExplain()) {
             try {
-                LogicalOperatorPrettyPrintVisitor pvisitor = new LogicalOperatorPrettyPrintVisitor();
-                PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
-                ResultUtil.printResults(metadataProvider.getApplicationContext(), pvisitor.get().toString(), output,
-                        new Stats(), null);
+                if (conf.is(SessionConfig.FORMAT_HTML)) {
+                    LogicalOperatorPrettyPrintVisitor pvisitor = new LogicalOperatorPrettyPrintVisitor();
+                    PlanPrettyPrinter.printPlan(plan, pvisitor, 0);
+                    ResultUtil.printResults(metadataProvider.getApplicationContext(), pvisitor.get().toString(), output,
+                            new Stats(), null);
+                } else if (conf.fmt() == SessionConfig.OutputFormat.CLEAN_JSON
+                        || conf.fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
+                    JsonPlanPrettyPrinter.printPlan(plan, "optimized-plan", output.getJsonNode(),
+                            new JSONLogicalOperatorPrettyPrintVisitor());
+                }
                 return null;
             } catch (IOException e) {
                 throw new AlgebricksException(e);

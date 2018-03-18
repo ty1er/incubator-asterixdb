@@ -19,9 +19,13 @@
 
 package org.apache.asterix.experiment.action.derived;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.apache.asterix.experiment.action.base.AbstractAction;
 
 public class SleepAction extends AbstractAction {
+    private static final Logger LOGGER = Logger.getLogger(SleepAction.class.getName());
 
     private final long ms;
 
@@ -31,6 +35,9 @@ public class SleepAction extends AbstractAction {
 
     @Override
     protected void doPerform() throws Exception {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Sleeping for " + ms + "ms");
+        }
         Thread.sleep(ms);
     }
 

@@ -112,6 +112,14 @@ public class AsterixInputStreamReader extends Reader {
         return charBuffer.position();
     }
 
+    public int read(byte buf[]) throws IOException {
+        return read(buf, 0, buf.length);
+    }
+
+    public int read(byte buf[], int offset, int length) throws IOException {
+        return in.read(buf, offset, length);
+    }
+
     @Override
     public void close() throws IOException {
         in.close();

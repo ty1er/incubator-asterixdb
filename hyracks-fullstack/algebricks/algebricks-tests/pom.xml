@@ -155,7 +155,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hyracks</groupId>
-      <artifactId>algebricks-core</artifactId>
+      <artifactId>algebricks-common</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

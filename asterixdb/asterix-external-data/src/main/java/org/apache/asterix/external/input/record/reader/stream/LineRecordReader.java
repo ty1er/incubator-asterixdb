@@ -29,7 +29,7 @@ import org.apache.asterix.external.util.ExternalDataConstants;
 import org.apache.asterix.external.util.ExternalDataUtils;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 
-public class LineRecordReader extends StreamRecordReader {
+public class LineRecordReader extends CharStreamRecordReader {
 
     private boolean hasHeader;
     protected boolean prevCharCR;

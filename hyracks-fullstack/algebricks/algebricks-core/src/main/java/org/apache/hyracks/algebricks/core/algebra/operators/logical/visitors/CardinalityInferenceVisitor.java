@@ -221,7 +221,7 @@ public class CardinalityInferenceVisitor implements ILogicalOperatorVisitor<Long
 
     @Override
     public Long visitUnnestMapOperator(UnnestMapOperator op, Void arg) throws AlgebricksException {
-        return UNKNOWN;
+        return op.getCardinality();
     }
 
     @Override
@@ -362,9 +362,6 @@ public class CardinalityInferenceVisitor implements ILogicalOperatorVisitor<Long
 
     // For operators including SELECT and LIMIT.
     private long adjustCardinalityForTupleReductionOperator(long inputCardinality) {
-        if (inputCardinality == ONE) {
-            return ZERO_OR_ONE;
-        }
         if (inputCardinality == ONE_GROUP) {
             return ZERO_OR_ONE_GROUP;
         }

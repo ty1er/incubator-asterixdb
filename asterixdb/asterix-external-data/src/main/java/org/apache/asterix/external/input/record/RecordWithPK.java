@@ -87,6 +87,14 @@ public class RecordWithPK<T> implements IRawRecord<T> {
         record.set(t);
     }
 
+    @Override
+    public void append(T recordBuffer, int offset, int length) throws IOException {
+    }
+
+    @Override
+    public void endRecord() throws IOException {
+    }
+
     public void appendPrimaryKeyToTuple(final ArrayTupleBuilder tb) throws HyracksDataException {
         for (final ArrayBackedValueStorage pkStorage : pkFieldValueBuffers) {
             tb.addField(pkStorage);

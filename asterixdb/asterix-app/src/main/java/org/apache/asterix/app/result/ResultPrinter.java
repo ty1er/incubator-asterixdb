@@ -44,6 +44,7 @@ import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 public class ResultPrinter {
 
@@ -56,6 +57,8 @@ public class ResultPrinter {
 
     private boolean indentJSON;
     private boolean quoteRecord;
+
+    private ArrayNode jsonResultArray;
 
     // Whether we are wrapping the output sequence in an array
     private boolean wrapArray = false;
@@ -72,6 +75,7 @@ public class ResultPrinter {
         this.recordType = recordType;
         this.indentJSON = conf.is(SessionConfig.FORMAT_INDENT_JSON);
         this.quoteRecord = conf.is(SessionConfig.FORMAT_QUOTE_RECORD);
+        this.jsonResultArray = new ObjectMapper().createArrayNode();
         this.resultDisplayFrameMgr = new FrameManager(appCtx.getCompilerProperties().getFrameSize());
         if (indentJSON) {
             this.om = new ObjectMapper();
@@ -160,6 +164,10 @@ public class ResultPrinter {
         if (conf.is(SessionConfig.FORMAT_HTML)) {
             output.out().println("</pre>");
         }
+        if (conf.fmt() == SessionConfig.OutputFormat.CLEAN_JSON
+                || conf.fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
+            output.getJsonNode().set("result", jsonResultArray);
+        }
         output.out().flush();
     }
 
@@ -184,7 +192,13 @@ public class ResultPrinter {
         if (conf.is(SessionConfig.FORMAT_HTML)) {
             record = ResultUtil.escapeHTML(record);
         }
-        output.out().print(record);
+        if (conf.fmt() == SessionConfig.OutputFormat.CLEAN_JSON
+                || conf.fmt() == SessionConfig.OutputFormat.LOSSLESS_JSON) {
+            jsonResultArray.add(result.trim());
+        } else {
+            output.out().print(record);
+        }
+
         stats.setCount(stats.getCount() + 1);
         // TODO(tillw) fix this approximation
         stats.setSize(stats.getSize() + record.length());

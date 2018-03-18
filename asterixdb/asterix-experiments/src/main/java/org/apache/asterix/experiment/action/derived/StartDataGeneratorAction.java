@@ -20,14 +20,14 @@
 package org.apache.asterix.experiment.action.derived;
 
 import java.io.StringWriter;
+import java.nio.charset.Charset;
+
+import org.apache.asterix.experiment.action.base.AbstractAction;
+import org.apache.commons.io.IOUtils;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
-
-import org.apache.commons.io.IOUtils;
-
-import org.apache.asterix.experiment.action.base.AbstractAction;
 
 public class StartDataGeneratorAction extends AbstractAction {
 
@@ -43,8 +43,8 @@ public class StartDataGeneratorAction extends AbstractAction {
         Session session = sshClient.startSession();
         Command lsCmd = session.exec("ls");
         StringWriter sw = new StringWriter();
-        IOUtils.copy(lsCmd.getInputStream(), sw);
-        IOUtils.copy(lsCmd.getErrorStream(), sw);
+        IOUtils.copy(lsCmd.getInputStream(), sw, Charset.defaultCharset());
+        IOUtils.copy(lsCmd.getErrorStream(), sw, Charset.defaultCharset());
         System.out.println(sw.toString());
         session.close();
         sw.close();

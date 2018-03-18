@@ -19,10 +19,14 @@
 
 package org.apache.asterix.translator;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.AlgebricksAppendable;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class SessionOutput {
     private final SessionConfig config;
@@ -34,6 +38,9 @@ public class SessionOutput {
     private final SessionOutput.ResultDecorator postResultDecorator;
     private final SessionOutput.ResultAppender handleAppender;
     private final SessionOutput.ResultAppender statusAppender;
+
+    private final ObjectMapper jsonObjectMapper;
+    private final ObjectNode jsonNode;
 
     public SessionOutput(SessionConfig config, PrintWriter out) {
         this(config, out, null, null, null, null);
@@ -47,6 +54,8 @@ public class SessionOutput {
         this.postResultDecorator = postResultDecorator;
         this.handleAppender = handleAppender;
         this.statusAppender = statusAppender;
+        this.jsonObjectMapper = new ObjectMapper();
+        this.jsonNode = jsonObjectMapper.createObjectNode();
     }
 
     /**
@@ -74,6 +83,14 @@ public class SessionOutput {
 
     public SessionConfig config() {
         return config;
+    }
+
+    public ObjectNode getJsonNode() {
+        return jsonNode;
+    }
+
+    public void writeJson() throws IOException {
+        out.print(jsonObjectMapper.writeValueAsString(jsonNode));
     }
 
     @FunctionalInterface

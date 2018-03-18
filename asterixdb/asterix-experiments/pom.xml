@@ -36,10 +36,14 @@
                 </program>
                 <program>
                   <mainClass>org.apache.asterix.experiment.client.SocketTweetGeneratorDriver</mainClass>
-                  <name>datagenrunner</name>
+                  <name>socketDatagenRunner</name>
                 </program>
                 <program>
-                  <mainClass>org.apache.asterix.experiment.client.SpatialQueryGeneratorDriver</mainClass>
+                  <mainClass>org.apache.asterix.experiment.client.FileGeneratorDriver</mainClass>
+                  <name>fileDatagenRunner</name>
+                </program>
+                <program>
+                  <mainClass>org.apache.asterix.experiment.client.QueryGeneratorDriver</mainClass>
                   <name>querygenrunner</name>
                 </program>
                 <program>
@@ -169,6 +173,12 @@
       <groupId>org.apache.asterix</groupId>
       <artifactId>asterix-app</artifactId>
       <version>${project.version}</version>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.asterix</groupId>
+      <artifactId>asterix-app</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.asterix</groupId>
@@ -198,6 +208,11 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.asterix</groupId>
+      <artifactId>asterix-external-data</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>args4j</groupId>
       <artifactId>args4j</artifactId>
     </dependency>
@@ -210,6 +225,34 @@
       <artifactId>sshj</artifactId>
       <version>0.13.0</version>
     </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.16</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.wicket</groupId>
+      <artifactId>wicket-util</artifactId>
+      <version>1.5.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <version>3.6</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>0.9.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>javax.json</artifactId>
+      <version>1.0.4</version>
+    </dependency>
   </dependencies>
-
 </project>

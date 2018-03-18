@@ -19,11 +19,21 @@
 
 package org.apache.asterix.experiment.action.derived;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.asterix.common.utils.Servlets;
 import org.apache.asterix.experiment.action.base.AbstractAction;
-import org.apache.avro.generic.GenericData;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -32,19 +42,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 public class RunSQLPPFileAction extends AbstractAction {
-    private static final String REST_URI_TEMPLATE = "http://{0}:{1}/sqlpp";
+    private static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.SQLPP;
 
     private final HttpClient httpClient;
 
