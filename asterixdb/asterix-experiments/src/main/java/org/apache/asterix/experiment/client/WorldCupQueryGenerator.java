@@ -55,7 +55,7 @@ public class WorldCupQueryGenerator extends QueryGenerator {
 
     @Override
     protected void sendQuery() throws IOException {
-        SequentialActionList seq = new SequentialActionList();
+        SequentialActionList seq = new SequentialActionList("rangeQueryWorldCup");
         ByteArrayOutputStream tmpBuffer = new ByteArrayOutputStream();
 
         for (int i = 0; i < fieldNames.length; i++) {

@@ -64,6 +64,7 @@ public class ManagixActions {
         private final String command;
 
         protected AbstractManagixCommandAction(String managixHomePath, String command) {
+            super("managix");
             this.managixHomePath = managixHomePath;
             this.command = command;
         }

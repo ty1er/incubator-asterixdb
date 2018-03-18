@@ -43,6 +43,7 @@ public class LogAction extends AbstractAction {
     }
 
     public LogAction(Supplier<String> logStatementSupplier, Level logLevel) {
+        super("log");
         this.logStatementSupplier = logStatementSupplier;
         this.logLevel = logLevel;
     }

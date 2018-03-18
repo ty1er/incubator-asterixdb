@@ -106,7 +106,7 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
 
     @Override
     protected ActionList doBuildDataGen() throws IOException {
-        return new SequentialActionList();
+        return new SequentialActionList("dataGenWorldCup");
     }
 
     @Override
@@ -148,7 +148,7 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
 
     @Override
     protected ActionList loadData(ActionList dgenActions) throws IOException {
-        ActionList loadActions = new SequentialActionList();
+        ActionList loadActions = new SequentialActionList("loadDataWorldCup");
         List<Pair<String, String>> flatReceiverList = flattenDgens();
         if (config.getIngestType() == IngestionType.FileFeed) {
             String ingestAql = assembleLoad(

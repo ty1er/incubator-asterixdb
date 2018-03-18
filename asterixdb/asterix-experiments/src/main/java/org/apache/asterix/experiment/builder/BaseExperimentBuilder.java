@@ -150,7 +150,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         this.statFile = config.getStatFile();
         this.resultsFile = config.getResultsFile();
         this.queryOutput = config.getQgenOutputFilePath();
-        this.lsAction = new SequentialActionList();
+        this.lsAction = new SequentialActionList("lsComponents");
         this.localExperimentRoot = Paths.get(config.getLocalExperimentRoot());
         this.logDir = localExperimentRoot.resolve(config.getOutputDir())
                 .resolve(LSMExperimentConstants.LOG_DIR + "-" + config.getLogDirSuffix()).resolve(getName());
@@ -168,7 +168,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     protected abstract ActionList loadData(ActionList dgenActions) throws IOException;
 
     protected ActionList doBuildDataGen() throws IOException {
-        ActionList dgenSeq = new SequentialActionList();
+        ActionList dgenSeq = new SequentialActionList("dataGen");
         ParallelActionSet dgenActions = new ParallelActionSet("dgen");
         int partition = 0;
         String dgenNodes = "";
@@ -178,7 +178,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
             else
                 dgenNodes += "," + dgenPair.getKey();
             final int p = partition;
-            dgenActions.addLast(new AbstractRemoteExecutableAction(dgenPair.getKey(), username, sshKeyLocation) {
+            dgenActions.addLast(
+                    new AbstractRemoteExecutableAction("launch dgens", dgenPair.getKey(), username, sshKeyLocation) {
                 @Override
                 protected String getCommand() {
                     return GeneratorFactory.getDatagenCmd(config, p,
@@ -263,7 +264,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         String[] storageRoots = cluster.getIodevices().split(",");
         for (String ncHost : ncHosts) {
             for (final String sRoot : storageRoots) {
-                lsAction.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
+                lsAction.addLast(
+                        new AbstractRemoteExecutableAction("list components", ncHost, username, sshKeyLocation) {
                     @Override
                     protected String getCommand() {
                         return new StringBuilder().append("ls -la ").append(sRoot).append(File.separator)

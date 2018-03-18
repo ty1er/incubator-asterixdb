@@ -33,6 +33,10 @@ import org.apache.commons.io.IOUtils;
 
 public abstract class AbstractExecutableAction extends AbstractAction {
 
+    public AbstractExecutableAction(String name) {
+        super(name);
+    }
+
     private static final Logger LOGGER = Logger.getLogger(AbstractExecutableAction.class.getName());
 
     protected Map<String, String> getEnvironment() {

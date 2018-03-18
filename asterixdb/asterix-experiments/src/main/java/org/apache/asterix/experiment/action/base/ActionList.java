@@ -23,10 +23,6 @@ import java.util.LinkedList;
 public abstract class ActionList extends AbstractAction {
     protected final LinkedList<IAction> actions;
 
-    public ActionList() {
-        this(null);
-    }
-
     public ActionList(String name) {
         super(name);
         actions = new LinkedList<>();

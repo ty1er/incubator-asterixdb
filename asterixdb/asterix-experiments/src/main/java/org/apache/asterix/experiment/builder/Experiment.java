@@ -34,6 +34,7 @@ public class Experiment extends AbstractAction {
     private IAction body;
 
     public Experiment(String name) {
+        super(name);
         this.name = name;
     }
 

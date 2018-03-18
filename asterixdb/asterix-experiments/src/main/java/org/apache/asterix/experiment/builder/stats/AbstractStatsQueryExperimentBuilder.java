@@ -84,7 +84,7 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
             execs.addLast(getDataDumpAction(data_os, fieldName));
         }
         //collect generated query output
-        execs.addLast(new AbstractLocalExecutableAction() {
+        execs.addLast(new AbstractLocalExecutableAction("mv query output") {
             @Override
             protected String getCommand() {
                 return "mv " + queryOutput + " "
@@ -95,7 +95,7 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
 
     @Override
     protected void queryData(ActionList seq) throws IOException {
-        seq.addLast(new TimedAction(new AbstractLocalExecutableAction() {
+        seq.addLast(new TimedAction(new AbstractLocalExecutableAction("queryGen") {
             @Override
             protected String getCommand() {
                 return GeneratorFactory.getQueryGenCmd(config, 1, 1);

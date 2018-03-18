@@ -199,7 +199,7 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
 
     @Override
     protected ActionList loadData(ActionList dgenActions) throws IOException {
-        ActionList loadActions = new SequentialActionList();
+        ActionList loadActions = new SequentialActionList("loadData");
         List<Pair<String, String>> flatReceiverList = flattenDgens();
         if (config.getIngestType() == LSMExperimentSetRunnerConfig.IngestionType.SocketFeed
                 || config.getIngestType() == LSMExperimentSetRunnerConfig.IngestionType.FileFeed) {
@@ -244,7 +244,7 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
             }
             if (config.getIngestType() == LSMExperimentSetRunnerConfig.IngestionType.SocketFeed) {
                 final Semaphore dgenSem = new Semaphore(0);
-                loadActions.addLast(new AbstractAction() {
+                loadActions.addLast(new AbstractAction("lock dgens") {
                     protected void doPerform() throws Exception {
                         dgenSem.acquire();
                     }

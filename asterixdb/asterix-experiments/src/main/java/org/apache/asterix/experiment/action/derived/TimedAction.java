@@ -48,6 +48,7 @@ public class TimedAction extends AbstractAction {
     }
 
     public TimedAction(IAction action, OutputStream os, Function<Long, String> logMessage) {
+        super("timer");
         this.action = action;
         this.os = os;
         this.logMessage = logMessage;

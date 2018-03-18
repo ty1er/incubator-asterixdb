@@ -30,6 +30,7 @@ public class SleepAction extends AbstractAction {
     private final long ms;
 
     public SleepAction(long ms) {
+        super("sleep");
         this.ms = ms;
     }
 

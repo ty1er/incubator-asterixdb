@@ -41,10 +41,16 @@ public abstract class AbstractRemoteExecutableAction extends AbstractExecutableA
     private Command cmd;
 
     protected AbstractRemoteExecutableAction(String hostname, String username, String keyLocation) {
-        this(hostname, SSHClient.DEFAULT_PORT, username, keyLocation);
+        this(null, hostname, SSHClient.DEFAULT_PORT, username, keyLocation);
     }
 
-    protected AbstractRemoteExecutableAction(String hostname, int port, String username, String keyLocation) {
+    protected AbstractRemoteExecutableAction(String actionName, String hostname, String username, String keyLocation) {
+        this(actionName, hostname, SSHClient.DEFAULT_PORT, username, keyLocation);
+    }
+
+    protected AbstractRemoteExecutableAction(String actionName, String hostname, int port, String username,
+            String keyLocation) {
+        super(actionName);
         this.hostname = hostname;
         this.port = port;
         this.username = username;

@@ -30,7 +30,8 @@ public abstract class AbstractLocalExecutableAction extends AbstractExecutableAc
 
     private Process p;
 
-    protected AbstractLocalExecutableAction() {
+    protected AbstractLocalExecutableAction(String name) {
+        super(name);
         pb = new ProcessBuilder();
     }
 

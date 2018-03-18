@@ -44,6 +44,7 @@ public abstract class RESTAction extends AbstractAction {
 
     public RESTAction(String endpoint, String acceptHeaderType, String host, int port, CloseableHttpClient httpClient,
             String httpMethod) {
+        super("REST");
         this.endpoint = endpoint;
         this.acceptHeaderType = acceptHeaderType;
         this.host = host;

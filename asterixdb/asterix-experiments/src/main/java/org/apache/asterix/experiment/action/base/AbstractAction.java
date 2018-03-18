@@ -19,7 +19,10 @@
 
 package org.apache.asterix.experiment.action.base;
 
+import java.util.logging.Logger;
+
 public abstract class AbstractAction implements IAction {
+    private final static Logger LOGGER = Logger.getLogger(AbstractAction.class.getName());
 
     protected final String name;
     private final IExceptionListener el;
@@ -40,7 +43,9 @@ public abstract class AbstractAction implements IAction {
     @Override
     public void perform() {
         try {
+            LOGGER.fine("Starting action " + name);
             doPerform();
+            LOGGER.fine("Ending action " + name);
         } catch (Throwable t) {
             el.caughtException(t);
         }
