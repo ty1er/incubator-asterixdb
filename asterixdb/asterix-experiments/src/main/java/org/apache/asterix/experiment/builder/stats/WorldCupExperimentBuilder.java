@@ -21,16 +21,13 @@ package org.apache.asterix.experiment.builder.stats;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.asterix.experiment.action.base.ActionList;
+import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -48,8 +45,8 @@ import org.apache.hyracks.http.server.utils.HttpUtil;
 public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuilder
         implements IIngestFeeds1Builder, IPrefixMergePolicy {
 
-    private List<String> fieldMinimums = new ArrayList<>();
-    private List<String> fieldMaximum = new ArrayList<>();
+    protected List<String> fieldMinimums = new ArrayList<>();
+    protected List<String> fieldMaximum = new ArrayList<>();
 
     public WorldCupExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
@@ -71,27 +68,8 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
     }
 
     @Override
-    public RunAQLAction getDataDumpAction(OutputStream outputStream, String fieldName) {
-        return new RunAQLAction(httpClient, restHost, restPort, outputStream, HttpUtil.ContentType.CSV) {
-
-            @Override
-            public void doPerform() throws Exception {
-                String aql = StandardCharsets.UTF_8
-                        .decode(ByteBuffer.wrap(Files.readAllBytes(localExperimentRoot
-                                .resolve(LSMExperimentConstants.AQL_DIR).resolve("worldcup/dump_data.aql"))))
-                        .toString();
-                for (int i = 0; i < getFieldNames().length; i++) {
-                    if (getFieldNames()[i].equals(fieldName)) {
-                        aql = aql.replaceAll("FIELD_MIN", fieldMinimums.get(i));
-                        aql = aql.replaceAll("FIELD_MAX", fieldMaximum.get(i));
-                        aql = aql.replaceAll("FIELD", fieldName);
-                        performAqlAction(aql);
-                        break;
-                    }
-                }
-            }
-
-        };
+    public IAction getDataDumpAction(OutputStream outputStream, String fieldName) {
+        return new LogAction("Dumping data is skipped");
     }
 
     @Override

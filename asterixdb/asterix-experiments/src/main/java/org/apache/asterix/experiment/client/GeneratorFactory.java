@@ -175,7 +175,7 @@ public class GeneratorFactory {
         switch (type) {
             case InsertOnly:
             case Varying:
-                return new StatisticsQueryGenerator(s, (StatisticsQueryGeneratorConfig) config, threadsNum, outputFos,
+                return new StatisticsRangeQueryGenerator(s, (StatisticsRangeQueryGeneratorConfig) config, threadsNum, outputFos,
                         httpClient);
             case WorldCup:
                 return new WorldCupQueryGenerator(s, (WorldCupQueryGeneratorConfig) config, threadsNum, outputFos,

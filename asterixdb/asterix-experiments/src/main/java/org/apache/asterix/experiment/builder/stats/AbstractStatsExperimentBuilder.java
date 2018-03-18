@@ -150,8 +150,10 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
 
     @Override
     protected void createIndexes(ActionList execs) throws IOException {
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getIndexDDL())));
+        if (getIndexDDL() != null) {
+            execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
+                    localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getIndexDDL())));
+        }
     }
 
     protected List<Pair<String, String>> flattenDgens() {

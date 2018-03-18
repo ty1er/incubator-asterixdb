@@ -47,7 +47,6 @@ import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.AbstractRemoteExecutableAction;
 import org.apache.asterix.experiment.action.derived.ForceFlushDatasetAction;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.ManagixActions;
 import org.apache.asterix.experiment.action.derived.ManagixActions.CreateAsterixManagixAction;
 import org.apache.asterix.experiment.action.derived.ManagixActions.DeleteAsterixManagixAction;
 import org.apache.asterix.experiment.action.derived.ManagixActions.StopAsterixManagixAction;
@@ -159,10 +158,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     }
 
     protected void doPost(ActionList execs) throws IOException {
-        execs.addLast(new SleepAction(1000));
-        //collect logs form the instance
-        execs.addLast(
-                new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, logDir.toString()));
     }
 
     protected abstract ActionList loadData(ActionList dgenActions) throws IOException;
@@ -375,7 +370,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
         cluster = (Cluster) unmarshaller.unmarshal(file);
 
-        new File(logDir.toString()).mkdirs();
         //applying experiment actions last to first
         assembleExperiment(execs);
         measureIO(execs);

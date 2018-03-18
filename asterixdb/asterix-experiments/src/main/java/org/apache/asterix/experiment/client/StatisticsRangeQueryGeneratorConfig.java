@@ -21,7 +21,7 @@ package org.apache.asterix.experiment.client;
 
 import org.kohsuke.args4j.Option;
 
-public class StatisticsQueryGeneratorConfig extends QueryGeneratorConfig {
+public class StatisticsRangeQueryGeneratorConfig extends QueryGeneratorConfig {
 
     @Option(name = "-rl", aliases = "--range-length", usage = "The range for fix-sized range queries")
     private int rangeLength;

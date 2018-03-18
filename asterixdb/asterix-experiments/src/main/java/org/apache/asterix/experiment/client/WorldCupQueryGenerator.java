@@ -18,8 +18,6 @@
  */
 package org.apache.asterix.experiment.client;
 
-import static org.apache.asterix.experiment.client.StatisticsQueryGenerator.getIntType;
-
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;

@@ -34,7 +34,7 @@ import org.apache.asterix.experiment.client.numgen.DistributionType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class StatisticsQueryGenerator extends QueryGenerator {
+public class StatisticsRangeQueryGenerator extends QueryGenerator {
 
     private static final Logger LOGGER = Logger.getLogger(QueryGenerator.class.getName());
 
@@ -43,7 +43,7 @@ public class StatisticsQueryGenerator extends QueryGenerator {
     private long upperBound;
     private long lowerBound;
 
-    public StatisticsQueryGenerator(Semaphore sem, StatisticsQueryGeneratorConfig config, int threadsNum,
+    public StatisticsRangeQueryGenerator(Semaphore sem, StatisticsRangeQueryGeneratorConfig config, int threadsNum,
             FileOutputStream outputFos, CloseableHttpClient httpClient) {
         super(sem, config, threadsNum, outputFos, httpClient);
         rangeType = config.getRangeType();
@@ -57,7 +57,7 @@ public class StatisticsQueryGenerator extends QueryGenerator {
     }
 
     protected void sendQuery() throws IOException {
-        SequentialActionList seq = new SequentialActionList();
+        SequentialActionList seq = new SequentialActionList("rangeQuery");
         //create action
         ByteArrayOutputStream tmpBuffer = new ByteArrayOutputStream();
         for (int i = 1; i <= NUM_BTREE_EXTRA_FIELDS; i++) {
@@ -65,7 +65,7 @@ public class StatisticsQueryGenerator extends QueryGenerator {
             Pair<Long, Long> range = rangeGens[(i - 1) / 3].getNextRange();
 
             IAction rangeQueryAction = new RunPlanAQLStringAction(httpClient, restHost, restPort,
-                    getQueryAQL(range, "btree-extra-field" + i), tmpBuffer);
+                    rangeQueryAQL(range, "btree-extra-field" + i), tmpBuffer);
             seq.addLast(rangeQueryAction);
             seq.addLast(new IAction() {
                 @Override
@@ -91,18 +91,7 @@ public class StatisticsQueryGenerator extends QueryGenerator {
         }
     }
 
-    public static String getIntType(long upperBound, long lowerBound) {
-        if (upperBound <= Byte.MAX_VALUE && lowerBound >= Byte.MIN_VALUE)
-            return "int8";
-        else if (upperBound <= Short.MAX_VALUE && lowerBound >= Short.MIN_VALUE)
-            return "int16";
-        else if (upperBound <= Integer.MAX_VALUE && lowerBound >= Integer.MIN_VALUE)
-            return "int32";
-        else
-            return "int64";
-    }
-
-    private String getQueryAQL(Pair<Long, Long> range, String fieldName) {
+    private String rangeQueryAQL(Pair<Long, Long> range, String fieldName) {
         StringBuilder sb = new StringBuilder();
         sb.append("use dataverse experiments; ");
         sb.append("count( ");

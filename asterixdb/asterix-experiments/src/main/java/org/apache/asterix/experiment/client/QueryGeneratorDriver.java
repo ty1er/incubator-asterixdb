@@ -44,7 +44,7 @@ public class QueryGeneratorDriver {
             switch (type) {
                 case InsertOnly:
                 case Varying:
-                    config = new StatisticsQueryGeneratorConfig();
+                    config = new StatisticsRangeQueryGeneratorConfig();
                     break;
                 case WorldCup:
                     config = new WorldCupQueryGeneratorConfig();

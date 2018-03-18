@@ -19,6 +19,7 @@
 
 package org.apache.asterix.experiment.builder.stats;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -31,7 +32,9 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.apache.asterix.experiment.action.base.ActionList;
+import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.derived.AbstractLocalExecutableAction;
+import org.apache.asterix.experiment.action.derived.ManagixActions;
 import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -73,7 +76,10 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
 
     @Override
     protected void doPost(ActionList execs) throws IOException {
-        super.doPost(execs);
+        //collect logs form the instance
+        execs.addLast(() -> new File(logDir.toString()).mkdirs());
+        execs.addLast(
+                new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, logDir.toString()));
         // dump synopsis and dataset CDF
         for (String fieldName : getFieldNames()) {
             OutputStream synopsis_os =
@@ -125,7 +131,7 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
         return new RunAQLStringAction(httpClient, restHost, restPort, aql, outputStream, HttpUtil.ContentType.CSV);
     }
 
-    public RunAQLAction getDataDumpAction(OutputStream outputStream, String fieldName) throws IOException {
+    public IAction getDataDumpAction(OutputStream outputStream, String fieldName) throws IOException {
         String aql = StandardCharsets.UTF_8
                 .decode(ByteBuffer.wrap(Files.readAllBytes(
                         localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve("dump_data.aql"))))

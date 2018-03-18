@@ -18,13 +18,13 @@
  */
 package org.apache.asterix.experiment.client;
 
-import org.apache.http.impl.client.CloseableHttpClient;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.http.impl.client.CloseableHttpClient;
 
 public abstract class QueryGenerator implements Runnable {
     protected final Semaphore sem;
@@ -83,6 +83,18 @@ public abstract class QueryGenerator implements Runnable {
             throw new RuntimeException(t);
         } finally {
             sem.release();
+        }
+    }
+
+    protected static String getIntType(long upperBound, long lowerBound) {
+        if (upperBound <= Byte.MAX_VALUE && lowerBound >= Byte.MIN_VALUE) {
+            return "int8";
+        } else if (upperBound <= Short.MAX_VALUE && lowerBound >= Short.MIN_VALUE) {
+            return "int16";
+        } else if (upperBound <= Integer.MAX_VALUE && lowerBound >= Integer.MIN_VALUE) {
+            return "int32";
+        } else {
+            return "int64";
         }
     }
 
