@@ -166,12 +166,12 @@ public class MetadataLockUtil {
     }
 
     public static void insertStatisticsBegin(IMetadataLockManager lockMgr, LockList locks, String statisticsDataset,
-            String dataverseName, String datasetName, String indexName, String nodeName, String partitionId,
-            boolean isAntimatter) throws AsterixException {
+            String dataverseName, String datasetName, String indexName, String fieldName, String nodeName,
+            String partitionId, boolean isAntimatter) throws AsterixException {
         lockMgr.acquireDataverseReadLock(locks, statisticsDataset);
         lockMgr.acquireDatasetModifyLock(locks, dataverseName + "." + datasetName);
-        lockMgr.acquireStatisticsWriteLock(locks, dataverseName, datasetName, indexName, nodeName, partitionId,
-                isAntimatter);
+        lockMgr.acquireStatisticsWriteLock(locks, dataverseName, datasetName, indexName, fieldName, nodeName,
+                partitionId, isAntimatter);
     }
 
 }

@@ -215,9 +215,9 @@ public class MetadataLockManager implements IMetadataLockManager {
 
     @Override
     public void acquireStatisticsWriteLock(LockList locks, String dataverse, String dataset, String indexName,
-            String nodeName, String partitionId, boolean isAntimatter) throws AsterixException {
-        String key = STATISTICS_PREFIX + dataset + DELIMITER + indexName + DELIMITER + nodeName + DELIMITER
-                + partitionId + DELIMITER + isAntimatter;
+            String fieldName, String nodeName, String partitionId, boolean isAntimatter) throws AsterixException {
+        String key = STATISTICS_PREFIX + dataset + DELIMITER + indexName + DELIMITER + fieldName + DELIMITER + nodeName
+                + DELIMITER + partitionId + DELIMITER + isAntimatter;
         IMetadataLock lock = mdlocks.computeIfAbsent(key, LOCK_FUNCTION);
         locks.add(IMetadataLock.Mode.WRITE, lock);
     }

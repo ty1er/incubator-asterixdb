@@ -75,8 +75,8 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
     public void handle(ICcApplicationContext cs) throws HyracksDataException, InterruptedException {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this + "] message for idx ["
-                    + dataverse + "." + dataset + "." + field + "] received from the node=" + node + ", partition="
-                    + partition + ",componentId=" + componentId);
+                    + dataverse + "." + dataset + "." + index + "." + field + "] received from the node=" + node
+                    + ", partition=" + partition + ",componentId=" + componentId);
         }
         boolean bActiveTxn = false;
         MetadataProvider mdProvider = new MetadataProvider(cs, null);
@@ -87,7 +87,8 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
             mdProvider.setMetadataTxnContext(mdTxnCtx);
             bActiveTxn = true;
             MetadataLockUtil.insertStatisticsBegin(cs.getMetadataLockManager(), mdProvider.getLocks(),
-                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, field, node, partition, isAntimatter);
+                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, index, field, node, partition,
+                    isAntimatter);
             insertDeleteStats(mdTxnCtx, dataverse, dataset, index, field, node, partition, componentId, isAntimatter,
                     synopsis, true);
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -117,7 +118,7 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
             MetadataManager.INSTANCE.addStatistics(mdTxnCtx, new Statistics(dataverseName, datasetName, indexName,
                     fieldName, node, partition, componentId, false, isAntimatter, synopsis));
         } else {
-            MetadataManager.INSTANCE.dropStatistics(mdTxnCtx, dataverseName, datasetName, fieldName, indexName, node,
+            MetadataManager.INSTANCE.dropStatistics(mdTxnCtx, dataverseName, datasetName, indexName, fieldName, node,
                     partition, componentId, isAntimatter);
         }
     }

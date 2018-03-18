@@ -59,8 +59,8 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
     public void handle(ICcApplicationContext cs) throws HyracksDataException, InterruptedException {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this + "] message for idx ["
-                    + dataverse + "." + dataset + "." + field + "] received from the node=" + node + ", partition="
-                    + partition + ",componentId=" + componentId);
+                    + dataverse + "." + dataset + "." + index + "." + field + "] received from the node=" + node
+                    + ", partition=" + partition + ",componentId=" + componentId);
         }
         boolean bActiveTxn = false;
         MetadataProvider mdProvider = new MetadataProvider(cs, null);
@@ -71,7 +71,8 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
             mdProvider.setMetadataTxnContext(mdTxnCtx);
             bActiveTxn = true;
             MetadataLockUtil.insertStatisticsBegin(cs.getMetadataLockManager(), mdProvider.getLocks(),
-                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, field, node, partition, isAntimatter);
+                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, index, field, node, partition,
+                    isAntimatter);
 
             // delete old stats. Even if the new stats are empty we need to invalidate earlier synopses
             for (ComponentStatisticsId mergedComponentId : mergeComponentIds) {

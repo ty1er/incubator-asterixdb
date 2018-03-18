@@ -326,5 +326,5 @@ public interface IMetadataLockManager {
      *             if lock couldn't be acquired
      */
     void acquireStatisticsWriteLock(LockList locks, String dataverse, String dataset, String indexName, String nodeName,
-            String partitionId, boolean isAntimatter) throws AsterixException;
+            String fieldName, String partitionId, boolean isAntimatter) throws AsterixException;
 }
