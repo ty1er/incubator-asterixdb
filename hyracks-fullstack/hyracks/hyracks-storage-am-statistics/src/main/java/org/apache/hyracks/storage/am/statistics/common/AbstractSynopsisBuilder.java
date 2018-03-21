@@ -22,11 +22,12 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
-public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? extends ISynopsisElement>>
+public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISynopsisElement<V>>, V>
         implements ISynopsisBuilder {
 
     protected boolean isEmpty = true;
@@ -37,12 +38,12 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
     private final String index;
     private final String field;
     protected final boolean isAntimatter;
-    private final IFieldExtractor fieldExtractor;
+    private final IFieldExtractor<V> fieldExtractor;
     private final ComponentStatistics componentStatistics;
     private long numTuples = 0L;
 
     public AbstractSynopsisBuilder(T synopsis, String dataverse, String dataset, String index, String field,
-            boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics) {
+            boolean isAntimatter, IFieldExtractor<V> fieldExtractor, ComponentStatistics componentStatistics) {
         this.synopsis = synopsis;
         this.dataverse = dataverse;
         this.dataset = dataset;
@@ -65,7 +66,7 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
     @Override
     public void add(ITupleReference tuple) throws HyracksDataException {
         numTuples++;
-        long value = fieldExtractor.extractFieldValue(tuple);
+        V value = fieldExtractor.extractFieldValue(tuple);
         addValue(value);
         isEmpty = false;
     }
@@ -84,7 +85,12 @@ public abstract class AbstractSynopsisBuilder<T extends AbstractSynopsis<? exten
         }
     }
 
-    public abstract void addValue(long value);
+    @Override
+    public void abort() throws HyracksDataException {
+        //Noop
+    }
+
+    public abstract void addValue(V value);
 
     public abstract void finishSynopsisBuild() throws HyracksDataException;
 }

@@ -23,6 +23,6 @@ import java.io.Serializable;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 
-public interface IFieldExtractor extends Serializable {
-    long extractFieldValue(ITupleReference tuple) throws HyracksDataException;
+public interface IFieldExtractor<T> extends Serializable {
+    T extractFieldValue(ITupleReference tuple) throws HyracksDataException;
 }

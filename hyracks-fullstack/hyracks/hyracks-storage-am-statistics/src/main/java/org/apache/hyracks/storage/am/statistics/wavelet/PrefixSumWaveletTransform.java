@@ -28,7 +28,7 @@ import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.util.objectpool.IObjectFactory;
 import org.apache.hyracks.util.objectpool.MapObjectPool;
 
-public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
+public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis, Long> {
     private final Stack<WaveletCoefficient> avgStack;
     private MapObjectPool<WaveletCoefficient, Integer> avgStackObjectPool;
     protected long transformPosition;
@@ -164,7 +164,7 @@ public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSy
     }
 
     @Override
-    public void addValue(long tuplePosition) {
+    public void addValue(Long tuplePosition) {
         // check whether tuple with this position was already seen
         if (transformPosition != tuplePosition) {
             transformTuple(transformPosition, prefixSumFrequency, transformFrequency);
@@ -188,9 +188,5 @@ public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSy
         avgStackObjectPool.deallocate(topCoeff.getLevel(), topCoeff);
 
         synopsis.createBinaryPreorder();
-    }
-
-    @Override
-    public void abort() throws HyracksDataException {
     }
 }

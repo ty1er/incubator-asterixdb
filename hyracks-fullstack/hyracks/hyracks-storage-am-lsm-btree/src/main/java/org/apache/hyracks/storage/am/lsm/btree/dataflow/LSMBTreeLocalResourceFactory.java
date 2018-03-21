@@ -24,12 +24,12 @@ import org.apache.hyracks.api.dataflow.value.IBinaryComparatorFactory;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.io.FileReference;
 import org.apache.hyracks.storage.am.common.api.IMetadataPageManagerFactory;
-import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManagerProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallbackFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationSchedulerProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManagerProvider;
 import org.apache.hyracks.storage.am.lsm.common.api.IVirtualBufferCacheProvider;
 import org.apache.hyracks.storage.am.lsm.common.dataflow.LsmResource;
 import org.apache.hyracks.storage.am.lsm.common.dataflow.LsmResourceFactory;
@@ -42,8 +42,8 @@ public class LSMBTreeLocalResourceFactory extends LsmResourceFactory {
     protected final double bloomFilterFalsePositiveRate;
     protected final boolean isPrimary;
     protected final int[] btreeFields;
-    private final IStatisticsFactory statisticsFactory;
-    private final IStatisticsManagerProvider statisticsMessageProvider;
+    protected final IStatisticsFactory statisticsFactory;
+    protected final IStatisticsManagerProvider statisticsManagerProvider;
 
     public LSMBTreeLocalResourceFactory(IStorageManager storageManager, ITypeTraits[] typeTraits,
             IBinaryComparatorFactory[] cmpFactories, ITypeTraits[] filterTypeTraits,
@@ -53,7 +53,7 @@ public class LSMBTreeLocalResourceFactory extends LsmResourceFactory {
             ILSMIOOperationSchedulerProvider ioSchedulerProvider, ILSMMergePolicyFactory mergePolicyFactory,
             Map<String, String> mergePolicyProperties, boolean durable, int[] bloomFilterKeyFields,
             double bloomFilterFalsePositiveRate, boolean isPrimary, int[] btreeFields,
-            IStatisticsFactory statisticsFactory, IStatisticsManagerProvider statisticsMessageProvider) {
+            IStatisticsFactory statisticsFactory, IStatisticsManagerProvider statisticsManagerProvider) {
         super(storageManager, typeTraits, cmpFactories, filterTypeTraits, filterCmpFactories, filterFields,
                 opTrackerFactory, ioOpCallbackFactory, metadataPageManagerFactory, vbcProvider, ioSchedulerProvider,
                 mergePolicyFactory, mergePolicyProperties, durable);
@@ -62,7 +62,7 @@ public class LSMBTreeLocalResourceFactory extends LsmResourceFactory {
         this.isPrimary = isPrimary;
         this.btreeFields = btreeFields;
         this.statisticsFactory = statisticsFactory;
-        this.statisticsMessageProvider = statisticsMessageProvider;
+        this.statisticsManagerProvider = statisticsManagerProvider;
     }
 
     @Override
@@ -71,6 +71,6 @@ public class LSMBTreeLocalResourceFactory extends LsmResourceFactory {
                 isPrimary, fileRef.getRelativePath(), storageManager, mergePolicyFactory, mergePolicyProperties,
                 filterTypeTraits, filterCmpFactories, btreeFields, filterFields, opTrackerProvider, ioOpCallbackFactory,
                 metadataPageManagerFactory, vbcProvider, ioSchedulerProvider, durable, statisticsFactory,
-                statisticsMessageProvider);
+                statisticsManagerProvider);
     }
 }

@@ -20,7 +20,7 @@ package org.apache.hyracks.storage.am.statistics.historgram;
 
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 
-public class HistogramBucket implements ISynopsisElement {
+public class HistogramBucket implements ISynopsisElement<Long> {
 
     private static final long serialVersionUID = 1L;
 
@@ -41,7 +41,7 @@ public class HistogramBucket implements ISynopsisElement {
     }
 
     @Override
-    public long getKey() {
+    public Long getKey() {
         return rightBorder;
     }
 

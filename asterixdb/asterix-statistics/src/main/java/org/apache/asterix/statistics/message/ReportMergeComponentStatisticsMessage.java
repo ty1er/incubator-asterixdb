@@ -43,7 +43,7 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
 
     protected List<ComponentStatisticsId> mergeComponentIds;
 
-    public ReportMergeComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement> synopsis, String dataverse,
+    public ReportMergeComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement<Long>> synopsis, String dataverse,
             String dataset, String index, String field, String node, String partition,
             ComponentStatisticsId newComponentId, boolean isAntimatter,
             List<ComponentStatisticsId> mergeComponentsIds) {

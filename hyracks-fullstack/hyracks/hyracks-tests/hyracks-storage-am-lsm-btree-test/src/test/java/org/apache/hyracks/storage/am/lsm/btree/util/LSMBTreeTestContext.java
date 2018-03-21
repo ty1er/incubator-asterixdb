@@ -39,6 +39,8 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallbackFacto
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationScheduler;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicy;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTracker;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.IVirtualBufferCache;
 import org.apache.hyracks.storage.common.buffercache.IBufferCache;
 import org.apache.hyracks.util.trace.ITraceCategoryRegistry;
@@ -79,7 +81,8 @@ public final class LSMBTreeTestContext extends OrderedIndexTestContext {
             double bloomFilterFalsePositiveRate, ILSMMergePolicy mergePolicy, ILSMOperationTracker opTracker,
             ILSMIOOperationScheduler ioScheduler, ILSMIOOperationCallbackFactory ioOpCallbackFactory,
             IMetadataPageManagerFactory metadataPageManagerFactory, boolean filtered, boolean needKeyDupCheck,
-            boolean updateAware) throws HyracksDataException {
+            boolean updateAware, IStatisticsFactory statisticsFactory, IStatisticsManager statisticsManager)
+            throws HyracksDataException {
         ITypeTraits[] typeTraits = SerdeUtils.serdesToTypeTraits(fieldSerdes);
         IBinaryComparatorFactory[] cmpFactories = SerdeUtils.serdesToComparatorFactories(fieldSerdes, numKeyFields);
         int[] bloomFilterKeyFields = new int[numKeyFields];
@@ -99,14 +102,16 @@ public final class LSMBTreeTestContext extends OrderedIndexTestContext {
             lsmTree = LSMBTreeUtil.createLSMTree(ioManager, virtualBufferCaches, file, diskBufferCache, typeTraits,
                     cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate, mergePolicy, opTracker,
                     ioScheduler, ioOpCallbackFactory, needKeyDupCheck, filterTypeTraits, filterCmp, btreefields,
-                    filterfields, true, metadataPageManagerFactory, updateAware, ITracer.NONE, null, null);
+                    filterfields, true, metadataPageManagerFactory, updateAware, ITracer.NONE, statisticsFactory,
+                    statisticsManager);
         } else {
             lsmTree = LSMBTreeUtil.createLSMTree(ioManager, virtualBufferCaches, file, diskBufferCache, typeTraits,
                     cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate, mergePolicy, opTracker,
                     ioScheduler, ioOpCallbackFactory, needKeyDupCheck, null, null, null, null, true,
-                    metadataPageManagerFactory, updateAware, new Tracer(LSMBTreeTestContext.class.getSimpleName(),
+                    metadataPageManagerFactory,
+                    updateAware, new Tracer(LSMBTreeTestContext.class.getSimpleName(),
                             ITraceCategoryRegistry.CATEGORIES_ALL, new TraceCategoryRegistry()),
-                    null, null);
+                    statisticsFactory, statisticsManager);
         }
         LSMBTreeTestContext testCtx = new LSMBTreeTestContext(fieldSerdes, lsmTree, filtered);
         return testCtx;

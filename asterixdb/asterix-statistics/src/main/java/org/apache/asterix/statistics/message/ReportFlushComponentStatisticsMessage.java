@@ -42,7 +42,7 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
     private static final long serialVersionUID = 1L;
     private final static Logger LOGGER = Logger.getLogger(ReportFlushComponentStatisticsMessage.class.getName());
 
-    protected ISynopsis<? extends ISynopsisElement> synopsis;
+    protected ISynopsis<? extends ISynopsisElement<Long>> synopsis;
     protected String dataverse;
     protected String dataset;
     protected String index;
@@ -52,7 +52,7 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
     protected boolean isAntimatter;
     protected ComponentStatisticsId componentId;
 
-    public ReportFlushComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement> synopsis, String dataverse,
+    public ReportFlushComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement<Long>> synopsis, String dataverse,
             String dataset, String index, String field, String node, String partition,
             ComponentStatisticsId componentId, boolean isAntimatter) {
         this.synopsis = synopsis;
@@ -112,7 +112,7 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
 
     protected void insertDeleteStats(MetadataTransactionContext mdTxnCtx, String dataverseName, String datasetName,
             String indexName, String fieldName, String node, String partition, ComponentStatisticsId componentId,
-            boolean isAntimatter, ISynopsis<? extends ISynopsisElement> synopsis, boolean isInsert)
+            boolean isAntimatter, ISynopsis<? extends ISynopsisElement<Long>> synopsis, boolean isInsert)
             throws AlgebricksException {
         if (isInsert) {
             MetadataManager.INSTANCE.addStatistics(mdTxnCtx, new Statistics(dataverseName, datasetName, indexName,

@@ -20,13 +20,13 @@
  */
 package org.apache.hyracks.storage.am.lsm.common.api;
 
+import java.io.Serializable;
+
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.dataflow.common.data.marshalling.DoubleSerializerDeserializer;
 import org.apache.hyracks.dataflow.common.data.marshalling.Integer64SerializerDeserializer;
 
-import java.io.Serializable;
-
-public interface ISynopsisElement extends Serializable {
+public interface ISynopsisElement<T> extends Serializable {
 
     final static int SYNOPSIS_KEY_SIZE = Long.BYTES;
     final static int SYNOPSIS_VALUE_SIZE = Double.BYTES;
@@ -36,7 +36,7 @@ public interface ISynopsisElement extends Serializable {
     @SuppressWarnings("rawtypes")
     final ISerializerDeserializer SYNOPSIS_VALUE_SERDE = DoubleSerializerDeserializer.INSTANCE;
 
-    long getKey();
+    T getKey();
 
     double getValue();
 

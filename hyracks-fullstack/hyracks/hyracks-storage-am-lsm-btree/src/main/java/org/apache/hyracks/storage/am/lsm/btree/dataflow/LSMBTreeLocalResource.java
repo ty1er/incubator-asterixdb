@@ -49,8 +49,8 @@ public class LSMBTreeLocalResource extends LsmResource {
     protected final double bloomFilterFalsePositiveRate;
     protected final boolean isPrimary;
     protected final int[] btreeFields;
-    private final IStatisticsFactory statisticsFactory;
-    private final IStatisticsManagerProvider statisticsManagerProvider;
+    protected final IStatisticsFactory statisticsFactory;
+    protected final IStatisticsManagerProvider statisticsManagerProvider;
 
     public LSMBTreeLocalResource(ITypeTraits[] typeTraits, IBinaryComparatorFactory[] cmpFactories,
             int[] bloomFilterKeyFields, double bloomFilterFalsePositiveRate, boolean isPrimary, String path,
@@ -60,7 +60,7 @@ public class LSMBTreeLocalResource extends LsmResource {
             ILSMOperationTrackerFactory opTrackerProvider, ILSMIOOperationCallbackFactory ioOpCallbackFactory,
             IMetadataPageManagerFactory metadataPageManagerFactory, IVirtualBufferCacheProvider vbcProvider,
             ILSMIOOperationSchedulerProvider ioSchedulerProvider, boolean durable, IStatisticsFactory statisticsFactory,
-            IStatisticsManagerProvider statisticsMessageProvider) {
+            IStatisticsManagerProvider statisticsManagerProvider) {
         super(path, storageManager, typeTraits, cmpFactories, filterTypeTraits, filterCmpFactories, filterFields,
                 opTrackerProvider, ioOpCallbackFactory, metadataPageManagerFactory, vbcProvider, ioSchedulerProvider,
                 mergePolicyFactory, mergePolicyProperties, durable);
@@ -69,7 +69,7 @@ public class LSMBTreeLocalResource extends LsmResource {
         this.isPrimary = isPrimary;
         this.btreeFields = btreeFields;
         this.statisticsFactory = statisticsFactory;
-        this.statisticsManagerProvider = statisticsMessageProvider;
+        this.statisticsManagerProvider = statisticsManagerProvider;
     }
 
     @Override

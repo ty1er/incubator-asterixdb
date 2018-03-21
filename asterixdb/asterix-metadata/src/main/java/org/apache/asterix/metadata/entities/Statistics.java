@@ -62,11 +62,11 @@ public class Statistics implements IMetadataEntity {
 
     private final ComponentStatisticsId componentID;
     private final boolean temp;
-    private final ISynopsis<? extends ISynopsisElement> synopsis;
+    private final ISynopsis<? extends ISynopsisElement<Long>> synopsis;
 
     public Statistics(String dataverse, String dataset, String index, String field, String node, String partition,
             ComponentStatisticsId componentID, boolean temp, boolean isAntimatter,
-            ISynopsis<? extends ISynopsisElement> synopsis) {
+            ISynopsis<? extends ISynopsisElement<Long>> synopsis) {
         this.dataverse = dataverse;
         this.dataset = dataset;
         this.index = index;
@@ -115,7 +115,7 @@ public class Statistics implements IMetadataEntity {
         return isAntimatter;
     }
 
-    public ISynopsis<? extends ISynopsisElement> getSynopsis() {
+    public ISynopsis<? extends ISynopsisElement<Long>> getSynopsis() {
         return synopsis;
     }
 

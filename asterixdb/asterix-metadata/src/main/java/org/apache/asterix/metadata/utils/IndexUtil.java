@@ -31,13 +31,16 @@ import org.apache.asterix.common.exceptions.CompilationException;
 import org.apache.asterix.common.exceptions.ErrorCode;
 import org.apache.asterix.common.transactions.TxnId;
 import org.apache.asterix.external.indexing.ExternalFile;
+import org.apache.asterix.formats.nontagged.SerializerDeserializerProvider;
 import org.apache.asterix.metadata.declared.MetadataProvider;
 import org.apache.asterix.metadata.entities.Dataset;
 import org.apache.asterix.metadata.entities.Index;
 import org.apache.asterix.metadata.entities.InternalDatasetDetails;
+import org.apache.asterix.om.types.IAType;
 import org.apache.asterix.runtime.job.listener.JobEventListenerFactory;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.rewriter.base.PhysicalOptimizationConfig;
+import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.job.IJobletEventListenerFactory;
 import org.apache.hyracks.api.job.JobSpecification;
@@ -100,6 +103,21 @@ public class IndexUtil {
             keyTypeTraits.add(recordTypeTraits[keyPositions[i]]);
         }
         return keyTypeTraits;
+    }
+
+    public static ISerializerDeserializer[] getBtreeKeySerializersDeserializers(Dataset dataset, Index index)
+            throws AlgebricksException {
+        ISerializerDeserializer[] serdes;
+        if (index.isPrimaryIndex()) {
+            serdes = new ISerializerDeserializer[dataset.getPrimaryKeys().size()];
+        } else {
+            serdes = new ISerializerDeserializer[index.getKeyFieldNames().size()];
+            int i = 0;
+            for (IAType fieldType : index.getKeyFieldTypes()) {
+                serdes[i++] = SerializerDeserializerProvider.INSTANCE.getNonTaggedSerializerDeserializer(fieldType);
+            }
+        }
+        return serdes;
     }
 
     private static int[] secondaryFilterFields(Dataset dataset, Index index, ITypeTraits[] filterTypeTraits)

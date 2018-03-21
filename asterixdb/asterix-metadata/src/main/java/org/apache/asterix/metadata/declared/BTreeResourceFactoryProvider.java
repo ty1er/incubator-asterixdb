@@ -48,6 +48,7 @@ import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.data.IBinaryComparatorFactoryProvider;
 import org.apache.hyracks.algebricks.data.ITypeTraitProvider;
 import org.apache.hyracks.api.dataflow.value.IBinaryComparatorFactory;
+import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.common.api.IMetadataPageManagerFactory;
@@ -59,11 +60,10 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationSchedulerProv
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMOperationTrackerFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
+import org.apache.hyracks.storage.am.statistics.common.FieldExtractor;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.common.StatisticsCollectorFactory;
-import org.apache.hyracks.storage.am.statistics.common.TupleFieldExtractor;
 import org.apache.hyracks.storage.common.IResourceFactory;
 import org.apache.hyracks.storage.common.IStorageManager;
 
@@ -135,10 +135,9 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
             List<IFieldExtractor> statisticsFieldExtractors = new ArrayList<>();
             if (indexKeyFieldIds.length == 1) {
                 statisticsTypeTraits.addAll(IndexUtil.getSecondaryKeyTypeTraits(indexKeyFieldIds, typeTraits));
+                ISerializerDeserializer[] indexSerdes = IndexUtil.getBtreeKeySerializersDeserializers(dataset, index);
                 for (int indexKeyFieldId : indexKeyFieldIds) {
-                    statisticsFieldExtractors.add(new TupleFieldExtractor(
-                            AqlOrdinalPrimitiveValueProviderFactory.INSTANCE.createOrdinalPrimitiveValueProvider(),
-                            indexKeyFieldId));
+                    statisticsFieldExtractors.add(new FieldExtractor(indexSerdes, indexKeyFieldId));
                 }
             }
             // check statistics hint

@@ -26,7 +26,7 @@ import java.util.Objects;
 import org.apache.hyracks.data.std.primitive.DoublePointable;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 
-public class WaveletCoefficient implements ISynopsisElement {
+public class WaveletCoefficient implements ISynopsisElement<Long> {
 
     private static final long serialVersionUID = 1L;
 
@@ -74,7 +74,7 @@ public class WaveletCoefficient implements ISynopsisElement {
     }
 
     @Override
-    public long getKey() {
+    public Long getKey() {
         return index;
     }
 

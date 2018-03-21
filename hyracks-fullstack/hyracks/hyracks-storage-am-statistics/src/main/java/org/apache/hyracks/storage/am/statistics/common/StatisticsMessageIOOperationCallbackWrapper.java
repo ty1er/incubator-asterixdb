@@ -29,12 +29,12 @@ import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 
 public class StatisticsMessageIOOperationCallbackWrapper implements ILSMIOOperationCallback {
     private final ILSMIOOperationCallback wrapperIOOpCallback;
-    private final IStatisticsManager statisticsMessageManager;
+    private final IStatisticsManager statisticsManager;
 
     public StatisticsMessageIOOperationCallbackWrapper(ILSMIOOperationCallback wrapperIOOpCallback,
-            IStatisticsManager statisticsMessageManager) {
+            IStatisticsManager statisticsManager) {
         this.wrapperIOOpCallback = wrapperIOOpCallback;
-        this.statisticsMessageManager = statisticsMessageManager;
+        this.statisticsManager = statisticsManager;
     }
 
     @Override
@@ -45,10 +45,11 @@ public class StatisticsMessageIOOperationCallbackWrapper implements ILSMIOOperat
     @Override
     public void afterOperation(ILSMIndexOperationContext opCtx) throws HyracksDataException {
         wrapperIOOpCallback.afterOperation(opCtx);
-        if (opCtx.getIoOperationType() == LSMIOOperationType.FLUSH) {
-            statisticsMessageManager.sendFlushStatistics(opCtx.getNewComponent());
+        if (opCtx.getIoOperationType() == LSMIOOperationType.FLUSH
+                || opCtx.getIoOperationType() == LSMIOOperationType.LOAD) {
+            statisticsManager.sendFlushStatistics(opCtx.getNewComponent());
         } else if (opCtx.getIoOperationType() == LSMIOOperationType.MERGE) {
-            statisticsMessageManager.sendMergeStatistics(opCtx.getNewComponent(), opCtx.getComponentsToBeMerged());
+            statisticsManager.sendMergeStatistics(opCtx.getNewComponent(), opCtx.getComponentsToBeMerged());
         }
     }
 

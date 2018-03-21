@@ -27,7 +27,7 @@ import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.historgram.EquiHeightHistogramSynopsis;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 
-public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHistogramSynopsis<HistogramBucket>> {
+public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHistogramSynopsis<HistogramBucket>, Long> {
 
     private QuantileSketch<Long> sketch;
 
@@ -60,7 +60,7 @@ public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHis
     }
 
     @Override
-    public void addValue(long value) {
+    public void addValue(Long value) {
         sketch.add(value);
     }
 

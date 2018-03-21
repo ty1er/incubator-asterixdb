@@ -25,7 +25,7 @@ import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
 /// Algorithm follows "Straddling coefficients" algorithm outline, presented in "Surfing Wavelets on Streams: One-Pass
 /// Summaries for Approximate Aggregate Queries" by Gilbert et al.
-public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
+public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis, Long> {
     private long transformPosition;
     private double transformFrequency;
     private WaveletCoefficient[] straddlingCoeffs;
@@ -42,7 +42,7 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
     }
 
     @Override
-    public void addValue(long tuplePosition) {
+    public void addValue(Long tuplePosition) {
         // check whether tuple with this position was already seen
         if (transformPosition != tuplePosition && !isEmpty) {
             transformTuple(transformPosition, transformFrequency);
@@ -85,10 +85,5 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis> {
             synopsis.addElement(straddlingCoeffs[i]);
         }
         synopsis.orderByKeys();
-    }
-
-    @Override
-    public void abort() throws HyracksDataException {
-        //Noop
     }
 }

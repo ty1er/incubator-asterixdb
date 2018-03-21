@@ -25,7 +25,6 @@ import java.util.PriorityQueue;
 
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 import org.apache.hyracks.storage.am.statistics.historgram.ContinuousHistogramSynopsis;
@@ -39,9 +38,9 @@ import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 
 public class SynopsisFactory {
     @SuppressWarnings("unchecked")
-    public static ISynopsis<? extends ISynopsisElement> createSynopsis(SynopsisType type, ITypeTraits keyTypeTraits,
-            Collection<? extends ISynopsisElement> synopsisElements, long synopsisElementsNum, int synopsisSize)
-            throws HyracksDataException {
+    public static AbstractSynopsis<? extends ISynopsisElement<Long>> createSynopsis(SynopsisType type,
+            ITypeTraits keyTypeTraits, Collection<? extends ISynopsisElement> synopsisElements,
+            long synopsisElementsNum, int synopsisSize) throws HyracksDataException {
         long domainStart = TypeTraitsDomainUtils.minDomainValue(keyTypeTraits);
         long domainEnd = TypeTraitsDomainUtils.maxDomainValue(keyTypeTraits);
         int maxLevel = TypeTraitsDomainUtils.maxLevel(keyTypeTraits);
@@ -75,7 +74,7 @@ public class SynopsisFactory {
             case UniformHistogram:
             case ContinuousHistogram:
             case EquiWidthHistogram:
-                elements = new ArrayList<HistogramBucket>(elementsNum);
+                elements = new ArrayList<>(elementsNum);
                 break;
             case Wavelet:
             case PrefixSumWavelet:

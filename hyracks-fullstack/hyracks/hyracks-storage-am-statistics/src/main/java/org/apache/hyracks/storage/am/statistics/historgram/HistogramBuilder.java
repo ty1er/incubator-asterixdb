@@ -23,7 +23,7 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
-public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<? extends HistogramBucket>> {
+public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<? extends HistogramBucket>, Long> {
 
     private int activeBucket;
     private int activeBucketElementsNum;
@@ -39,7 +39,7 @@ public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<
     }
 
     @Override
-    public void addValue(long currTuplePosition) {
+    public void addValue(Long currTuplePosition) {
         while (synopsis.advanceBucket(activeBucket, activeBucketElementsNum, currTuplePosition,
                 lastAddedTuplePosition)) {
             activeBucket++;
@@ -57,9 +57,4 @@ public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<
         }
         synopsis.finishBucket(activeBucket);
     }
-
-    @Override
-    public void abort() throws HyracksDataException {
-    }
-
 }

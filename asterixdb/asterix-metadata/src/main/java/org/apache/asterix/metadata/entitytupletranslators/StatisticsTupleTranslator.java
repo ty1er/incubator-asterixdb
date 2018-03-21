@@ -279,7 +279,7 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
     }
 
     private void writeSynopsisRecordType(IARecordBuilder synopsisRecordBuilder,
-            ISynopsis<? extends ISynopsisElement> synopsis, DataOutput dataOutput) throws HyracksDataException {
+            ISynopsis<? extends ISynopsisElement<Long>> synopsis, DataOutput dataOutput) throws HyracksDataException {
         OrderedListBuilder listBuilder = new OrderedListBuilder();
         ArrayBackedValueStorage itemValue = new ArrayBackedValueStorage();
         IARecordBuilder synopsisElementRecordBuilder = new RecordBuilder();
@@ -299,7 +299,7 @@ public class StatisticsTupleTranslator extends AbstractTupleTranslator<Statistic
 
         listBuilder.reset((AOrderedListType) MetadataRecordTypes.STATISTICS_SYNOPSIS_RECORDTYPE
                 .getFieldTypes()[MetadataRecordTypes.STATISTICS_SYNOPSIS_ARECORD_ELEMENTS_FIELD_INDEX]);
-        for (ISynopsisElement synopsisElement : synopsis.getElements()) {
+        for (ISynopsisElement<Long> synopsisElement : synopsis.getElements()) {
             // Skip synopsis elements with 0 value
             if (synopsisElement.getValue() != 0.0) {
                 synopsisElementRecordBuilder.reset(MetadataRecordTypes.STATISTICS_SYNOPSIS_ELEMENT_RECORDTYPE);

@@ -60,6 +60,7 @@ public class StatisticsManager implements IStatisticsManager {
     }
 
     private final INCServiceContext ncContext;
+    //TODO:refactor this to use component IDs instead
     private MultiValuedMap<ILSMDiskComponent, SynopsisEntry> synopsisMap;
     private MultiValuedMap<ILSMDiskComponent, SynopsisEntry> antimatterSynopsisMap;
 

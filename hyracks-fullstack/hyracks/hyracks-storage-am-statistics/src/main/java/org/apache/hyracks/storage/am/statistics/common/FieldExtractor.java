@@ -20,22 +20,29 @@
  */
 package org.apache.hyracks.storage.am.statistics.common;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+
+import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProvider;
 
-public class TupleFieldExtractor implements IFieldExtractor {
+public class FieldExtractor<T> implements IFieldExtractor<T> {
 
-    private final IOrdinalPrimitiveValueProvider fieldValueProvider;
-    private final int field;
+    private ISerializerDeserializer[] serdes;
+    private int fieldIdx;
 
-    public TupleFieldExtractor(IOrdinalPrimitiveValueProvider fieldValueProvider, int field) {
-        this.fieldValueProvider = fieldValueProvider;
-        this.field = field;
+    public FieldExtractor(ISerializerDeserializer[] serdes, int fieldIdx) {
+        this.serdes = serdes;
+        this.fieldIdx = fieldIdx;
     }
 
     @Override
-    public long extractFieldValue(ITupleReference tuple) throws HyracksDataException {
-        return fieldValueProvider.getOrdinalValue(tuple.getFieldData(field), tuple.getFieldStart(field));
+    public T extractFieldValue(ITupleReference tuple) throws HyracksDataException {
+        ByteArrayInputStream inStream = new ByteArrayInputStream(tuple.getFieldData(fieldIdx),
+                tuple.getFieldStart(fieldIdx), tuple.getFieldLength(fieldIdx));
+        DataInput dataIn = new DataInputStream(inStream);
+        return (T) serdes[fieldIdx].deserialize(dataIn);
     }
 }

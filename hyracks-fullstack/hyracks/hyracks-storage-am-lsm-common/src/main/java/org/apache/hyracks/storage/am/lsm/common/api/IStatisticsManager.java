@@ -28,9 +28,9 @@ public interface IStatisticsManager {
 
     void sendFlushStatistics(ILSMDiskComponent flushedComponent) throws HyracksDataException;
 
-    void sendMergeStatistics(ILSMDiskComponent newComponent, List<ILSMDiskComponent> mergedCompoments)
+    void sendMergeStatistics(ILSMDiskComponent newComponent, List<ILSMDiskComponent> mergedComponents)
             throws HyracksDataException;
 
-    void addStatistics(ISynopsis statisticsBuilder, String dataverse, String dataset, String index, String field,
+    void addStatistics(ISynopsis synopsis, String dataverse, String dataset, String index, String field,
             boolean isAntimatter, ILSMDiskComponent component);
 }
