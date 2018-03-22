@@ -65,13 +65,13 @@ public abstract class AbstractLogicalOperator implements ILogicalOperator {
     protected IPhysicalOperator physicalOperator;
     private final Map<String, Object> annotations = new HashMap<>();
     private boolean bJobGenEnabled = true;
-    protected long cardinality;
+    protected Long cardinality;
 
-    public void setCardinality(long cardinality) {
+    public void setCardinality(Long cardinality) {
         this.cardinality = cardinality;
     }
 
-    public long getCardinality() {
+    public Long getCardinality() {
         return cardinality;
     }
 

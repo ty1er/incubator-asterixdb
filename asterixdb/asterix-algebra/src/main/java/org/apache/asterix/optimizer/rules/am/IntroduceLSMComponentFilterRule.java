@@ -568,7 +568,7 @@ public class IntroduceLSMComponentFilterRule implements IAlgebraicRewriteRule {
         return false;
     }
 
-    protected static Pair<ARecordType, List<String>> getFieldNameFromSubAssignTree(IOptimizableFuncExpr optFuncExpr,
+    private Pair<ARecordType, List<String>> getFieldNameFromSubAssignTree(IOptimizableFuncExpr optFuncExpr,
             AbstractLogicalOperator op, int varIndex, ARecordType recType) {
         AbstractLogicalExpression expr = null;
         if (op.getOperatorTag() == LogicalOperatorTag.ASSIGN) {

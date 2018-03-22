@@ -680,8 +680,13 @@ public class MetadataNode implements IMetadataNode {
         try {
             Index deletedIndex = getIndex(txnId, dataverseName, datasetName, indexName);
             // Delete related entry(s) from the 'statistics' dataset.
-            List<Statistics> indexStatistics = getFullFieldStatistics(txnId, dataverseName, datasetName, indexName,
-                    String.join(".", deletedIndex.getKeyFieldNames().get(0)));
+            // TODO: allow nested & composite field names
+            String fullNestedFieldName = "";
+            for (List<String> firstField : deletedIndex.getKeyFieldNames()) {
+                fullNestedFieldName = String.join(".", firstField);
+            }
+            List<Statistics> indexStatistics =
+                    getFullFieldStatistics(txnId, dataverseName, datasetName, indexName, fullNestedFieldName);
             if (indexStatistics != null) {
                 for (Statistics stats : indexStatistics) {
                     dropStatistics(txnId, stats.getDataverseName(), stats.getDatasetName(), stats.getIndexName(),

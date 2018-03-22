@@ -183,7 +183,7 @@ public class CCApplication extends BaseCCApplication {
 
     private static void statsMergeRoutine(StatisticsMerger merger, SynopsisMergeStrategy mergeStrategy, Timer timer,
             int mergeTimeout) {
-        if (mergeStrategy == SynopsisMergeStrategy.TimeBased) {
+        if (mergeStrategy == SynopsisMergeStrategy.TimeBased && mergeTimeout > 0) {
             timer.scheduleAtFixedRate(merger, mergeTimeout, mergeTimeout);
         }
     }

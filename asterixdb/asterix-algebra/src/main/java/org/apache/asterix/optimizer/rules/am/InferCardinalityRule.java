@@ -19,6 +19,7 @@
 package org.apache.asterix.optimizer.rules.am;
 
 import static org.apache.asterix.optimizer.rules.am.BTreeAccessMethod.LimitType.EQUAL;
+import static org.apache.asterix.optimizer.rules.am.OptimizableOperatorSubTree.DataSourceType.DATASOURCE_SCAN;
 
 import java.util.List;
 
@@ -27,12 +28,10 @@ import org.apache.asterix.metadata.declared.MetadataProvider;
 import org.apache.asterix.om.base.IAIntegerObject;
 import org.apache.asterix.om.base.IAObject;
 import org.apache.asterix.om.constants.AsterixConstantValue;
-import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.hierachy.ATypeHierarchy;
 import org.apache.asterix.optimizer.rules.am.BTreeAccessMethod.LimitType;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
-import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalExpression;
 import org.apache.hyracks.algebricks.core.algebra.base.ILogicalOperator;
 import org.apache.hyracks.algebricks.core.algebra.base.IOptimizationContext;
@@ -61,13 +60,12 @@ import org.apache.hyracks.algebricks.core.rewriter.base.IAlgebraicRewriteRule;
  */
 public class InferCardinalityRule implements IAlgebraicRewriteRule {
 
-    protected OptimizableOperatorSubTree leftSubTree;
-    protected OptimizableOperatorSubTree rightSubTree;
+    private OptimizableOperatorSubTree leftSubTree;
+    private OptimizableOperatorSubTree rightSubTree;
 
-    protected boolean checkAndReturnExpr(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+    protected boolean checkAndReturnExpr(AbstractLogicalOperator op, IOptimizationContext context)
             throws AlgebricksException {
         // First check that the operator is a select or join and its condition is a function call.
-        AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
         if (context.checkIfInDontApplySet(this, op)) {
             return false;
         }
@@ -75,37 +73,45 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         if (op.getOperatorTag() == LogicalOperatorTag.SELECT || op.getOperatorTag() == LogicalOperatorTag.INNERJOIN) {
             leftSubTree = new OptimizableOperatorSubTree();
             leftSubTree.initFromSubTree(op.getInputs().get(0));
-            leftSubTree.setDatasetAndTypeMetadata(metadataProvider);
+            if (!leftSubTree.setDatasetAndTypeMetadata(metadataProvider)) {
+                return false;
+            }
         } else {
             return false;
         }
         if (op.getOperatorTag() == LogicalOperatorTag.INNERJOIN) {
             rightSubTree = new OptimizableOperatorSubTree();
-            rightSubTree.initFromSubTree(op.getInputs().get(1));
-            rightSubTree.setDatasetAndTypeMetadata(metadataProvider);
+            if (!rightSubTree.initFromSubTree(op.getInputs().get(1))) {
+                return false;
+            }
+            return rightSubTree.setDatasetAndTypeMetadata(metadataProvider);
         }
         return true;
+    }
+
+    @Override
+    public boolean rewritePre(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
+            throws AlgebricksException {
+        AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
+        if (checkAndReturnExpr(op, context)) {
+            op.setCardinality(inferCardinality(op, context));
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean rewritePost(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
             throws AlgebricksException {
         AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
-        if (checkAndReturnExpr(opRef, context)) {
-            op.setCardinality(inferCardinality(opRef, context));
+        if (op.getCardinality() == null && !op.getInputs().isEmpty()) {
+            op.setCardinality(op.getInputs().get(0).getValue().getCardinality());
             return true;
-        } else {
-            if (!opRef.getValue().getInputs().isEmpty()) {
-                op.setCardinality(opRef.getValue().getInputs().get(0).getValue().getCardinality());
-                return true;
-            }
         }
         return false;
     }
 
-    private long inferCardinality(Mutable<ILogicalOperator> opRef, IOptimizationContext context)
-            throws AlgebricksException {
-        AbstractLogicalOperator op = (AbstractLogicalOperator) opRef.getValue();
+    private long inferCardinality(AbstractLogicalOperator op, IOptimizationContext context) throws AlgebricksException {
         context.addToDontApplySet(this, op);
 
         ILogicalExpression condExpr = null;
@@ -119,17 +125,21 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         }
 
         IVariableTypeEnvironment typeEnvironment = context.getOutputTypeEnvironment(op);
-        AccessMethodAnalysisContext analysisCtx = analyzeCondition(condExpr, context, typeEnvironment);
+        AccessMethodAnalysisContext analysisCtx = new AccessMethodAnalysisContext();
+        boolean continueCheck = analyzeCondition(condExpr, context, typeEnvironment, analysisCtx);
 
-        if (analysisCtx.getMatchedFuncExprs().isEmpty()) {
+        if (!continueCheck || analysisCtx.getMatchedFuncExprs().isEmpty()) {
             return CardinalityInferenceVisitor.UNKNOWN;
         }
 
         for (int j = 0; j < analysisCtx.getMatchedFuncExprs().size(); j++) {
             IOptimizableFuncExpr optFuncExpr = analysisCtx.getMatchedFuncExpr(j);
-            fillOptimizableFuncExpr(optFuncExpr, leftSubTree);
+            boolean matched = fillOptimizableFuncExpr(optFuncExpr, leftSubTree);
             if (rightSubTree != null) {
-                fillOptimizableFuncExpr(optFuncExpr, rightSubTree);
+                matched &= fillOptimizableFuncExpr(optFuncExpr, rightSubTree);
+            }
+            if (!matched) {
+                return CardinalityInferenceVisitor.UNKNOWN;
             }
         }
 
@@ -141,28 +151,28 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         List<String> rightField = null;
         for (IOptimizableFuncExpr optFuncExpr : analysisCtx.getMatchedFuncExprs()) {
             OptimizableOperatorSubTree optSubTree = optFuncExpr.getOperatorSubTree(0);
-            ILogicalExpression expr = AccessMethodUtils.createSearchKeyExpr(false, optFuncExpr,
-                    optFuncExpr.getFieldType(0), optSubTree).first;
             LimitType limit = BTreeAccessMethod.getLimitType(optFuncExpr, optSubTree);
-            if (expr.getExpressionTag() == LogicalExpressionTag.VARIABLE) {
-                //inferring cardinality for join
+            //inferring cardinality for join
+            if (optFuncExpr.getNumLogicalVars() == 2 && optFuncExpr.getOperatorSubTree(0) != null
+                    && optFuncExpr.getOperatorSubTree(1) != null) {
+                // cannot calculate cardinality for non equi-joins
                 if (limit != EQUAL) {
-                    // cannot calculate cardinality for non equi-joins
                     return CardinalityInferenceVisitor.UNKNOWN;
                 }
+                // cannot calculate cardinality for complex (conjunctive) join conditions
                 if (leftField != null && rightField != null) {
-                    // cannot calculate cardinality for conjunctive join conditions
                     return CardinalityInferenceVisitor.UNKNOWN;
                 }
                 leftField = optFuncExpr.getFieldName(0);
                 rightField = optFuncExpr.getFieldName(1);
-            } else if (expr.getExpressionTag() == LogicalExpressionTag.CONSTANT) {
+            } else if (optFuncExpr.getNumLogicalVars() == 1) {
                 if (leftField == null) {
                     leftField = optFuncExpr.getFieldName(0);
                 } else if (!leftField.equals(optFuncExpr.getFieldName(0))) {
                     // cannot calculate cardinality for expressions on different fields
                     return CardinalityInferenceVisitor.UNKNOWN;
                 }
+                ILogicalExpression expr = optFuncExpr.getConstantExpr(0);
                 //inferring cardinality for selection
                 switch (limit) {
                     case EQUAL:
@@ -210,12 +220,14 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         return CardinalityInferenceVisitor.UNKNOWN;
     }
 
-    protected AccessMethodAnalysisContext analyzeCondition(ILogicalExpression cond, IOptimizationContext context,
-            IVariableTypeEnvironment typeEnvironment) throws AlgebricksException {
-        AccessMethodAnalysisContext analysisCtx = new AccessMethodAnalysisContext();
+    protected boolean analyzeCondition(ILogicalExpression cond, IOptimizationContext context,
+            IVariableTypeEnvironment typeEnvironment, AccessMethodAnalysisContext analysisCtx)
+            throws AlgebricksException {
         AbstractFunctionCallExpression funcExpr = (AbstractFunctionCallExpression) cond;
         FunctionIdentifier funcIdent = funcExpr.getFunctionIdentifier();
-        if (funcIdent != AlgebricksBuiltinFunctions.OR) {
+        if (funcIdent == AlgebricksBuiltinFunctions.OR) {
+            return false;
+        } else if (funcIdent == AlgebricksBuiltinFunctions.AND) {
             analyzeFunctionExpr(funcExpr, analysisCtx, context, typeEnvironment);
             for (Mutable<ILogicalExpression> arg : funcExpr.getArguments()) {
                 ILogicalExpression argExpr = arg.getValue();
@@ -224,8 +236,10 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
                 }
                 analyzeFunctionExpr((AbstractFunctionCallExpression) argExpr, analysisCtx, context, typeEnvironment);
             }
+        } else {
+            analyzeFunctionExpr(funcExpr, analysisCtx, context, typeEnvironment);
         }
-        return analysisCtx;
+        return true;
     }
 
     private void analyzeFunctionExpr(AbstractFunctionCallExpression funcExpr, AccessMethodAnalysisContext analysisCtx,
@@ -256,59 +270,63 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
 
     }
 
-    private List<String> fillOptimizableFuncExpr(IOptimizableFuncExpr optFuncExpr, OptimizableOperatorSubTree subTree)
+    private boolean fillOptimizableFuncExpr(IOptimizableFuncExpr optFuncExpr, OptimizableOperatorSubTree subTree)
             throws AlgebricksException {
-        for (AbstractLogicalOperator subTreeOp : subTree.getAssignsAndUnnests()) {
-            if (subTreeOp.getOperatorTag() == LogicalOperatorTag.ASSIGN) {
-                List<LogicalVariable> varList = ((AssignOperator) subTreeOp).getVariables();
-                for (int varIndex = 0; varIndex < varList.size(); varIndex++) {
-                    LogicalVariable var = varList.get(varIndex);
-                    int funcVarIndex = optFuncExpr.findLogicalVar(var);
-                    if (funcVarIndex == -1) {
-                        continue;
+        if (subTree.getDataSourceType() == DATASOURCE_SCAN) {
+            LogicalVariable datasetMetaVar = null;
+            List<LogicalVariable> datasetVars = subTree.getDataSourceVariables();
+            if (subTree.getDataset().hasMetaPart()) {
+                datasetMetaVar = datasetVars.get(datasetVars.size() - 1);
+            }
+            for (int assignOrUnnestIndex = 0; assignOrUnnestIndex < subTree.getAssignsAndUnnests()
+                    .size(); assignOrUnnestIndex++) {
+                AbstractLogicalOperator subTreeOp = subTree.getAssignsAndUnnests().get(assignOrUnnestIndex);
+                if (subTreeOp.getOperatorTag() == LogicalOperatorTag.ASSIGN) {
+                    List<LogicalVariable> varList = ((AssignOperator) subTreeOp).getVariables();
+                    for (int varIndex = 0; varIndex < varList.size(); varIndex++) {
+                        LogicalVariable var = varList.get(varIndex);
+                        int funcVarIndex = optFuncExpr.findLogicalVar(var);
+                        if (funcVarIndex == -1) {
+                            continue;
+                        }
+                        List<String> fieldName = AbstractIntroduceAccessMethodRule.getFieldNameFromSubTree(null,
+                                subTree, assignOrUnnestIndex, varIndex, subTree.getRecordType(), -1, null,
+                                subTree.getMetaRecordType(), datasetMetaVar);
+                        if (fieldName.isEmpty()) {
+                            return false;
+                        }
+                        optFuncExpr.setFieldName(funcVarIndex, fieldName);
+                        optFuncExpr.setOptimizableSubTree(funcVarIndex, subTree);
+                        return true;
                     }
-                    Pair<ARecordType, List<String>> fieldNameTypePair = IntroduceLSMComponentFilterRule
-                            .getFieldNameFromSubAssignTree(optFuncExpr, subTreeOp, varIndex, subTree.getRecordType());
-                    if (fieldNameTypePair == null) {
-                        return null;
-                    }
-                    optFuncExpr.setFieldName(funcVarIndex, fieldNameTypePair.second);
-                    optFuncExpr.setFieldType(funcVarIndex,
-                            fieldNameTypePair.first.getSubFieldType(fieldNameTypePair.second));
-                    optFuncExpr.setOptimizableSubTree(funcVarIndex, subTree);
-                    return fieldNameTypePair.second;
                 }
             }
-        }
-        // Try to match variables from optFuncExpr to datasourcescan if not
-        // already matched in assigns.
-        List<LogicalVariable> dsVarList = subTree.getDataSourceVariables();
+            // Try to match variables from optFuncExpr to datasourcescan if not
+            // already matched in assigns.
+            for (int varIndex = 0; varIndex < datasetVars.size(); varIndex++) {
+                LogicalVariable var = datasetVars.get(varIndex);
+                int funcVarIndex = optFuncExpr.findLogicalVar(var);
+                // No matching var in optFuncExpr.
+                if (funcVarIndex == -1) {
+                    continue;
+                }
 
-        for (int varIndex = 0; varIndex < dsVarList.size(); varIndex++) {
-            LogicalVariable var = dsVarList.get(varIndex);
-            int funcVarIndex = optFuncExpr.findLogicalVar(var);
-            // No matching var in optFuncExpr.
-            if (funcVarIndex == -1) {
-                continue;
+                // The variable value is one of the partitioning fields.
+                List<String> fieldName = null;
+                List<List<String>> subTreePKs = null;
+                subTreePKs = subTree.getDataset().getPrimaryKeys();
+                // Check whether this variable is PK, not a record variable.
+                if (varIndex <= subTreePKs.size() - 1) {
+                    fieldName = subTreePKs.get(varIndex);
+
+                }
+                optFuncExpr.setFieldName(funcVarIndex, fieldName);
+                optFuncExpr.setOptimizableSubTree(funcVarIndex, subTree);
+                optFuncExpr.setSourceVar(funcVarIndex, var);
+                optFuncExpr.setLogicalExpr(funcVarIndex, new VariableReferenceExpression(var));
+                return true;
             }
-
-            // The variable value is one of the partitioning fields.
-            List<String> fieldName = null;
-            List<List<String>> subTreePKs = null;
-            subTreePKs = subTree.getDataset().getPrimaryKeys();
-            // Check whether this variable is PK, not a record variable.
-            if (varIndex <= subTreePKs.size() - 1) {
-                fieldName = subTreePKs.get(varIndex);
-
-            }
-            optFuncExpr.setFieldName(funcVarIndex, fieldName);
-            optFuncExpr.setOptimizableSubTree(funcVarIndex, subTree);
-            optFuncExpr.setSourceVar(funcVarIndex, var);
-            optFuncExpr.setFieldType(funcVarIndex, subTree.getRecordType().getSubFieldType(fieldName));
-            optFuncExpr.setLogicalExpr(funcVarIndex, new VariableReferenceExpression(var));
-            return fieldName;
         }
-
-        return null;
+        return false;
     }
 }

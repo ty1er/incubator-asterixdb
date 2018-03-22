@@ -40,7 +40,7 @@ public class StatisticsProperties extends AbstractProperties {
         STATISTICS_MERGE_STRATEGY(STRING, "TimeBased", "Statistics merge strategy (if applicable)"),
         STATISTICS_MERGE_STRATEGY_TIMEOUT(
                 INTEGER,
-                60000,
+                -1,
                 "The timeout in milliseconds between the statistics merge operation invocations"),
         STATISTICS_SKETCH_FANOUT(
                 INTEGER,
