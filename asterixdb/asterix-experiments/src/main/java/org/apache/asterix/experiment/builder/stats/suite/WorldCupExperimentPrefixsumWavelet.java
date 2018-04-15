@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster8Builder;
 import org.apache.asterix.experiment.builder.config.IPrefixSumWaveletBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class WorldCupExperimentPrefixsumWavelet extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IPrefixSumWaveletBuilder {
+        implements ICluster8Builder, IPrefixSumWaveletBuilder {
 
     public WorldCupExperimentPrefixsumWavelet(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

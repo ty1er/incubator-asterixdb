@@ -26,12 +26,12 @@ import java.util.logging.Logger;
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.builder.cluster.ICluster4Partition2Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster4Builder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public abstract class AbstractStatsOverheadExperimentBuilder extends AbstractStatsExperimentBuilder
-        implements ICluster4Partition2Builder {
+        implements ICluster4Builder {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractStatsOverheadExperimentBuilder.class.getName());
 

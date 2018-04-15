@@ -18,7 +18,7 @@
  */
 package org.apache.asterix.experiment.builder.stats;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster4Partition2Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster4Builder;
 import org.apache.asterix.experiment.builder.dgen.IDgen4Builder;
 import org.apache.asterix.experiment.builder.experiment.IExperiment2Builder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
@@ -26,7 +26,7 @@ import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public abstract class AbstractStatsExperiment2Builder extends AbstractStatsQueryExperimentBuilder
-        implements IExperiment2Builder, ICluster4Partition2Builder, IDgen4Builder, IIngestFeeds1Builder {
+        implements IExperiment2Builder, ICluster4Builder, IDgen4Builder, IIngestFeeds1Builder {
 
     public AbstractStatsExperiment2Builder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

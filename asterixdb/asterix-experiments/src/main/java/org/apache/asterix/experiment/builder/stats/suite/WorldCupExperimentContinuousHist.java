@@ -18,7 +18,7 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster8Builder;
 import org.apache.asterix.experiment.builder.config.IContinuousHistBuilder;
 import org.apache.asterix.experiment.builder.counter.ITweetRecordsCounterBuilder;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
@@ -28,7 +28,7 @@ import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class WorldCupExperimentContinuousHist extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IIngestFeeds1Builder, ITweetRecordsCounterBuilder,
+        implements ICluster8Builder, IIngestFeeds1Builder, ITweetRecordsCounterBuilder,
         IContinuousHistBuilder, IPrefixMergePolicy {
 
     public WorldCupExperimentContinuousHist(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {

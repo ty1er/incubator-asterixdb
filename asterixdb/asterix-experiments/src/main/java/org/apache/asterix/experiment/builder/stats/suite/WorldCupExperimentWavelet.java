@@ -18,14 +18,14 @@
  */
 package org.apache.asterix.experiment.builder.stats.suite;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster8Builder;
 import org.apache.asterix.experiment.builder.config.IWaveletBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class WorldCupExperimentWavelet extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, IWaveletBuilder {
+        implements ICluster8Builder, IWaveletBuilder {
 
     public WorldCupExperimentWavelet(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

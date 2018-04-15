@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,19 +38,17 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
-
-import org.apache.asterix.event.schema.cluster.Cluster;
+import org.apache.asterix.common.config.NodeProperties;
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.ParallelActionSet;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.AbstractRemoteExecutableAction;
+import org.apache.asterix.experiment.action.derived.AnsibleActions.DeployAsterixAction;
+import org.apache.asterix.experiment.action.derived.AnsibleActions.EraseAsterixAnsibleAction;
+import org.apache.asterix.experiment.action.derived.AnsibleActions.StartAsterixAnsibleAction;
+import org.apache.asterix.experiment.action.derived.AnsibleActions.StopAsterixAnsibleAction;
 import org.apache.asterix.experiment.action.derived.ForceFlushDatasetAction;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.ManagixActions.CreateAsterixManagixAction;
-import org.apache.asterix.experiment.action.derived.ManagixActions.DeleteAsterixManagixAction;
-import org.apache.asterix.experiment.action.derived.ManagixActions.StopAsterixManagixAction;
 import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
@@ -65,11 +64,12 @@ import org.apache.asterix.experiment.client.LSMExperimentConstants;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.hyracks.control.common.config.ConfigUtils;
+import org.apache.hyracks.control.common.controllers.NCConfig.Option;
+import org.ini4j.Ini;
 
 public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder implements IExperimentBuilder,
         IClusterBuilder, IDgenBuilder, ICounterBuilder, IIngestFeedsBuilder, IIngestMergePolicy {
-
-    protected static final String ASTERIX_INSTANCE_NAME = "a1";
 
     protected final CloseableHttpClient httpClient;
 
@@ -77,9 +77,11 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected final int restPort;
 
-    protected final String managixHomePath;
+    protected final String ansiblePath;
 
     protected final String javaHomePath;
+
+    protected final String asterixHome;
 
     protected final String username;
 
@@ -87,7 +89,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected final int duration;
 
-    protected String clusterConfigFileName;
+    protected String ccConfigFileName;
 
     protected String ingestFileName;
 
@@ -111,11 +113,11 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected final String queryOutput;
 
-    protected String asterixConfigFileName;
+    protected String inventoryFileName;
 
     protected Set<String> ncHosts;
 
-    protected Cluster cluster;
+    protected Ini cluster;
 
     protected Map<String, List<String>> dgenPairs;
 
@@ -129,14 +131,14 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         this.config = config;
         this.restHost = config.getRESTHost();
         this.restPort = config.getRESTPort();
-        this.managixHomePath = config.getManagixHome();
+        this.ansiblePath = config.getAnsibleHome();
         this.javaHomePath = config.getJavaHome();
+        this.asterixHome = config.getAsterixHome();
         this.username = config.getUsername();
         this.sshKeyLocation = config.getSSHKeyLocation();
         this.duration = config.getDatagenDuration();
         this.nQueryRuns = config.getExpRunsNum();
         this.httpClient = httpClient;
-        this.clusterConfigFileName = getClusterConfig();
         this.experimentDDL = getExperimentDDL();
         this.mergePolicy = getMergePolicy(config.getComponentsNum());
         this.workloadType = config.getWorkloadType();
@@ -153,7 +155,10 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         this.localExperimentRoot = Paths.get(config.getLocalExperimentRoot());
         this.logDir = localExperimentRoot.resolve(config.getOutputDir())
                 .resolve(LSMExperimentConstants.LOG_DIR + "-" + config.getLogDirSuffix()).resolve(getName());
-        this.asterixConfigFileName = LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION;
+        this.ccConfigFileName = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
+                .resolve(LSMExperimentConstants.CC_CONFIGURATION).toString();
+        this.inventoryFileName =
+                localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR).resolve(getClusterConfig()).toString();
         this.ncHosts = new HashSet<>();
     }
 
@@ -189,16 +194,14 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         return dgenSeq;
     }
 
-    private void setupCluster(ActionList experimentActions, String clusterConfigPath, String asterixConfigPath) {
+    private void setupCluster(ActionList experimentActions, String clusterConfigPath, String inventoryPath) {
         //Precondition: create new cluster instance
-        experimentActions.addFirst(new CreateAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME,
-                clusterConfigPath, asterixConfigPath));
-        experimentActions.addFirst(new SleepAction(1000));
-        experimentActions.addFirst(new DeleteAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
-        experimentActions.addFirst(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
+        experimentActions.addFirst(new StartAsterixAnsibleAction(ansiblePath));
+        experimentActions.addFirst(new DeployAsterixAction(ansiblePath, clusterConfigPath, inventoryPath));
+        experimentActions.addFirst(new EraseAsterixAnsibleAction(ansiblePath));
 
         //Postcondition: stop cluster instance and kill all remaining processes
-        experimentActions.addLast(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));
+        experimentActions.addLast(new StopAsterixAnsibleAction(ansiblePath));
         ParallelActionSet killCmds = new ParallelActionSet("killCmds");
         for (String ncHost : ncHosts) {
             killCmds.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
@@ -224,27 +227,21 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
             ParallelActionSet collectIOActions = new ParallelActionSet("collectIO");
             for (String ncHost : ncHosts) {
                 ioCountActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
-
                     @Override
                     protected String getCommand() {
-                        String cmd = "screen -d -m sh -c \"sar -b -u 1 >" + statFile + "\"";
-                        return cmd;
+                        return "screen -d -m sh -c \"sar -b -u 1 >" + statFile + "\"";
                     }
                 });
                 ioCountKillActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
-
                     @Override
                     protected String getCommand() {
-                        String cmd = "screen -list | grep Detached | awk '{print $1}' | xargs -I % screen -X -S % quit";
-                        return cmd;
+                        return "screen -list | grep Detached | awk '{print $1}' | xargs -I % screen -X -S % quit";
                     }
                 });
                 collectIOActions.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
-
                     @Override
                     protected String getCommand() {
-                        String cmd = "cp " + statFile + " " + cluster.getLogDir();
-                        return cmd;
+                        return MessageFormat.format("cp {0} {1}", statFile, logDir);
                     }
                 });
             }
@@ -256,30 +253,33 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     protected void listIngestedData(ActionList experimentActions) throws IOException {
         SequentialActionList postLSAction = new SequentialActionList("list ingested data action");
-        String[] storageRoots = cluster.getIodevices().split(",");
+        final String NC_CONFIG = "nc";
+        String[] storageRoots = ConfigUtils.getString(cluster, NC_CONFIG, Option.IODEVICES.ini(), null).split(",");
         for (String ncHost : ncHosts) {
             for (final String sRoot : storageRoots) {
                 lsAction.addLast(
                         new AbstractRemoteExecutableAction("list components", ncHost, username, sshKeyLocation) {
-                    @Override
-                    protected String getCommand() {
-                        return new StringBuilder().append("ls -la ").append(sRoot).append(File.separator)
-                                .append(cluster.getStore()).append(File.separator).append("storage")
-                                .append(File.separator).append("partition_*").append(File.separator)
-                                .append("experiments").append(File.separator).append("**").append(File.separator)
-                                .append("*_b").toString();
-                        //                        return new StringBuilder().append("find ").append(sRoot).append(File.separator)
-                        //                                .append(cluster.getStore()).append(File.separator).append("storage")
-                        //                                .append(File.separator).append("partition_*").append(File.separator)
-                        //                                .append("experiments")
-                        //                                .append(" -type d | sort | while read -r dir; do n=$(find \"$dir\" -type f -name \"*_b\" | wc -l); printf \"%4d : %s\\n\" $n \"$dir\"; done")
-                        //                                .toString();
-                    }
-                });
+                            @Override
+                            protected String getCommand() {
+                                return new StringBuilder().append("ls -la ").append(sRoot).append(File.separator)
+                                        .append(ConfigUtils.getString(cluster, NC_CONFIG,
+                                                NodeProperties.Option.STORAGE_SUBDIR.ini(), null))
+                                        .append(File.separator).append("partition_*").append(File.separator)
+                                        .append("experiments").append(File.separator).append("**")
+                                        .append(File.separator).append("*_b").toString();
+                                //                        return new StringBuilder().append("find ").append(sRoot).append(File.separator)
+                                //                                .append(cluster.getStore()).append(File.separator).append("storage")
+                                //                                .append(File.separator).append("partition_*").append(File.separator)
+                                //                                .append("experiments")
+                                //                                .append(" -type d | sort | while read -r dir; do n=$(find \"$dir\" -type f -name \"*_b\" | wc -l); printf \"%4d : %s\\n\" $n \"$dir\"; done")
+                                //                                .toString();
+                            }
+                        });
                 postLSAction.addLast(new AbstractRemoteExecutableAction(ncHost, username, sshKeyLocation) {
                     @Override
                     protected String getCommand() {
-                        return "du -cksh " + sRoot + "/" + cluster.getStore();
+                        return "du -cksh " + sRoot + "/" + ConfigUtils.getString(cluster, NC_CONFIG,
+                                NodeProperties.Option.STORAGE_SUBDIR.ini(), null);
                     }
                 });
 
@@ -360,20 +360,12 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         //some setup
         SequentialActionList execs = new SequentialActionList("main experiment action");
 
-        String clusterConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(clusterConfigFileName).toString();
-        String asterixConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(LSMExperimentConstants.ASTERIX_CONFIGURATION_DIR).resolve(asterixConfigFileName).toString();
-
-        File file = new File(clusterConfigPath);
-        JAXBContext ctx = JAXBContext.newInstance(Cluster.class);
-        Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        cluster = (Cluster) unmarshaller.unmarshal(file);
+        cluster = ConfigUtils.loadINIFile(ccConfigFileName);
 
         //applying experiment actions last to first
         assembleExperiment(execs);
         measureIO(execs);
-        setupCluster(execs, clusterConfigPath, asterixConfigPath);
+        setupCluster(execs, ccConfigFileName, inventoryFileName);
 
         e.addBody(execs);
     }

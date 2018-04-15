@@ -16,19 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.asterix.experiment.builder.stats.suite;
+package org.apache.asterix.experiment.builder.cluster;
 
-import org.apache.asterix.experiment.builder.cluster.ICluster1Partition1Builder;
-import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
-import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
-import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
-import org.apache.http.impl.client.CloseableHttpClient;
+public interface ICluster4Builder extends IClusterBuilder {
 
-public class WorldCupExperimentNoStats1Node1Partition extends WorldCupExperimentBuilder
-        implements ICluster1Partition1Builder, INoStatsBuilder {
-
-    public WorldCupExperimentNoStats1Node1Partition(LSMExperimentSetRunnerConfig config,
-            CloseableHttpClient httpClient) {
-        super(config, httpClient);
+    /* (non-Javadoc)
+     * @see org.apache.asterix.experiment.builder.INodeConfigBuilder#getConfig()
+     */
+    @Override
+    default String getClusterConfig() {
+        return "4node_inventory";
     }
 }

@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -34,7 +35,6 @@ import java.util.logging.Logger;
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.derived.AbstractLocalExecutableAction;
-import org.apache.asterix.experiment.action.derived.ManagixActions;
 import org.apache.asterix.experiment.action.derived.RunAQLAction;
 import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -78,8 +78,12 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
     protected void doPost(ActionList execs) throws IOException {
         //collect logs form the instance
         execs.addLast(() -> new File(logDir.toString()).mkdirs());
-        execs.addLast(
-                new ManagixActions.LogAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME, logDir.toString()));
+        execs.addLast(new AbstractLocalExecutableAction("copy logs") {
+            @Override
+            protected String getCommand() {
+                return MessageFormat.format("cp -R {0}/logs {1}", asterixHome, logDir);
+            }
+        });
         // dump synopsis and dataset CDF
         for (String fieldName : getFieldNames()) {
             OutputStream synopsis_os =
@@ -93,8 +97,8 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
         execs.addLast(new AbstractLocalExecutableAction("mv query output") {
             @Override
             protected String getCommand() {
-                return "mv " + queryOutput + " "
-                        + localExperimentRoot.resolve(logDir).resolve(Paths.get(queryOutput).getFileName()).toString();
+                return MessageFormat.format("mv {0} {1}", queryOutput,
+                        localExperimentRoot.resolve(logDir).resolve(Paths.get(queryOutput).getFileName()));
             }
         });
     }

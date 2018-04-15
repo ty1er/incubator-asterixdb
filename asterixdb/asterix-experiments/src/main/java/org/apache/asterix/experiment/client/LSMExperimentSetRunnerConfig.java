@@ -67,11 +67,18 @@ public class LSMExperimentSetRunnerConfig {
         return orchPort;
     }
 
-    @Option(name = "-mh", aliases = "--managix-home", usage = "Path to MANAGIX_HOME directory", required = true, metaVar = "MGXHOME")
-    private String managixHome;
+    @Option(name = "-h", aliases = "--asterix-home", usage = "Path to Asterix deploy directory", required = true, metaVar = "ASTERIXHOME")
+    private String asterixHome;
 
-    public String getManagixHome() {
-        return managixHome;
+    public String getAsterixHome() {
+        return asterixHome;
+    }
+
+    @Option(name = "-ah", aliases = "--ansible-home", usage = "Path to ansible directory", required = true, metaVar = "ANSIBLEHOME")
+    private String ansibleHome;
+
+    public String getAnsibleHome() {
+        return ansibleHome;
     }
 
     @Option(name = "-jh", aliases = "--java-home", usage = "Path to JAVA_HOME directory", required = true, metaVar = "JAVAHOME")

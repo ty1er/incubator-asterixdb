@@ -64,8 +64,6 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
     public AbstractStatsExperimentBuilder(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);
         this.ingestFeedsNumber = getIngestFeedsNumber();
-        this.asterixConfigFileName = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION).toString();
     }
 
     @Override
@@ -73,15 +71,15 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
         LSMStatsExperimentSetRunnerConfig statsConfig = (LSMStatsExperimentSetRunnerConfig) config;
         int synopsisSize = statsConfig.getSynopsisSize();
         File tempAsterixConfig =
-                File.createTempFile(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION, ".tmp." + synopsisSize);
+                File.createTempFile(LSMExperimentConstants.CC_CONFIGURATION, ".tmp." + synopsisSize);
         String asterixConfigTemplate =
-                FileUtils.readFileToString(new File(asterixConfigFileName), Charset.defaultCharset());
+                FileUtils.readFileToString(new File(ccConfigFileName), Charset.defaultCharset());
         String newAsterixConfig = Pattern
                 .compile(SYNOPSIS_TYPE_SUBSTITUTE_MARKER).matcher(Pattern.compile(SYNOPSIS_SIZE_SUBSTITUTE_MARKER)
                         .matcher(asterixConfigTemplate).replaceFirst(Integer.toString(synopsisSize)))
                 .replaceFirst(getSynopsisType().toString());
         FileUtils.writeStringToFile(tempAsterixConfig, newAsterixConfig, Charset.defaultCharset());
-        this.asterixConfigFileName = tempAsterixConfig.getAbsolutePath();
+        this.ccConfigFileName = tempAsterixConfig.getAbsolutePath();
 
         super.doBuild(e);
     }

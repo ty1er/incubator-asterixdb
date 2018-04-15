@@ -27,7 +27,7 @@ import java.nio.file.Files;
 
 import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.derived.RunAQLAction;
-import org.apache.asterix.experiment.builder.cluster.ICluster8Partition1Builder;
+import org.apache.asterix.experiment.builder.cluster.ICluster8Builder;
 import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentConstants;
@@ -36,7 +36,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.hyracks.http.server.utils.HttpUtil;
 
 public class WorldCupExperimentNoStats extends WorldCupExperimentBuilder
-        implements ICluster8Partition1Builder, INoStatsBuilder {
+        implements ICluster8Builder, INoStatsBuilder {
 
     public WorldCupExperimentNoStats(LSMExperimentSetRunnerConfig config, CloseableHttpClient httpClient) {
         super(config, httpClient);

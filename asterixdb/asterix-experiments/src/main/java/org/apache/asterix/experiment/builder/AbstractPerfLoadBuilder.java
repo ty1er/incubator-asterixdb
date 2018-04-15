@@ -93,7 +93,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         this.httpClient = HttpClients.custom().setConnectionManager(poolingCCM).setMaxConnPerRoute(10).build();
         this.restHost = config.getRESTHost();
         this.restPort = config.getRESTPort();
-        this.managixHomePath = config.getManagixHome();
+        this.managixHomePath = config.getAnsibleHome();
         this.javaHomePath = config.getJavaHome();
         this.localExperimentRoot = Paths.get(config.getLocalExperimentRoot());
         this.username = config.getUsername();
@@ -116,7 +116,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         String clusterConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
                 .resolve(clusterConfigFileName).toString();
         String asterixConfigPath = localExperimentRoot.resolve(LSMExperimentConstants.CONFIG_DIR)
-                .resolve(LSMExperimentConstants.ASTERIX_DEFAULT_CONFIGURATION).toString();
+                .resolve(LSMExperimentConstants.CC_CONFIGURATION).toString();
 
         //stop/delete/create instance
         execs.addLast(new StopAsterixManagixAction(managixHomePath, ASTERIX_INSTANCE_NAME));

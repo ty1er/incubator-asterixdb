@@ -53,9 +53,7 @@ public class LSMExperimentConstants {
 
     public static final String BASE_CLEANUP = "base_cleanup.aql";
 
-    public static final String ASTERIX_CONFIGURATION_DIR = "asterix-config";
-
-    public static final String ASTERIX_DEFAULT_CONFIGURATION = "asterix-configuration.xml";
+    public static final String CC_CONFIGURATION = "cc.conf";
 
     public static final String WAIT_FOR_COMPLETION = "WAIT_FOR_COMPLETION";
 
