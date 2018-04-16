@@ -1,3 +1,0 @@
-use dataverse experiments;
-
-disconnect feed TweetFeed from dataset Tweets;

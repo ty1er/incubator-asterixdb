@@ -23,11 +23,7 @@ public class LSMExperimentConstants {
 
     public static final String CONFIG_DIR = "configs";
 
-    public static final String AQL_DIR = "aql";
-
     public static final String SQLPP_DIR = "sqlpp";
-
-    public static final String BASE_DIR = "base";
 
     public static final String DGEN_DIR = "dgen";
 
