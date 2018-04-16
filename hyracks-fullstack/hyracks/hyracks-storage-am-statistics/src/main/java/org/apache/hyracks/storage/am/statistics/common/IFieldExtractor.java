@@ -20,9 +20,14 @@ package org.apache.hyracks.storage.am.statistics.common;
 
 import java.io.Serializable;
 
+import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 
 public interface IFieldExtractor<T> extends Serializable {
+    String getFieldName();
+
+    ITypeTraits getFieldTypeTraits();
+
     T extractFieldValue(ITupleReference tuple) throws HyracksDataException;
 }

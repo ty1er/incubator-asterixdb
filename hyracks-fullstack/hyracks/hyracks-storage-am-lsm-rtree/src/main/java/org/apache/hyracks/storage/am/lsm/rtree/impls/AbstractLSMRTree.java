@@ -88,8 +88,7 @@ public abstract class AbstractLSMRTree extends AbstractLSMIndex implements ITree
             boolean isPointMBR) throws HyracksDataException {
         super(ioManager, virtualBufferCaches, diskBufferCache, fileManager, bloomFilterFalsePositiveRate, mergePolicy,
                 opTracker, ioScheduler, ioOpCallbackFactory, componentFactory, bulkLoadComponentFactory,
-                filterFrameFactory, filterManager, filterFields, durable, filterHelper, rtreeFields, ITracer.NONE,
-                null);
+                filterFrameFactory, filterManager, filterFields, durable, filterHelper, rtreeFields, ITracer.NONE);
         int i = 0;
         for (IVirtualBufferCache virtualBufferCache : virtualBufferCaches) {
             RTree memRTree = new RTree(virtualBufferCache, new VirtualFreePageManager(virtualBufferCache),

@@ -66,6 +66,6 @@ public class LSMBTreeDeactivateStatisticsTest extends StatisticsTestDriver {
 
     @Override
     protected String getTestOpName() {
-        return "Flush Statistics";
+        return "Deactivate Statistics";
     }
 }

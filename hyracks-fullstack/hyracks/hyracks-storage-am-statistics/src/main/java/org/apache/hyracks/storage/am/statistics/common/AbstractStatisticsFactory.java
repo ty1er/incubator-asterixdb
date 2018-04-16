@@ -19,9 +19,7 @@
 package org.apache.hyracks.storage.am.statistics.common;
 
 import java.io.Serializable;
-import java.util.List;
 
-import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
@@ -29,29 +27,23 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
 public abstract class AbstractStatisticsFactory implements IStatisticsFactory, Serializable {
 
-    protected final List<String> fields;
-    protected final List<ITypeTraits> fieldTypeTraits;
-    protected final List<IFieldExtractor> fieldValueExtractors;
+    protected final IFieldExtractor[] extractors;
 
-    protected AbstractStatisticsFactory(List<String> fields, List<ITypeTraits> fieldTypeTraits,
-            List<IFieldExtractor> fieldValueExtractors) {
-        this.fields = fields;
-        this.fieldTypeTraits = fieldTypeTraits;
-        this.fieldValueExtractors = fieldValueExtractors;
+    protected AbstractStatisticsFactory(IFieldExtractor[] extractors) {
+        this.extractors = extractors;
     }
 
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        ISynopsisBuilder[] builders = new ISynopsisBuilder[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-            AbstractSynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, fields.get(i),
-                    fieldTypeTraits.get(i), fieldValueExtractors.get(i));
+        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.length];
+        for (int i = 0; i < extractors.length; i++) {
+            AbstractSynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, extractors[i]);
             if (isBulkload) {
                 builders[i] = synopsisBuilder;
             } else {
-                AbstractSynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true,
-                        fields.get(i), fieldTypeTraits.get(i), fieldValueExtractors.get(i));
+                AbstractSynopsisBuilder antimatterSynopsisBuilder =
+                        createSynopsisBuilder(componentStatistics, true, extractors[i]);
                 builders[i] = new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
             }
         }
@@ -63,6 +55,5 @@ public abstract class AbstractStatisticsFactory implements IStatisticsFactory, S
     }
 
     protected abstract AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
-            boolean isAntimatter, String fieldName, ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
-            throws HyracksDataException;
+            boolean isAntimatter, IFieldExtractor fieldExtractor) throws HyracksDataException;
 }

@@ -22,7 +22,6 @@ import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMComponentIdGeneratorFactory;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallback;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
-import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 
 public class LSMBTreeWithBuddyIOOperationCallbackFactory extends AbstractLSMIndexIOOperationCallbackFactory {
 
@@ -33,8 +32,7 @@ public class LSMBTreeWithBuddyIOOperationCallbackFactory extends AbstractLSMInde
     }
 
     @Override
-    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index, IStatisticsManager statisticsManager)
-            throws HyracksDataException {
+    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index) throws HyracksDataException {
         return new LSMBTreeWithBuddyIOOperationCallback(index, getComponentIdGenerator(),
                 getIndexCheckpointManagerProvider());
     }

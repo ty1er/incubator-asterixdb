@@ -18,23 +18,18 @@
  */
 package org.apache.hyracks.storage.am.lsm.btree.impl;
 
-import java.util.List;
-
-import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractStatisticsFactory;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.DelegatingSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
-public class TestStatisticsFactory extends AbstractStatisticsFactory {
+public class TestNoAntimatterStatisticsFactory extends AbstractStatisticsFactory {
 
-    private final int numKeys;
-
-    public TestStatisticsFactory(List<String> fields, List<ITypeTraits> fieldTypeTraits,
-            List<IFieldExtractor> fieldValueExtractors, int numKeys) {
-        super(fields, fieldTypeTraits, fieldValueExtractors);
-        this.numKeys = numKeys;
+    public TestNoAntimatterStatisticsFactory(IFieldExtractor[] fieldExtractors) {
+        super(fieldExtractors);
     }
 
     @Override
@@ -44,9 +39,22 @@ public class TestStatisticsFactory extends AbstractStatisticsFactory {
 
     @Override
     protected AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
-            boolean isAntimatter, String fieldName, ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
+            boolean isAntimatter, IFieldExtractor fieldExtractor) throws HyracksDataException {
+        return new TestSynopsisBuilder(new TestSynopsis(), "", "", "", fieldExtractor.getFieldName(), isAntimatter,
+                fieldExtractor, componentStatistics);
+    }
+
+    @Override
+    public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        return new TestSynopsisBuilder(new TestSynopsis(), "", "", "", fieldName, isAntimatter, fieldExtractor,
-                componentStatistics);
+        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.length];
+        for (int i = 0; i < extractors.length; i++) {
+            builders[i] = createSynopsisBuilder(componentStatistics, false, extractors[i]);
+        }
+        if (builders.length == 1) {
+            return builders[0];
+        } else {
+            return new DelegatingSynopsisBuilder(builders);
+        }
     }
 }

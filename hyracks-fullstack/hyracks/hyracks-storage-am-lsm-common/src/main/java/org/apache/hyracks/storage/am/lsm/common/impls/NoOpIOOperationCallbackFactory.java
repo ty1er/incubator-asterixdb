@@ -25,14 +25,13 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallbackFacto
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndexOperationContext;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMemoryComponent;
-import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.common.IResource;
 
 public enum NoOpIOOperationCallbackFactory implements ILSMIOOperationCallbackFactory {
     INSTANCE;
 
     @Override
-    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index, IStatisticsManager statisticsManager) {
+    public ILSMIOOperationCallback createIoOpCallback(ILSMIndex index) {
         return NoOpIOOperationCallback.INSTANCE;
     }
 

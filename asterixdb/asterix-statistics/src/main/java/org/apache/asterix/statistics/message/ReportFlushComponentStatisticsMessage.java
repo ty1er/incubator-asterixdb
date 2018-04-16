@@ -18,21 +18,13 @@
  */
 package org.apache.asterix.statistics.message;
 
-import static org.apache.asterix.metadata.bootstrap.MetadataPrimaryIndexes.PROPERTIES_STATISTICS;
-
-import java.rmi.RemoteException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.asterix.common.dataflow.ICcApplicationContext;
-import org.apache.asterix.common.exceptions.ACIDException;
 import org.apache.asterix.common.messaging.api.ICcAddressedMessage;
-import org.apache.asterix.metadata.MetadataManager;
-import org.apache.asterix.metadata.MetadataTransactionContext;
 import org.apache.asterix.metadata.declared.MetadataProvider;
-import org.apache.asterix.metadata.entities.Statistics;
-import org.apache.asterix.metadata.utils.MetadataLockUtil;
-import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
+import org.apache.asterix.statistics.StatisticsMetadataUtil;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
@@ -40,17 +32,16 @@ import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
 
 public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessage {
     private static final long serialVersionUID = 1L;
-    private final static Logger LOGGER = Logger.getLogger(ReportFlushComponentStatisticsMessage.class.getName());
 
-    protected ISynopsis<? extends ISynopsisElement<Long>> synopsis;
-    protected String dataverse;
-    protected String dataset;
-    protected String index;
-    protected String field;
-    protected String node;
-    protected String partition;
-    protected boolean isAntimatter;
-    protected ComponentStatisticsId componentId;
+    private ISynopsis<? extends ISynopsisElement<Long>> synopsis;
+    private String dataverse;
+    private String dataset;
+    private String index;
+    private String field;
+    private String node;
+    private String partition;
+    private boolean isAntimatter;
+    private ComponentStatisticsId componentId;
 
     public ReportFlushComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement<Long>> synopsis, String dataverse,
             String dataset, String index, String field, String node, String partition,
@@ -66,6 +57,42 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
         this.isAntimatter = isAntimatter;
     }
 
+    public ISynopsis<? extends ISynopsisElement<Long>> getSynopsis() {
+        return synopsis;
+    }
+
+    public String getDataverse() {
+        return dataverse;
+    }
+
+    public String getDataset() {
+        return dataset;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public String getField() {
+        return field;
+    }
+
+    public String getNode() {
+        return node;
+    }
+
+    public String getPartition() {
+        return partition;
+    }
+
+    public boolean isAntimatter() {
+        return isAntimatter;
+    }
+
+    public ComponentStatisticsId getComponentId() {
+        return componentId;
+    }
+
     @Override
     public String toString() {
         return ReportFlushComponentStatisticsMessage.class.getSimpleName();
@@ -73,53 +100,7 @@ public class ReportFlushComponentStatisticsMessage implements ICcAddressedMessag
 
     @Override
     public void handle(ICcApplicationContext cs) throws HyracksDataException, InterruptedException {
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine("THREAD [" + Thread.currentThread().getName() + "]: MSG[" + this + "] message for idx ["
-                    + dataverse + "." + dataset + "." + index + "." + field + "] received from the node=" + node
-                    + ", partition=" + partition + ",componentId=" + componentId);
-        }
-        boolean bActiveTxn = false;
         MetadataProvider mdProvider = new MetadataProvider(cs, null);
-        MetadataTransactionContext mdTxnCtx = null;
-        try {
-            // transactionally update metadata with received statistics
-            mdTxnCtx = MetadataManager.INSTANCE.beginTransaction();
-            mdProvider.setMetadataTxnContext(mdTxnCtx);
-            bActiveTxn = true;
-            MetadataLockUtil.insertStatisticsBegin(cs.getMetadataLockManager(), mdProvider.getLocks(),
-                    PROPERTIES_STATISTICS.getDatasetName(), dataverse, dataset, index, field, node, partition,
-                    isAntimatter);
-            insertDeleteStats(mdTxnCtx, dataverse, dataset, index, field, node, partition, componentId, isAntimatter,
-                    synopsis, true);
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("MSG[" + this + "] Adding new stat with componentId " + componentId);
-            }
-            MetadataManager.INSTANCE.commitTransaction(mdTxnCtx);
-            bActiveTxn = false;
-        } catch (AlgebricksException | ACIDException | RemoteException me) {
-            if (bActiveTxn) {
-                try {
-                    MetadataManager.INSTANCE.abortTransaction(mdTxnCtx);
-                } catch (ACIDException | RemoteException e) {
-                    throw new HyracksDataException("Failed to abort metadata transaction", e);
-                }
-            }
-            throw HyracksDataException.create(me);
-        } finally {
-            mdProvider.getLocks().unlock();
-        }
-    }
-
-    protected void insertDeleteStats(MetadataTransactionContext mdTxnCtx, String dataverseName, String datasetName,
-            String indexName, String fieldName, String node, String partition, ComponentStatisticsId componentId,
-            boolean isAntimatter, ISynopsis<? extends ISynopsisElement<Long>> synopsis, boolean isInsert)
-            throws AlgebricksException {
-        if (isInsert) {
-            MetadataManager.INSTANCE.addStatistics(mdTxnCtx, new Statistics(dataverseName, datasetName, indexName,
-                    fieldName, node, partition, componentId, false, isAntimatter, synopsis));
-        } else {
-            MetadataManager.INSTANCE.dropStatistics(mdTxnCtx, dataverseName, datasetName, indexName, fieldName, node,
-                    partition, componentId, isAntimatter);
-        }
+        StatisticsMetadataUtil.createFlushStatistics(this, cs.getMetadataLockManager(), mdProvider);
     }
 }

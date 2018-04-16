@@ -30,7 +30,6 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperationCallback;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMIndexOperationContext;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMemoryComponent;
-import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.impls.EmptyComponent;
 
 public class TestLsmBtreeIoOpCallbackFactory extends LSMBTreeIOOperationCallbackFactory {
@@ -49,8 +48,7 @@ public class TestLsmBtreeIoOpCallbackFactory extends LSMBTreeIOOperationCallback
     }
 
     @Override
-    public synchronized ILSMIOOperationCallback createIoOpCallback(ILSMIndex index,
-            IStatisticsManager statisticsManager) throws HyracksDataException {
+    public synchronized ILSMIOOperationCallback createIoOpCallback(ILSMIndex index) throws HyracksDataException {
         completedFlushes = 0;
         completedMerges = 0;
         rollbackFlushes = 0;

@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.metadata.declared.MetadataProvider;
-import org.apache.asterix.om.base.IAIntegerObject;
+import org.apache.asterix.om.base.AbstractIntegerObject;
 import org.apache.asterix.om.base.IAObject;
 import org.apache.asterix.om.constants.AsterixConstantValue;
 import org.apache.asterix.om.types.hierachy.ATypeHierarchy;
@@ -143,8 +143,8 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
             }
         }
 
-        IAIntegerObject lowKey = null;
-        IAIntegerObject highKey = null;
+        AbstractIntegerObject lowKey = null;
+        AbstractIntegerObject highKey = null;
         int lowKeyAdjustment = 0;
         int highKeyAdjustment = 0;
         List<String> leftField = null;
@@ -256,14 +256,14 @@ public class InferCardinalityRule implements IAlgebraicRewriteRule {
         }
     }
 
-    private IAIntegerObject extractConstantIntegerExpr(ILogicalExpression expr) throws AsterixException {
+    private AbstractIntegerObject extractConstantIntegerExpr(ILogicalExpression expr) throws AsterixException {
         if (expr == null) {
             return null;
         }
         if (expr.getExpressionTag() == LogicalExpressionTag.CONSTANT) {
             IAObject constExprValue = ((AsterixConstantValue) ((ConstantExpression) expr).getValue()).getObject();
             if (ATypeHierarchy.belongsToDomain(constExprValue.getType().getTypeTag(), ATypeHierarchy.Domain.INTEGER)) {
-                return (IAIntegerObject) constExprValue;
+                return (AbstractIntegerObject) constExprValue;
             }
         }
         return null;

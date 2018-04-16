@@ -20,7 +20,6 @@ package org.apache.asterix.metadata.utils;
 
 import static org.apache.hyracks.storage.am.common.dataflow.IndexDropOperatorDescriptor.DropOption;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -96,27 +95,18 @@ public class IndexUtil {
         return keys;
     }
 
-    public static List<ITypeTraits> getSecondaryKeyTypeTraits(int[] keyPositions, ITypeTraits[] recordTypeTraits)
-            throws AlgebricksException {
-        List<ITypeTraits> keyTypeTraits = new ArrayList<>(keyPositions.length);
-        for (int i = 0; i < keyPositions.length; i++) {
-            keyTypeTraits.add(recordTypeTraits[keyPositions[i]]);
-        }
-        return keyTypeTraits;
-    }
-
     public static ISerializerDeserializer[] getBtreeKeySerializersDeserializers(Dataset dataset, Index index)
             throws AlgebricksException {
         ISerializerDeserializer[] serdes;
-        if (index.isPrimaryIndex()) {
-            serdes = new ISerializerDeserializer[dataset.getPrimaryKeys().size()];
-        } else {
-            serdes = new ISerializerDeserializer[index.getKeyFieldNames().size()];
-            int i = 0;
-            for (IAType fieldType : index.getKeyFieldTypes()) {
-                serdes[i++] = SerializerDeserializerProvider.INSTANCE.getNonTaggedSerializerDeserializer(fieldType);
-            }
+        //        if (index.isPrimaryIndex()) {
+        //            serdes = new ISerializerDeserializer[dataset.getPrimaryKeys().size()];
+        //        } else {
+        serdes = new ISerializerDeserializer[index.getKeyFieldNames().size()];
+        int i = 0;
+        for (IAType fieldType : index.getKeyFieldTypes()) {
+            serdes[i++] = SerializerDeserializerProvider.INSTANCE.getSerializerDeserializer(fieldType);
         }
+        //        }
         return serdes;
     }
 

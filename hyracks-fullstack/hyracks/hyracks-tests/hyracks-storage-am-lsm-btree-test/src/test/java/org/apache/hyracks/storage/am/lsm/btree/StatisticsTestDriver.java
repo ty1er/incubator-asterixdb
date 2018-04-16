@@ -18,7 +18,6 @@
  */
 package org.apache.hyracks.storage.am.lsm.btree;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,14 +25,12 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
-import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.btree.OrderedIndexTestContext;
 import org.apache.hyracks.storage.am.btree.OrderedIndexTestDriver;
 import org.apache.hyracks.storage.am.btree.frames.BTreeLeafFrameType;
 import org.apache.hyracks.storage.am.common.CheckTuple;
-import org.apache.hyracks.storage.am.lsm.btree.impl.TestStatisticsFactory;
-import org.apache.hyracks.storage.am.lsm.btree.impl.TestStatisticsIOOperationCallbackFactory;
+import org.apache.hyracks.storage.am.lsm.btree.impl.TestNoAntimatterStatisticsFactory;
 import org.apache.hyracks.storage.am.lsm.btree.impl.TestStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.btree.impl.TestSynopsisElement;
 import org.apache.hyracks.storage.am.lsm.btree.util.LSMBTreeTestContext;
@@ -71,21 +68,16 @@ public abstract class StatisticsTestDriver extends OrderedIndexTestDriver {
     @Override
     protected OrderedIndexTestContext createTestContext(ISerializerDeserializer[] fieldSerdes, int numKeys,
             BTreeLeafFrameType leafType, boolean filtered) throws Exception {
-        List<String> fieldNames = new ArrayList<>();
-        List<IFieldExtractor> fieldValueExtractors = new ArrayList<>();
-        List<ITypeTraits> fieldTypeTraits = new ArrayList<>();
+        IFieldExtractor[] fieldValueExtractors = new IFieldExtractor[fieldSerdes.length];
         for (int i = 0; i < fieldSerdes.length; i++) {
-            fieldNames.add(Integer.toString(i));
-            fieldValueExtractors.add(new FieldExtractor(fieldSerdes, i));
-            fieldTypeTraits.add(null);
+            fieldValueExtractors[i] = new FieldExtractor(fieldSerdes[i], i, Integer.toString(i));
         }
         return LSMBTreeTestContext.create(harness.getIOManager(), harness.getVirtualBufferCaches(),
                 harness.getFileReference(), harness.getDiskBufferCache(), fieldSerdes, numKeys,
                 harness.getBoomFilterFalsePositiveRate(), harness.getMergePolicy(), harness.getOperationTracker(),
-                harness.getIOScheduler(), new TestStatisticsIOOperationCallbackFactory(),
+                harness.getIOScheduler(), harness.getIOOperationCallbackFactory(),
                 harness.getMetadataPageManagerFactory(), false, false, false,
-                new TestStatisticsFactory(fieldNames, fieldTypeTraits, fieldValueExtractors, numKeys),
-                harness.getStatisticsManager());
+                new TestNoAntimatterStatisticsFactory(fieldValueExtractors), harness.getStatisticsManager());
     }
 
     protected void checkStatistics(TestStatisticsManager statisticsManager, List<CheckTuple> checkTuples,

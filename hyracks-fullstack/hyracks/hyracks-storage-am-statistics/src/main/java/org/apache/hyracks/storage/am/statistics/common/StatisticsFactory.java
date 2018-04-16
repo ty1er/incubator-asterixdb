@@ -19,11 +19,9 @@
 
 package org.apache.hyracks.storage.am.statistics.common;
 
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
@@ -39,8 +37,8 @@ import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransfor
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletTransform;
 
-public class StatisticsCollectorFactory extends AbstractStatisticsFactory {
-    private static final Logger LOGGER = Logger.getLogger(StatisticsCollectorFactory.class.getName());
+public class StatisticsFactory extends AbstractStatisticsFactory {
+    private static final Logger LOGGER = Logger.getLogger(StatisticsFactory.class.getName());
 
     private final String dataverseName;
     private final String datasetName;
@@ -52,10 +50,10 @@ public class StatisticsCollectorFactory extends AbstractStatisticsFactory {
     private double failureProbability;
     private double accuracy;
 
-    public StatisticsCollectorFactory(SynopsisType type, String dataverseName, String datasetName, String indexName,
-            List<String> fields, List<ITypeTraits> fieldTypeTraits, List<IFieldExtractor> fieldValueExtractors,
-            int size, int fanout, double failureProbability, double accuracy, double energyAccuracy) {
-        super(fields, fieldTypeTraits, fieldValueExtractors);
+    public StatisticsFactory(SynopsisType type, String dataverseName, String datasetName, String indexName,
+            IFieldExtractor[] extractors, int size, int fanout, double failureProbability, double accuracy,
+            double energyAccuracy) {
+        super(extractors);
         this.type = type;
         this.dataverseName = dataverseName;
         this.datasetName = datasetName;
@@ -65,7 +63,6 @@ public class StatisticsCollectorFactory extends AbstractStatisticsFactory {
         this.failureProbability = failureProbability;
         this.accuracy = accuracy;
         this.energyAccuracy = energyAccuracy;
-
     }
 
     @Override
@@ -73,11 +70,12 @@ public class StatisticsCollectorFactory extends AbstractStatisticsFactory {
         if (unorderedTuples && type.needsSortedOrder()) {
             return false;
         }
-        for (ITypeTraits typeTraits : fieldTypeTraits) {
+        for (IFieldExtractor extractor : extractors) {
             //check if the key can be mapped on long domain, i.e. key length  <= 8 bytes. 1 byte is reserved for typeTag
-            if (typeTraits.getFixedLength() > (8 + 1)) {
+            if (extractor.getFieldTypeTraits().getFixedLength() > (8 + 1)) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes" + typeTraits);
+                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
+                            + extractor.getFieldTypeTraits());
                 }
                 return false;
             }
@@ -86,31 +84,32 @@ public class StatisticsCollectorFactory extends AbstractStatisticsFactory {
     }
 
     protected AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
-            boolean isAntimatter, String fieldName, ITypeTraits fieldTraits, IFieldExtractor fieldExtractor)
-            throws HyracksDataException {
+            boolean isAntimatter, IFieldExtractor fieldExtractor) throws HyracksDataException {
         long numElements =
                 isAntimatter ? componentStatistics.getNumAntimatterTuples() : componentStatistics.getNumTuples();
-        ISynopsis synopsis = SynopsisFactory.createSynopsis(type, fieldTraits,
+        ISynopsis synopsis = SynopsisFactory.createSynopsis(type, fieldExtractor.getFieldTypeTraits(),
                 SynopsisElementFactory.createSynopsisElementsCollection(type, size), numElements, size);
         switch (type) {
             case UniformHistogram:
             case ContinuousHistogram:
             case EquiWidthHistogram:
                 return new HistogramBuilder((HistogramSynopsis<? extends HistogramBucket>) synopsis, dataverseName,
-                        datasetName, indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics);
+                        datasetName, indexName, fieldExtractor.getFieldName(), isAntimatter, fieldExtractor,
+                        componentStatistics);
             case PrefixSumWavelet:
                 return new PrefixSumWaveletTransform((PrefixSumWaveletSynopsis) synopsis, dataverseName, datasetName,
-                        indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics);
+                        indexName, fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics);
             case Wavelet:
                 return new WaveletTransform((WaveletSynopsis) synopsis, dataverseName, datasetName, indexName,
-                        fieldName, isAntimatter, fieldExtractor, componentStatistics);
+                        fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics);
             case GroupCountSketch:
                 return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, dataverseName, datasetName, indexName,
-                        fieldName, isAntimatter, fieldExtractor, componentStatistics, fanout, failureProbability,
-                        accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
+                        fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics, fanout,
+                        failureProbability, accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
             case QuantileSketch:
                 return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, dataverseName, datasetName,
-                        indexName, fieldName, isAntimatter, fieldExtractor, componentStatistics, accuracy);
+                        indexName, fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics,
+                        accuracy);
             default:
                 throw new HyracksDataException("Cannot instantiate new synopsis builder for type " + type);
         }

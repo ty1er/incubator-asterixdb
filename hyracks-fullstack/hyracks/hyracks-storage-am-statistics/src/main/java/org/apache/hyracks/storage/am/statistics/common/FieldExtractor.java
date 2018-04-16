@@ -25,17 +25,31 @@ import java.io.DataInput;
 import java.io.DataInputStream;
 
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
+import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
+import org.apache.hyracks.dataflow.common.utils.SerdeUtils;
 
 public class FieldExtractor<T> implements IFieldExtractor<T> {
 
-    private ISerializerDeserializer[] serdes;
+    private ISerializerDeserializer serde;
     private int fieldIdx;
+    private final String fieldName;
 
-    public FieldExtractor(ISerializerDeserializer[] serdes, int fieldIdx) {
-        this.serdes = serdes;
+    public FieldExtractor(ISerializerDeserializer serde, int fieldIdx, String fieldName) {
+        this.serde = serde;
         this.fieldIdx = fieldIdx;
+        this.fieldName = fieldName;
+    }
+
+    @Override
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    @Override
+    public ITypeTraits getFieldTypeTraits() {
+        return SerdeUtils.serdeToTypeTrait(serde);
     }
 
     @Override
@@ -43,6 +57,6 @@ public class FieldExtractor<T> implements IFieldExtractor<T> {
         ByteArrayInputStream inStream = new ByteArrayInputStream(tuple.getFieldData(fieldIdx),
                 tuple.getFieldStart(fieldIdx), tuple.getFieldLength(fieldIdx));
         DataInput dataIn = new DataInputStream(inStream);
-        return (T) serdes[fieldIdx].deserialize(dataIn);
+        return (T) serde.deserialize(dataIn);
     }
 }

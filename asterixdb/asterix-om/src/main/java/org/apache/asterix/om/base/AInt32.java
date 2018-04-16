@@ -24,7 +24,7 @@ import org.apache.asterix.om.types.IAType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AInt32 implements IAIntegerObject {
+public class AInt32 extends AbstractIntegerObject {
 
     protected int value;
 

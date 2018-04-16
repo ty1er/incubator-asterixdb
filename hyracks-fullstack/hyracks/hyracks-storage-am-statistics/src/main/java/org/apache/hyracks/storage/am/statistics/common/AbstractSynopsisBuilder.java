@@ -60,6 +60,8 @@ public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISyn
         // Skip sending statistics about empty synopses
         if (!isEmpty) {
             statisticsManager.addStatistics(synopsis, dataverse, dataset, index, field, isAntimatter, component);
+        } else {
+            statisticsManager.addStatistics(null, dataverse, dataset, index, field, isAntimatter, component);
         }
     }
 

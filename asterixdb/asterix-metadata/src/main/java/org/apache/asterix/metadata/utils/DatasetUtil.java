@@ -38,6 +38,7 @@ import org.apache.asterix.common.dataflow.ICcApplicationContext;
 import org.apache.asterix.common.exceptions.ACIDException;
 import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.common.transactions.IRecoveryManager;
+import org.apache.asterix.dataflow.data.nontagged.valueproviders.AqlOrdinalPrimitiveValueProviderFactory;
 import org.apache.asterix.external.indexing.IndexingConstants;
 import org.apache.asterix.formats.base.IDataFormat;
 import org.apache.asterix.formats.nontagged.SerializerDeserializerProvider;
@@ -53,7 +54,9 @@ import org.apache.asterix.metadata.entities.InternalDatasetDetails;
 import org.apache.asterix.metadata.entities.NodeGroup;
 import org.apache.asterix.om.base.AMutableString;
 import org.apache.asterix.om.base.AString;
+import org.apache.asterix.om.pointables.nonvisitor.ARecordPointable;
 import org.apache.asterix.om.types.ARecordType;
+import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.BuiltinType;
 import org.apache.asterix.om.types.IAType;
 import org.apache.asterix.runtime.operators.LSMPrimaryUpsertOperatorDescriptor;
@@ -75,6 +78,7 @@ import org.apache.hyracks.api.io.FileSplit;
 import org.apache.hyracks.api.job.JobSpecification;
 import org.apache.hyracks.data.std.util.ArrayBackedValueStorage;
 import org.apache.hyracks.dataflow.common.comm.io.ArrayTupleBuilder;
+import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.dataflow.common.data.marshalling.IntegerSerializerDeserializer;
 import org.apache.hyracks.dataflow.std.file.IFileSplitProvider;
 import org.apache.hyracks.dataflow.std.misc.ConstantTupleSourceOperatorDescriptor;
@@ -89,6 +93,8 @@ import org.apache.hyracks.storage.am.common.dataflow.IndexDropOperatorDescriptor
 import org.apache.hyracks.storage.am.common.ophelpers.IndexOperation;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMMergePolicyFactory;
 import org.apache.hyracks.storage.am.lsm.common.dataflow.LSMTreeIndexCompactOperatorDescriptor;
+import org.apache.hyracks.storage.am.statistics.common.FieldExtractor;
+import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.common.IResourceFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -564,14 +570,55 @@ public class DatasetUtil {
         return new Pair<>(first, second);
     }
 
-    public static List<ITypeTraits> computeFieldTypeTraits(String[] fields, ARecordType itemType)
-            throws AlgebricksException {
-
-        List<ITypeTraits> typeTraits = new ArrayList<>(fields.length);
-        for (String field : fields) {
-            IAType type = itemType.getSubFieldType(Arrays.asList(field.split("\\.")));
-            typeTraits.add(TypeTraitProvider.INSTANCE.getTypeTrait(type));
+    public static IFieldExtractor[] computeStatisticsFieldExtractors(ARecordType recordType, Index index,
+            String[] unorderedStatisticsFields) throws AlgebricksException {
+        // TODO: allow nested fields
+        // add statistics on indexed fields (primary or secondary keys)
+        if (index.getKeyFieldNames().size() > 1) {
+            throw new AsterixException("Cannot collect statistics on composite fields");
         }
-        return typeTraits;
+        String statisticsField = String.join(".", index.getKeyFieldNames().get(0));
+        IFieldExtractor[] statisticsFieldExtractors =
+                new IFieldExtractor[] { new FieldExtractor(SerializerDeserializerProvider.INSTANCE
+                        .getSerializerDeserializer(recordType.getFieldType(statisticsField)), 0, statisticsField) };
+        // add statistics on non-indexed fields
+        if (index.isPrimaryIndex() && unorderedStatisticsFields != null && unorderedStatisticsFields.length > 0) {
+            statisticsFieldExtractors = Arrays.copyOf(statisticsFieldExtractors, unorderedStatisticsFields.length);
+            for (int i = 0; i < unorderedStatisticsFields.length; i++) {
+                recordType.getFieldType(unorderedStatisticsFields[i]);
+                statisticsFieldExtractors[1 + i] =
+                        getFieldExtractor(recordType, recordType.getFieldIndex(unorderedStatisticsFields[i]));
+            }
+        }
+        return statisticsFieldExtractors;
+    }
+
+    public static IFieldExtractor getFieldExtractor(ARecordType recordType, int statisticsField) {
+        final int hyracksFieldIdx = 1;
+        return new IFieldExtractor() {
+            @Override
+            public String getFieldName() {
+                return recordType.getFieldNames()[statisticsField];
+            }
+
+            @Override
+            public ITypeTraits getFieldTypeTraits() {
+                return null;
+            }
+
+            @Override
+            public Object extractFieldValue(ITupleReference tuple) throws HyracksDataException {
+                ARecordPointable recPointable = ARecordPointable.FACTORY.createPointable();
+                ATypeTag tag = recPointable.getClosedFieldType(recordType, statisticsField).getTypeTag();
+                if (tuple.getFieldCount() < hyracksFieldIdx) {
+                    throw new HyracksDataException(
+                            "Cannot extract field " + hyracksFieldIdx + " from incoming hyracks tuple");
+                }
+                recPointable.set(tuple.getFieldData(hyracksFieldIdx), tuple.getFieldStart(hyracksFieldIdx),
+                        tuple.getFieldLength(hyracksFieldIdx));
+                return AqlOrdinalPrimitiveValueProviderFactory.getTaggedOrdinalValue(tag, recPointable.getByteArray(),
+                        recPointable.getClosedFieldOffset(recordType, statisticsField));
+            }
+        };
     }
 }

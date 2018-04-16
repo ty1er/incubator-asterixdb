@@ -18,14 +18,13 @@
  */
 package org.apache.asterix.om.base;
 
-import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.om.types.BuiltinType;
 import org.apache.asterix.om.types.IAType;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AInt64 implements IAIntegerObject {
+public class AInt64 extends AbstractIntegerObject {
 
     protected long value;
 

@@ -63,10 +63,13 @@ import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndex;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndexOperationContext;
 import org.apache.hyracks.storage.am.lsm.common.impls.LSMComponentFileReferences;
 import org.apache.hyracks.storage.am.lsm.common.impls.LSMComponentFilterManager;
+import org.apache.hyracks.storage.am.lsm.common.impls.LSMIndexDiskComponentBulkLoader;
 import org.apache.hyracks.storage.am.lsm.common.impls.LSMTreeIndexAccessor;
 import org.apache.hyracks.storage.am.lsm.common.impls.LSMTreeIndexAccessor.ICursorFactory;
+import org.apache.hyracks.storage.am.lsm.common.impls.StatisticsMessageIOOperationCallbackWrapper;
 import org.apache.hyracks.storage.common.IIndexAccessParameters;
 import org.apache.hyracks.storage.common.IIndexAccessor;
+import org.apache.hyracks.storage.common.IIndexBulkLoader;
 import org.apache.hyracks.storage.common.IIndexCursor;
 import org.apache.hyracks.storage.common.ISearchPredicate;
 import org.apache.hyracks.storage.common.MultiComparator;
@@ -87,6 +90,7 @@ public class LSMBTree extends AbstractLSMIndex implements ITreeIndex {
     // Primary LSMBTree has a Bloomfilter, but Secondary one doesn't have.
     private final boolean hasBloomFilter;
     private boolean hasStatistics;
+    private IStatisticsManager statisticsManager;
 
     public LSMBTree(IIOManager ioManager, List<IVirtualBufferCache> virtualBufferCaches,
             ITreeIndexFrameFactory interiorFrameFactory, ITreeIndexFrameFactory insertLeafFrameFactory,
@@ -101,13 +105,13 @@ public class LSMBTree extends AbstractLSMIndex implements ITreeIndex {
             IStatisticsManager statisticsManager) throws HyracksDataException {
         super(ioManager, virtualBufferCaches, diskBufferCache, fileManager, bloomFilterFalsePositiveRate, mergePolicy,
                 opTracker, ioScheduler, ioOpCallbackFactory, componentFactory, bulkLoadComponentFactory,
-                filterFrameFactory, filterManager, filterFields, durable, filterHelper, btreeFields, tracer,
-                statisticsManager);
+                filterFrameFactory, filterManager, filterFields, durable, filterHelper, btreeFields, tracer);
         this.insertLeafFrameFactory = insertLeafFrameFactory;
         this.deleteLeafFrameFactory = deleteLeafFrameFactory;
         this.cmpFactories = cmpFactories;
         this.updateAware = updateAware;
         this.hasStatistics = statisticsManager != null;
+        this.statisticsManager = statisticsManager;
         int i = 0;
         for (IVirtualBufferCache virtualBufferCache : virtualBufferCaches) {
             LSMBTreeMemoryComponent mutableComponent = new LSMBTreeMemoryComponent(this,
@@ -412,7 +416,16 @@ public class LSMBTree extends AbstractLSMIndex implements ITreeIndex {
             LSMComponentFileReferences componentFileRefs, ILSMIOOperationCallback callback) {
         ILSMIndexAccessor accessor = createAccessor(opCtx);
         return new LSMBTreeFlushOperation(accessor, componentFileRefs.getInsertIndexFileReference(),
-                componentFileRefs.getBloomFilterFileReference(), callback, fileManager.getBaseDir().getAbsolutePath());
+                componentFileRefs.getBloomFilterFileReference(), getStatisticsAwareIOOperationCallback(callback),
+                fileManager.getBaseDir().getAbsolutePath());
+    }
+
+    private ILSMIOOperationCallback getStatisticsAwareIOOperationCallback(ILSMIOOperationCallback callback) {
+        if (hasStatistics) {
+            return new StatisticsMessageIOOperationCallbackWrapper(callback, statisticsManager);
+        } else {
+            return callback;
+        }
     }
 
     @Override
@@ -497,6 +510,16 @@ public class LSMBTree extends AbstractLSMIndex implements ITreeIndex {
         }
         LSMBTreeRangeSearchCursor cursor = new LSMBTreeRangeSearchCursor(opCtx, returnDeletedTuples);
         return new LSMBTreeMergeOperation(accessor, cursor, mergeFileRefs.getInsertIndexFileReference(),
-                mergeFileRefs.getBloomFilterFileReference(), callback, fileManager.getBaseDir().getAbsolutePath());
+                mergeFileRefs.getBloomFilterFileReference(), getStatisticsAwareIOOperationCallback(callback),
+                fileManager.getBaseDir().getAbsolutePath());
+    }
+
+    public IIndexBulkLoader createBulkLoader(float fillLevel, boolean verifyInput, long numElementsHint)
+            throws HyracksDataException {
+        AbstractLSMIndexOperationContext opCtx = createOpContext(NoOpIndexAccessParameters.INSTANCE);
+        opCtx.setIoOperationType(LSMIOOperationType.LOAD);
+        ioOpCallback.beforeOperation(opCtx);
+        return new LSMIndexDiskComponentBulkLoader(this, opCtx, getStatisticsAwareIOOperationCallback(ioOpCallback),
+                fillLevel, verifyInput, numElementsHint);
     }
 }

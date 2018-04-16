@@ -18,12 +18,18 @@
  */
 package org.apache.asterix.om.base;
 
-public interface IAIntegerObject extends IAObject {
-    long minDomainValue();
+public abstract class AbstractIntegerObject implements IAObject, Comparable<AbstractIntegerObject> {
 
-    long maxDomainValue();
+    public abstract long minDomainValue();
 
-    int maxLevel();
+    public abstract long maxDomainValue();
 
-    long longValue();
+    public abstract int maxLevel();
+
+    public abstract long longValue();
+
+    @Override
+    public int compareTo(AbstractIntegerObject o) {
+        return Long.compare(longValue(), o.longValue());
+    }
 }
