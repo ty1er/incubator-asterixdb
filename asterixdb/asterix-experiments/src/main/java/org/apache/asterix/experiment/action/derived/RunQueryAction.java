@@ -27,10 +27,16 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.HttpMethod;
 
+import org.apache.asterix.api.http.server.QueryServiceServlet.Parameter;
 import org.apache.asterix.common.utils.Servlets;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.NameValuePair;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.hyracks.http.server.utils.HttpUtil;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class RunQueryAction extends RESTAction {
     private static final Logger LOGGER = Logger.getLogger(RunQueryAction.class.getName());
@@ -49,14 +55,24 @@ public abstract class RunQueryAction extends RESTAction {
 
     @Override
     public String getEndpoint() {
-        return REST_URI_TEMPLATE + Servlets.SQLPP;
+        return REST_URI_TEMPLATE + Servlets.QUERY_SERVICE;
     }
 
     public void performQueryAction(String query) throws Exception {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Executing Query:\n" + query);
         }
-        entityBuilder.setText(query);
+        entityBuilder.setParameters(new NameValuePair() {
+            @Override
+            public String getName() {
+                return Parameter.STATEMENT.str();
+            }
+
+            @Override
+            public String getValue() {
+                return query;
+            }
+        });
         super.doPerform();
     }
 
@@ -66,7 +82,26 @@ public abstract class RunQueryAction extends RESTAction {
         if (os == null) {
             out = System.out;
         }
-        IOUtils.copy(content, out);
+
+        final ObjectMapper objectMapper = new ObjectMapper();
+        JsonParser jsonParser = objectMapper.getFactory().createParser(content);
+        while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+            if ("results".equals(jsonParser.getCurrentName())) {
+                JsonToken t = jsonParser.nextToken();
+                if (t != JsonToken.START_ARRAY) {
+                    throw new IOException("Expected to see the start of result array:" + jsonParser.getCurrentToken());
+                }
+                t = jsonParser.nextToken();
+                while (t != JsonToken.END_ARRAY) {
+                    IOUtils.write(t.asString(), out);
+                    t = jsonParser.nextToken();
+                }
+                break;
+            }
+            if ("status".equals(jsonParser.getCurrentName()) && "fatal".equals(jsonParser.nextToken().asString())) {
+                throw new IOException("Error in query response:");
+            }
+        }
         out.flush();
     }
 
