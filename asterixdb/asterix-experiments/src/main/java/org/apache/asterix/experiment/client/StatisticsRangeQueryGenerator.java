@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
-import org.apache.asterix.experiment.action.derived.RunPlanAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunPlanStringAction;
 import org.apache.asterix.experiment.client.numgen.DistributionType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -64,7 +64,7 @@ public class StatisticsRangeQueryGenerator extends QueryGenerator {
             //prepare range
             Pair<Long, Long> range = rangeGens[(i - 1) / 3].getNextRange();
 
-            IAction rangeQueryAction = new RunPlanAQLStringAction(httpClient, restHost, restPort,
+            IAction rangeQueryAction = new RunPlanStringAction(httpClient, restHost, restPort,
                     rangeQueryAQL(range, "btree-extra-field" + i), tmpBuffer);
             seq.addLast(rangeQueryAction);
             seq.addLast(new IAction() {

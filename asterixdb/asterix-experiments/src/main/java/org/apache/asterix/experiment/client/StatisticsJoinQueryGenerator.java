@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.concurrent.Semaphore;
 
 import org.apache.asterix.experiment.action.base.SequentialActionList;
-import org.apache.asterix.experiment.action.derived.RunPlanAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunPlanStringAction;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 public class StatisticsJoinQueryGenerator extends StatisticsRangeQueryGenerator {
@@ -47,7 +47,7 @@ public class StatisticsJoinQueryGenerator extends StatisticsRangeQueryGenerator 
 
         for (int i = 1; i <= NUM_BTREE_EXTRA_FIELDS; i++) {
             for (int j = 1; j <= NUM_BTREE_EXTRA_FIELDS; j++) {
-                seq.addLast(new RunPlanAQLStringAction(httpClient, restHost, restPort,
+                seq.addLast(new RunPlanStringAction(httpClient, restHost, restPort,
                         joinQueryAQL("btree-extra-field" + i, "btree-extra-field" + j), tmpBuffer));
             }
 

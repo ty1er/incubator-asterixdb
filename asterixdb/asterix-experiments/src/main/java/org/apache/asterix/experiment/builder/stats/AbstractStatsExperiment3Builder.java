@@ -37,7 +37,6 @@ public abstract class AbstractStatsExperiment3Builder extends AbstractStatsQuery
 
     @Override
     protected void assembleExperiment(ActionList execs) throws Exception {
-        execs.addLast(new SleepAction(2000));
         //run ddl statements
         createTypes(execs);
         createDataset(execs);

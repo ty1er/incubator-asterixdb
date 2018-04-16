@@ -30,13 +30,15 @@ import org.apache.http.message.BasicNameValuePair;
 
 public class ForceFlushDatasetAction extends RESTAction {
 
-    private static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.CONNECTOR;
-
     public ForceFlushDatasetAction(String dataverse, String dataset, CloseableHttpClient httpClient, String restHost,
             int restPort) {
-        super(REST_URI_TEMPLATE, MediaType.APPLICATION_JSON, restHost, restPort, httpClient, HttpMethod.GET);
+        super(MediaType.APPLICATION_JSON, restHost, restPort, httpClient, HttpMethod.GET);
         entityBuilder.setParameters(new BasicNameValuePair("dataverseName", dataverse),
                 new BasicNameValuePair("datasetName", dataset));
+    }
+
+    public String getEndpoint() {
+        return REST_URI_TEMPLATE + Servlets.CONNECTOR;
     }
 
     @Override

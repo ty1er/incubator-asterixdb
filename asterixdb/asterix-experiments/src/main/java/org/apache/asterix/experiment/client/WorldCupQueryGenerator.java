@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.concurrent.Semaphore;
 
 import org.apache.asterix.experiment.action.base.SequentialActionList;
-import org.apache.asterix.experiment.action.derived.RunPlanAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunPlanStringAction;
 import org.apache.asterix.experiment.client.numgen.DistributionType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -58,7 +58,7 @@ public class WorldCupQueryGenerator extends QueryGenerator {
 
         for (int i = 0; i < fieldNames.length; i++) {
             Pair<Long, Long> range = fieldRangeGens[i].getNextRange();
-            seq.addLast(new RunPlanAQLStringAction(httpClient, restHost, restPort,
+            seq.addLast(new RunPlanStringAction(httpClient, restHost, restPort,
                     getQueryAQL(range, upperBounds[i], lowerBounds[i], fieldNames[i]), tmpBuffer));
             seq.addLast(() -> {
                 try {

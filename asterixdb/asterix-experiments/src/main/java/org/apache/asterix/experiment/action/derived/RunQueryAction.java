@@ -34,7 +34,6 @@ import org.apache.hyracks.http.server.utils.HttpUtil;
 
 public abstract class RunQueryAction extends RESTAction {
     private static final Logger LOGGER = Logger.getLogger(RunQueryAction.class.getName());
-    protected static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.SQLPP;
 
     protected final OutputStream os;
 
@@ -44,8 +43,13 @@ public abstract class RunQueryAction extends RESTAction {
 
     public RunQueryAction(CloseableHttpClient httpClient, String restHost, int restPort, OutputStream os,
             String contentType) {
-        super(REST_URI_TEMPLATE, contentType, restHost, restPort, httpClient, HttpMethod.POST);
+        super(contentType, restHost, restPort, httpClient, HttpMethod.POST);
         this.os = os;
+    }
+
+    @Override
+    public String getEndpoint() {
+        return REST_URI_TEMPLATE + Servlets.SQLPP;
     }
 
     public void performQueryAction(String query) throws Exception {

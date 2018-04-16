@@ -37,20 +37,25 @@ import javax.ws.rs.HttpMethod;
 import org.apache.asterix.common.utils.Servlets;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.hyracks.http.server.utils.HttpUtil.ContentType;
 
 import com.google.common.collect.Lists;
 
-public class RunPlanAQLStringAction extends RESTAction {
-    private final Logger LOGGER = Logger.getLogger(RunPlanAQLStringAction.class.getName());
-    protected static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.QUERY_PLAN;
+public class RunPlanStringAction extends RESTAction {
+    private final Logger LOGGER = Logger.getLogger(RunPlanStringAction.class.getName());
     private final OutputStream os;
     private final String query;
 
-    public RunPlanAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query,
+    public RunPlanStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query,
             OutputStream os) {
-        super(REST_URI_TEMPLATE, "application/json", restHost, restPort, httpClient, HttpMethod.POST);
+        super(ContentType.APPLICATION_JSON, restHost, restPort, httpClient, HttpMethod.POST);
         this.query = query;
         this.os = os;
+    }
+
+    @Override
+    public String getEndpoint() {
+        return REST_URI_TEMPLATE + Servlets.QUERY_PLAN;
     }
 
     @Override

@@ -25,14 +25,15 @@ import java.text.MessageFormat;
 import org.apache.asterix.experiment.action.base.AbstractAction;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.EntityBuilder;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
-public abstract class RESTAction extends AbstractAction {
+public abstract class RESTAction extends AbstractAction implements RESTEndpointAction {
+
+    public static final String REST_URI_TEMPLATE = "http://{0}:{1}";
 
     private final String endpoint;
     private final String acceptHeaderType;
@@ -42,10 +43,10 @@ public abstract class RESTAction extends AbstractAction {
     private final CloseableHttpClient httpClient;
     private final String httpMethod;
 
-    public RESTAction(String endpoint, String acceptHeaderType, String host, int port, CloseableHttpClient httpClient,
+    public RESTAction(String acceptHeaderType, String host, int port, CloseableHttpClient httpClient,
             String httpMethod) {
         super("REST");
-        this.endpoint = endpoint;
+        this.endpoint = getEndpoint();
         this.acceptHeaderType = acceptHeaderType;
         this.host = host;
         this.port = port;
@@ -63,10 +64,6 @@ public abstract class RESTAction extends AbstractAction {
             RequestBuilder requestBuilder =
                     RequestBuilder.create(httpMethod).setUri(uri).setHeader(HttpHeaders.ACCEPT, acceptHeaderType)
                             .setEntity(entityBuilder.build());
-            if (entityBuilder.getParameters() != null && entityBuilder.getParameters().size() > 0)
-                requestBuilder.addParameters(
-                        entityBuilder.getParameters().toArray(new NameValuePair[entityBuilder.getParameters().size()]));
-
             resp = httpClient.execute(requestBuilder.build());
             respEntity = resp.getEntity();
             if (resp.getStatusLine().getStatusCode() != 200) {

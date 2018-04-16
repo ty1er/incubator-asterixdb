@@ -196,6 +196,7 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
 
     private void setupCluster(ActionList experimentActions, String clusterConfigPath, String inventoryPath) {
         //Precondition: create new cluster instance
+        experimentActions.addFirst(new SleepAction(5000));
         experimentActions.addFirst(new StartAsterixAnsibleAction(ansiblePath));
         experimentActions.addFirst(new DeployAsterixAction(ansiblePath, clusterConfigPath, inventoryPath));
         experimentActions.addFirst(new EraseAsterixAnsibleAction(ansiblePath));
@@ -394,7 +395,6 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     }
 
     protected void assembleExperiment(ActionList execs) throws Exception {
-        execs.addLast(new SleepAction(2000));
         //run ddl statements
         createTypes(execs);
         createDataset(execs);
