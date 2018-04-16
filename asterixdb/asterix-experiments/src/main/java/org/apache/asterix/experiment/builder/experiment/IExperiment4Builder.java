@@ -22,7 +22,7 @@ public interface IExperiment4Builder extends IExperimentBuilder {
 
     @Override
     default String getExperimentDDL() {
-        return "4.aql";
+        return "4.sqlpp";
     }
 
 }

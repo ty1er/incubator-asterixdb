@@ -49,8 +49,8 @@ import org.apache.asterix.experiment.action.derived.AnsibleActions.StartAsterixA
 import org.apache.asterix.experiment.action.derived.AnsibleActions.StopAsterixAnsibleAction;
 import org.apache.asterix.experiment.action.derived.ForceFlushDatasetAction;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.RunAQLAction;
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
+import org.apache.asterix.experiment.action.derived.RunQueryAction;
+import org.apache.asterix.experiment.action.derived.RunQueryFileAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.cluster.IClusterBuilder;
@@ -325,9 +325,9 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
         experimentActions.addLast(new SleepAction(2000));
         if (countFileName != null) {
             final OutputStream countResultStream = new ByteArrayOutputStream();
-            final OutputStream trimmedResultStream = new RunAQLAction.NoNewLineFileOutputStream(countResultStream);
-            experimentActions.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                    localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(countFileName),
+            final OutputStream trimmedResultStream = new RunQueryAction.NoNewLineFileOutputStream(countResultStream);
+            experimentActions.addLast(new RunQueryFileAction(httpClient, restHost, restPort,
+                    localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR).resolve(countFileName),
                     trimmedResultStream));
             experimentActions
                     .addLast(new LogAction(() -> "Number of loaded records: " + countResultStream, Level.INFO));
@@ -371,13 +371,13 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     }
 
     protected void createTypes(ActionList execs) throws IOException {
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
-                .resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir()).resolve(BASE_TYPES)));
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.SQLPP_DIR).resolve(workloadType.getDir()).resolve(BASE_TYPES)));
     }
 
     protected void createDataset(ActionList execs) throws IOException {
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
-                .resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir()).resolve(experimentDDL)));
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.SQLPP_DIR).resolve(workloadType.getDir()).resolve(experimentDDL)));
     }
 
     protected void createIndexes(ActionList execs) throws IOException {
@@ -389,8 +389,8 @@ public abstract class BaseExperimentBuilder extends AbstractExperimentBuilder im
     protected void cleanupData(ActionList execs) throws IOException {
         execs.addLast(new SleepAction(1000));
         //clean up dataset
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot
-                .resolve(LSMExperimentConstants.AQL_DIR).resolve(LSMExperimentConstants.BASE_CLEANUP)));
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot
+                .resolve(LSMExperimentConstants.SQLPP_DIR).resolve(LSMExperimentConstants.BASE_CLEANUP)));
     }
 
     protected void assembleExperiment(ActionList execs) throws Exception {

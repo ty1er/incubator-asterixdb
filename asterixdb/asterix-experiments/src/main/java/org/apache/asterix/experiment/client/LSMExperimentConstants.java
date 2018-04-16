@@ -25,19 +25,21 @@ public class LSMExperimentConstants {
 
     public static final String AQL_DIR = "aql";
 
+    public static final String SQLPP_DIR = "sqlpp";
+
     public static final String BASE_DIR = "base";
 
     public static final String DGEN_DIR = "dgen";
 
     public static final String LOG_DIR = "log";
 
-    public static final String SOCKET_FEED = "socket_feed.aql";
+    public static final String SOCKET_FEED = "socket_feed.sqlpp";
 
-    public static final String FILE_FEED = "file_feed.aql";
+    public static final String FILE_FEED = "file_feed.sqlpp";
 
-    public static final String BASE_TYPES = "base_types.aql";
+    public static final String BASE_TYPES = "base_types.sqlpp";
 
-    public static final String BASE_LOAD = "base_load.aql";
+    public static final String BASE_LOAD = "base_load.sqlpp";
 
     public static final String LOAD_PATH = "PATH";
 
@@ -45,13 +47,13 @@ public class LSMExperimentConstants {
 
     public static final String INGEST_MERGE_POLICY = "MERGE_POLICY";
 
-    public static final String INGEST_CLEANUP = "ingest_cleanup.aql";
+    public static final String INGEST_CLEANUP = "ingest_cleanup.sqlpp";
 
-    public static final String INGEST_CONNECT = "ingest_connect.aql";
+    public static final String INGEST_CONNECT = "ingest_connect.sqlpp";
 
-    public static final String INGEST_START = "ingest_start.aql";
+    public static final String INGEST_START = "ingest_start.sqlpp";
 
-    public static final String BASE_CLEANUP = "base_cleanup.aql";
+    public static final String BASE_CLEANUP = "base_cleanup.sqlpp";
 
     public static final String CC_CONFIGURATION = "cc.conf";
 

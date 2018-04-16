@@ -20,7 +20,7 @@
 package org.apache.asterix.experiment.builder.perf;
 
 import org.apache.asterix.experiment.action.base.SequentialActionList;
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
+import org.apache.asterix.experiment.action.derived.RunQueryFileAction;
 import org.apache.asterix.experiment.builder.AbstractPerfLoadBuilder;
 import org.apache.asterix.experiment.client.LSMExperimentConstants;
 import org.apache.asterix.experiment.client.LSMExperimentSetRunnerConfig;
@@ -36,7 +36,7 @@ public class PerfTestAggBuilder extends AbstractPerfLoadBuilder {
 
     @Override
     protected void doBuildDDL(SequentialActionList seq) throws IOException {
-        seq.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        seq.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve("bench_3.aql")));
     }
 

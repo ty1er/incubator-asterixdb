@@ -22,6 +22,6 @@ public interface ITweetRecordsCounterBuilder extends ICounterBuilder {
 
     @Override
     default String getCounter() {
-        return "count.aql";
+        return "count.sqlpp";
     }
 }

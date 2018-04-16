@@ -32,27 +32,27 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.hyracks.http.server.utils.HttpUtil;
 
-public abstract class RunAQLAction extends RESTAction {
-    private static final Logger LOGGER = Logger.getLogger(RunAQLAction.class.getName());
-    protected static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.AQL;
+public abstract class RunQueryAction extends RESTAction {
+    private static final Logger LOGGER = Logger.getLogger(RunQueryAction.class.getName());
+    protected static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.SQLPP;
 
     protected final OutputStream os;
 
-    public RunAQLAction(CloseableHttpClient httpClient, String restHost, int restPort, OutputStream os) {
+    public RunQueryAction(CloseableHttpClient httpClient, String restHost, int restPort, OutputStream os) {
         this(httpClient, restHost, restPort, os, HttpUtil.ContentType.APPLICATION_ADM);
     }
 
-    public RunAQLAction(CloseableHttpClient httpClient, String restHost, int restPort, OutputStream os,
+    public RunQueryAction(CloseableHttpClient httpClient, String restHost, int restPort, OutputStream os,
             String contentType) {
         super(REST_URI_TEMPLATE, contentType, restHost, restPort, httpClient, HttpMethod.POST);
         this.os = os;
     }
 
-    public void performAqlAction(String aql) throws Exception {
+    public void performQueryAction(String query) throws Exception {
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine("Executing AQL:\n" + aql);
+            LOGGER.fine("Executing Query:\n" + query);
         }
-        entityBuilder.setText(aql);
+        entityBuilder.setText(query);
         super.doPerform();
     }
 

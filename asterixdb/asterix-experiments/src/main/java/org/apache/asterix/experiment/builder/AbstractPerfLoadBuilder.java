@@ -128,7 +128,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         //ddl statements
         execs.addLast(new SleepAction(15000));
         // TODO: implement retry handler
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve(LSMPerfConstants.BASE_TYPES)));
         doBuildDDL(execs);
 
@@ -166,7 +166,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         //---------- main experiment body begins -----------
 
         //run DDL + Load
-        execs.addLast(new TimedAction(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+        execs.addLast(new TimedAction(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                 LSMExperimentConstants.AQL_DIR).resolve(loadAQLFilePath))));
 
         //execute SQL++ Queries
@@ -195,7 +195,7 @@ public abstract class AbstractPerfLoadBuilder extends AbstractExperimentBuilder 
         //total record count
         execs.addLast(new SleepAction(10000));
         if (countFileName != null) {
-            execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
+            execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort, localExperimentRoot.resolve(
                     LSMExperimentConstants.AQL_DIR).resolve(countFileName)));
         }
 

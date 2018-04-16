@@ -23,7 +23,7 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
+import org.apache.asterix.experiment.action.derived.RunQueryFileAction;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -39,8 +39,8 @@ public class QueryExecutor {
         CloseableHttpClient httpClient =
                 HttpClients.custom().setConnectionManager(poolingCCM).setMaxConnPerRoute(10).build();
         try {
-            RunAQLFileAction runAction =
-                    new RunAQLFileAction(httpClient, config.getHost(), config.getPort(), Paths.get(config.getQuery()),
+            RunQueryFileAction runAction =
+                    new RunQueryFileAction(httpClient, config.getHost(), config.getPort(), Paths.get(config.getQuery()),
                             FileUtils.openOutputStream(new File(config.getOutput())),
                             config.getOutputType().getContentType());
             runAction.doPerform();

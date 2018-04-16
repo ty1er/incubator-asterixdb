@@ -32,7 +32,7 @@ import java.util.Scanner;
 import javax.xml.bind.JAXBException;
 
 import org.apache.asterix.experiment.action.base.SequentialActionList;
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
+import org.apache.asterix.experiment.action.derived.RunQueryFileAction;
 import org.apache.asterix.experiment.action.derived.RunSQLPPFileAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
@@ -85,15 +85,15 @@ public class PresetClusterPerfBuilder extends AbstractExperimentBuilder {
         //ddl statements
         execs.addLast(new SleepAction(15000));
         // TODO: implement retry handler
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort,
                 localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(LSMPerfConstants.BASE_TYPES)));
-        execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
+        execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort,
                 localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve("bench_3.aql")));
 
         //---------- main experiment body begins -----------
 
         //run DDL + Load
-        execs.addLast(new TimedAction(new RunAQLFileAction(httpClient, restHost, restPort,
+        execs.addLast(new TimedAction(new RunQueryFileAction(httpClient, restHost, restPort,
                 localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(loadAQLFilePath))));
 
         //execute SQL++ Queries
@@ -106,7 +106,7 @@ public class PresetClusterPerfBuilder extends AbstractExperimentBuilder {
         //total record count
         execs.addLast(new SleepAction(10000));
         if (countFileName != null) {
-            execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
+            execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort,
                     localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(countFileName)));
         }
 

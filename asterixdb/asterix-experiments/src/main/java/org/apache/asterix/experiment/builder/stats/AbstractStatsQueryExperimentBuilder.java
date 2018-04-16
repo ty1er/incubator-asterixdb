@@ -35,8 +35,8 @@ import java.util.logging.Logger;
 import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.derived.AbstractLocalExecutableAction;
-import org.apache.asterix.experiment.action.derived.RunAQLAction;
-import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunQueryAction;
+import org.apache.asterix.experiment.action.derived.RunQueryStringAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.counter.ITweetRecordsCounterBuilder;
 import org.apache.asterix.experiment.client.DataGeneratorForSpatialIndexEvaluation;
@@ -123,25 +123,25 @@ public abstract class AbstractStatsQueryExperimentBuilder extends AbstractStatsE
     }
 
     public String getSynopsisDump() {
-        return "dump_synopsis.aql";
+        return "dump_synopsis.sqlpp";
     }
 
-    public RunAQLAction getSynopsisDumpAction(OutputStream outputStream, String fieldName) throws IOException {
-        String aql = StandardCharsets.UTF_8
+    public RunQueryAction getSynopsisDumpAction(OutputStream outputStream, String fieldName) throws IOException {
+        String query = StandardCharsets.UTF_8
                 .decode(ByteBuffer.wrap(Files.readAllBytes(
-                        localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getSynopsisDump()))))
+                        localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR).resolve(getSynopsisDump()))))
                 .toString();
-        aql = aql.replaceAll("FIELD", fieldName);
-        return new RunAQLStringAction(httpClient, restHost, restPort, aql, outputStream, HttpUtil.ContentType.CSV);
+        query = query.replaceAll("FIELD", fieldName);
+        return new RunQueryStringAction(httpClient, restHost, restPort, query, outputStream, HttpUtil.ContentType.CSV);
     }
 
     public IAction getDataDumpAction(OutputStream outputStream, String fieldName) throws IOException {
-        String aql = StandardCharsets.UTF_8
+        String query = StandardCharsets.UTF_8
                 .decode(ByteBuffer.wrap(Files.readAllBytes(
-                        localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve("dump_data.aql"))))
+                        localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR).resolve("dump_data.sqlpp"))))
                 .toString();
-        aql = aql.replaceAll("FIELD", fieldName);
-        return new RunAQLStringAction(httpClient, restHost, restPort, aql, outputStream, HttpUtil.ContentType.CSV);
+        query = query.replaceAll("FIELD", fieldName);
+        return new RunQueryStringAction(httpClient, restHost, restPort, query, outputStream, HttpUtil.ContentType.CSV);
     }
 
     protected String[] getFieldNames() {

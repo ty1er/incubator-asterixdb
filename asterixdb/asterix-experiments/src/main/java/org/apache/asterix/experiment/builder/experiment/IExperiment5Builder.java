@@ -21,6 +21,6 @@ package org.apache.asterix.experiment.builder.experiment;
 public interface IExperiment5Builder extends IExperimentBuilder {
     @Override
     default String getExperimentDDL() {
-        return "5.aql";
+        return "5.sqlpp";
     }
 }

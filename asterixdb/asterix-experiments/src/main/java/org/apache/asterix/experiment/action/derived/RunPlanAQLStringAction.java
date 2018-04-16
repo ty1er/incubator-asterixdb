@@ -44,19 +44,19 @@ public class RunPlanAQLStringAction extends RESTAction {
     private final Logger LOGGER = Logger.getLogger(RunPlanAQLStringAction.class.getName());
     protected static final String REST_URI_TEMPLATE = "http://{0}:{1}" + Servlets.QUERY_PLAN;
     private final OutputStream os;
-    private final String aql;
+    private final String query;
 
-    public RunPlanAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String aql,
+    public RunPlanAQLStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query,
             OutputStream os) {
         super(REST_URI_TEMPLATE, "application/json", restHost, restPort, httpClient, HttpMethod.POST);
-        this.aql = aql;
+        this.query = query;
         this.os = os;
     }
 
     @Override
     public void doPerform() throws Exception {
         entityBuilder.setParameters(Lists.newArrayList(new BasicNameValuePair("print-optimized-logical-plan", "true"),
-                new BasicNameValuePair("query", aql), new BasicNameValuePair("execute-query", "true")));
+                new BasicNameValuePair("query", query), new BasicNameValuePair("execute-query", "true")));
         super.doPerform();
     }
 

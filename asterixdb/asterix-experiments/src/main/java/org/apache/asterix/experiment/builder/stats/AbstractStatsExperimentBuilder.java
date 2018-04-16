@@ -41,8 +41,8 @@ import org.apache.asterix.experiment.action.base.ParallelActionSet;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.ForceFlushDatasetAction;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.RunAQLFileAction;
-import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunQueryFileAction;
+import org.apache.asterix.experiment.action.derived.RunQueryStringAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.BaseExperimentBuilder;
@@ -133,7 +133,7 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
 
     @Override
     protected void createDataset(ActionList execs) throws IOException {
-        Path ddl = localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(workloadType.getDir())
+        Path ddl = localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR).resolve(workloadType.getDir())
                 .resolve(experimentDDL);
         String ddlString = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Files.readAllBytes(ddl))).toString();
         long recordNum = (long) (config.getDatagenCount()
@@ -143,14 +143,14 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
                 .replaceFirst(Long.toString(recordNum));
         ddlString = Pattern.compile(LSMExperimentConstants.INGEST_MERGE_POLICY).matcher(ddlString)
                 .replaceFirst(mergePolicy);
-        execs.addLast(new RunAQLStringAction(httpClient, restHost, restPort, ddlString));
+        execs.addLast(new RunQueryStringAction(httpClient, restHost, restPort, ddlString));
     }
 
     @Override
     protected void createIndexes(ActionList execs) throws IOException {
         if (getIndexDDL() != null) {
-            execs.addLast(new RunAQLFileAction(httpClient, restHost, restPort,
-                    localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR).resolve(getIndexDDL())));
+            execs.addLast(new RunQueryFileAction(httpClient, restHost, restPort,
+                    localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR).resolve(getIndexDDL())));
         }
     }
 
@@ -216,29 +216,30 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
                     //receivers are list of sockets, i.e. just right values in dgenPairs
                     String socketReceivers =
                             String.join(",", receivers.stream().map(Pair::getRight).collect(Collectors.toList()));
-                    ingestAql = assemblingSocketIngest(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    ingestAql = assemblingSocketIngest(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                             .resolve(config.getWorkloadType().getDir()).resolve(SOCKET_FEED), socketReceivers);
-                    runDisconnectActions.addLast(new RunAQLStringAction(httpClient, restHost, restPort,
-                            assemblingFeedIngest(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    runDisconnectActions.addLast(new RunQueryStringAction(httpClient, restHost, restPort,
+                            assemblingFeedIngest(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                                     .resolve(LSMExperimentConstants.INGEST_CLEANUP), i + 1)));
                 } else {
-                    ingestAql = assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    ingestAql = assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                             .resolve(config.getWorkloadType().getDir()).resolve(LSMExperimentConstants.FILE_FEED),
                             receivers);
                 }
                 runFeedActions.addLast(
-                        new RunAQLStringAction(httpClient, restHost, restPort, assemblingFeedIngest(ingestAql, i + 1)));
+                        new RunQueryStringAction(httpClient, restHost, restPort,
+                                assemblingFeedIngest(ingestAql, i + 1)));
                 runConnectActions
                         .addFirst(
-                                new RunAQLStringAction(httpClient, restHost, restPort,
+                                new RunQueryStringAction(httpClient, restHost, restPort,
                                         assemblingFeedPolicy(
                                                 assemblingFeedIngest(
-                                                        localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                                                        localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                                                                 .resolve(LSMExperimentConstants.INGEST_CONNECT),
                                                         i + 1))));
-                runStartActions.addLast(new RunAQLStringAction(httpClient, restHost, restPort,
+                runStartActions.addLast(new RunQueryStringAction(httpClient, restHost, restPort,
                         setWaitForCompletionIngest(
-                                assemblingFeedIngest(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                                assemblingFeedIngest(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                                         .resolve(LSMExperimentConstants.INGEST_START), i + 1),
                                 config.getIngestType() != LSMExperimentSetRunnerConfig.IngestionType.SocketFeed)));
             }
@@ -269,8 +270,8 @@ public class AbstractStatsExperimentBuilder extends BaseExperimentBuilder implem
                 throw new IOException("Cannot do data load with non-insert data workload");
             loadActions.addLast(dgenActions);
             loadActions.addLast(new TimedAction(
-                    new RunAQLStringAction(httpClient, restHost, restPort,
-                            assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    new RunQueryStringAction(httpClient, restHost, restPort,
+                            assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                                     .resolve(LSMExperimentConstants.BASE_LOAD), flatReceiverList)),
                     (Long time) -> "Data load took " + time + "ms"));
         }

@@ -22,6 +22,6 @@ public interface IExperiment1SketchBuilder extends IExperimentBuilder {
 
     @Override
     default String getExperimentDDL() {
-        return "1_sketch.aql";
+        return "1_sketch.sqlpp";
     }
 }

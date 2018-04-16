@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import org.apache.asterix.experiment.action.base.IAction;
-import org.apache.asterix.experiment.action.derived.RunAQLAction;
+import org.apache.asterix.experiment.action.derived.RunQueryAction;
 import org.apache.asterix.experiment.builder.cluster.ICluster8Builder;
 import org.apache.asterix.experiment.builder.config.INoStatsBuilder;
 import org.apache.asterix.experiment.builder.stats.WorldCupExperimentBuilder;
@@ -44,20 +44,20 @@ public class WorldCupExperimentNoStats extends WorldCupExperimentBuilder
 
     @Override
     public IAction getDataDumpAction(OutputStream outputStream, String fieldName) {
-        return new RunAQLAction(httpClient, restHost, restPort, outputStream, HttpUtil.ContentType.CSV) {
+        return new RunQueryAction(httpClient, restHost, restPort, outputStream, HttpUtil.ContentType.CSV) {
 
             @Override
             public void doPerform() throws Exception {
-                String aql = StandardCharsets.UTF_8
+                String query = StandardCharsets.UTF_8
                         .decode(ByteBuffer.wrap(Files.readAllBytes(localExperimentRoot
-                                .resolve(LSMExperimentConstants.AQL_DIR).resolve("worldcup/dump_data.aql"))))
+                                .resolve(LSMExperimentConstants.SQLPP_DIR).resolve("worldcup/dump_data.sqlpp"))))
                         .toString();
                 for (int i = 0; i < getFieldNames().length; i++) {
                     if (getFieldNames()[i].equals(fieldName)) {
-                        aql = aql.replaceAll("FIELD_MIN", fieldMinimums.get(i));
-                        aql = aql.replaceAll("FIELD_MAX", fieldMaximum.get(i));
-                        aql = aql.replaceAll("FIELD", fieldName);
-                        performAqlAction(aql);
+                        query = query.replaceAll("FIELD_MIN", fieldMinimums.get(i));
+                        query = query.replaceAll("FIELD_MAX", fieldMaximum.get(i));
+                        query = query.replaceAll("FIELD", fieldName);
+                        performQueryAction(query);
                         break;
                     }
                 }

@@ -28,7 +28,7 @@ import org.apache.asterix.experiment.action.base.ActionList;
 import org.apache.asterix.experiment.action.base.IAction;
 import org.apache.asterix.experiment.action.base.SequentialActionList;
 import org.apache.asterix.experiment.action.derived.LogAction;
-import org.apache.asterix.experiment.action.derived.RunAQLStringAction;
+import org.apache.asterix.experiment.action.derived.RunQueryStringAction;
 import org.apache.asterix.experiment.action.derived.SleepAction;
 import org.apache.asterix.experiment.action.derived.TimedAction;
 import org.apache.asterix.experiment.builder.ingest.IIngestFeeds1Builder;
@@ -54,17 +54,17 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
 
     @Override
     public String getExperimentDDL() {
-        return "dataset.aql";
+        return "dataset.sqlpp";
     }
 
     @Override
     public String getIndexDDL() {
-        return "worldcup/index.aql";
+        return "worldcup/index.sqlpp";
     }
 
     @Override
     public String getCounter() {
-        return "worldcup/count.aql";
+        return "worldcup/count.sqlpp";
     }
 
     @Override
@@ -105,7 +105,7 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
                     .append(" >= -2147483648 return $x.").append(fieldName).append("\n");
             query.append("return {\"min\": min($wc),\"max\": max($wc)};");
 
-            experimentActions.addLast(new RunAQLStringAction(httpClient, restHost, restPort, query.toString(),
+            experimentActions.addLast(new RunQueryStringAction(httpClient, restHost, restPort, query.toString(),
                     resultStream, HttpUtil.ContentType.CSV));
             experimentActions.addLast(() -> {
                 for (String s : new String(resultStream.toByteArray()).split("\r\n")) {
@@ -130,15 +130,15 @@ public class WorldCupExperimentBuilder extends AbstractStatsQueryExperimentBuild
         List<Pair<String, String>> flatReceiverList = flattenDgens();
         if (config.getIngestType() == IngestionType.FileFeed) {
             String ingestAql = assembleLoad(
-                    localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                             .resolve(config.getWorkloadType().getDir()).resolve(LSMExperimentConstants.FILE_FEED),
                     flatReceiverList);
-            loadActions.addLast(new TimedAction(new RunAQLStringAction(httpClient, restHost, restPort, ingestAql),
+            loadActions.addLast(new TimedAction(new RunQueryStringAction(httpClient, restHost, restPort, ingestAql),
                     (Long time) -> "File feed ingestion took " + time + "ms"));
         } else if (config.getIngestType() == IngestionType.FileLoad) {
             loadActions.addLast(new TimedAction(
-                    new RunAQLStringAction(httpClient, restHost, restPort,
-                            assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.AQL_DIR)
+                    new RunQueryStringAction(httpClient, restHost, restPort,
+                            assembleLoad(localExperimentRoot.resolve(LSMExperimentConstants.SQLPP_DIR)
                                     .resolve(LSMExperimentConstants.BASE_LOAD), flatReceiverList)),
                     (Long time) -> "Data load took " + time + "ms"));
         }

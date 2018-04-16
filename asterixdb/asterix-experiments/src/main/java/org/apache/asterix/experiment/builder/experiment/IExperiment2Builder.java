@@ -22,11 +22,11 @@ public interface IExperiment2Builder extends IExperimentBuilder {
 
     @Override
     default String getExperimentDDL() {
-        return "2.aql";
+        return "2.sqlpp";
     }
 
     @Override
     default String getIndexDDL() {
-        return "2_index.aql";
+        return "2_index.sqlpp";
     }
 }

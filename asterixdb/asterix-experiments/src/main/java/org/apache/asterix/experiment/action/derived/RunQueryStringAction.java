@@ -19,39 +19,32 @@
 
 package org.apache.asterix.experiment.action.derived;
 
-import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 
-public class RunAQLFileAction extends RunAQLAction {
+public class RunQueryStringAction extends RunQueryAction {
 
-    private final Path aqlFilePath;
+    private final String query;
 
-    public RunAQLFileAction(CloseableHttpClient httpClient, String restHost, int restPort, Path aqlFilePath) throws IOException {
-        this(httpClient, restHost, restPort, aqlFilePath, null);
+    public RunQueryStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query) {
+        this(httpClient, restHost, restPort, query, null);
     }
 
-    public RunAQLFileAction(CloseableHttpClient httpClient, String restHost, int restPort, Path aqlFilePath, OutputStream os) {
+    public RunQueryStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query,
+            OutputStream os) {
         super(httpClient, restHost, restPort, os);
-        this.aqlFilePath = aqlFilePath;
+        this.query = query;
     }
 
-    public RunAQLFileAction(CloseableHttpClient httpClient, String restHost, int restPort, Path aqlFilePath,
+    public RunQueryStringAction(CloseableHttpClient httpClient, String restHost, int restPort, String query,
             OutputStream os, String contentType) {
         super(httpClient, restHost, restPort, os, contentType);
-        this.aqlFilePath = aqlFilePath;
+        this.query = query;
     }
 
     @Override
     public void doPerform() throws Exception {
-        String aql = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Files.readAllBytes(aqlFilePath))).toString();
-        performAqlAction(aql);
+        performQueryAction(query);
     }
-
-
 }
