@@ -180,6 +180,7 @@ public class QueryServiceServlet extends AbstractQueryApiServlet {
     private enum Metrics {
         ELAPSED_TIME("elapsedTime"),
         EXECUTION_TIME("executionTime"),
+        OPTIMIZATION_TIME("optimizationTime"),
         RESULT_COUNT("resultCount"),
         RESULT_SIZE("resultSize"),
         ERROR_COUNT("errorCount"),
@@ -369,8 +370,8 @@ public class QueryServiceServlet extends AbstractQueryApiServlet {
         }
     }
 
-    private static void printMetrics(PrintWriter pw, long elapsedTime, long executionTime, long resultCount,
-            long resultSize, long processedObjects, long errorCount) {
+    private static void printMetrics(PrintWriter pw, long elapsedTime, long executionTime, long optimizationTime,
+            long resultCount, long resultSize, long processedObjects, long errorCount) {
         boolean hasErrors = errorCount != 0;
         pw.print("\t\"");
         pw.print(ResultFields.METRICS.str());
@@ -379,6 +380,8 @@ public class QueryServiceServlet extends AbstractQueryApiServlet {
         ResultUtil.printField(pw, Metrics.ELAPSED_TIME.str(), Duration.formatNanos(elapsedTime));
         pw.print("\t");
         ResultUtil.printField(pw, Metrics.EXECUTION_TIME.str(), Duration.formatNanos(executionTime));
+        pw.print("\t");
+        ResultUtil.printField(pw, Metrics.OPTIMIZATION_TIME.str(), Duration.formatNanos(optimizationTime));
         pw.print("\t");
         ResultUtil.printField(pw, Metrics.RESULT_COUNT.str(), resultCount, true);
         pw.print("\t");
@@ -539,8 +542,9 @@ public class QueryServiceServlet extends AbstractQueryApiServlet {
             sessionOutput.release();
             execution.finish();
         }
-        printMetrics(sessionOutput.out(), System.nanoTime() - elapsedStart, execution.duration(), stats.getCount(),
-                stats.getSize(), stats.getProcessedObjects(), errorCount);
+        printMetrics(sessionOutput.out(), System.nanoTime() - elapsedStart, execution.duration(),
+                stats.getOptimizationTime(), stats.getCount(), stats.getSize(), stats.getProcessedObjects(),
+                errorCount);
         sessionOutput.out().print("}\n");
         sessionOutput.out().flush();
         if (sessionOutput.out().checkError()) {

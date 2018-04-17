@@ -187,7 +187,7 @@ public class APIFramework {
 
     public JobSpecification compileQuery(IClusterInfoCollector clusterInfoCollector, MetadataProvider metadataProvider,
             Query query, int varCounter, String outputDatasetName, SessionOutput output,
-            ICompiledDmlStatement statement) throws AlgebricksException, ACIDException {
+            ICompiledDmlStatement statement, Stats stats) throws AlgebricksException, ACIDException {
 
         // establish facts
         final boolean isQuery = query != null;
@@ -238,7 +238,11 @@ public class APIFramework {
 
         ICompiler compiler = compilerFactory.createCompiler(plan, metadataProvider, t.getVarCounter());
         if (conf.isOptimize()) {
+            long optimizeStart = System.nanoTime();
             compiler.optimize();
+            if (stats != null) {
+                stats.setOptimizeTime(System.nanoTime() - optimizeStart);
+            }
             if (conf.is(SessionConfig.OOB_OPTIMIZED_LOGICAL_PLAN)) {
                 if (conf.is(SessionConfig.FORMAT_ONLY_PHYSICAL_OPS)) {
                     // For Optimizer tests.
