@@ -19,13 +19,10 @@
 package org.apache.hyracks.storage.am.rtree.impls;
 
 import org.apache.hyracks.data.std.primitive.IntegerPointable;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProvider;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProviderFactory;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProvider;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProviderFactory;
 
-public class IntegerPrimitiveValueProviderFactory
-        implements IPrimitiveValueProviderFactory, IOrdinalPrimitiveValueProviderFactory {
+public class IntegerPrimitiveValueProviderFactory implements IPrimitiveValueProviderFactory {
     private static final long serialVersionUID = 1L;
 
     public static final IntegerPrimitiveValueProviderFactory INSTANCE = new IntegerPrimitiveValueProviderFactory();
@@ -36,18 +33,15 @@ public class IntegerPrimitiveValueProviderFactory
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public double getValue(byte[] bytes, int offset) {
                 return IntegerPointable.getInteger(bytes, offset);
             }
-        };
-    }
 
-    @Override
-    public IOrdinalPrimitiveValueProvider createOrdinalPrimitiveValueProvider() {
-        return new IOrdinalPrimitiveValueProvider() {
             @Override
-            public long getOrdinalValue(byte[] bytes, int offset) {
+            public long getLongValue(byte[] bytes, int offset) {
                 return IntegerPointable.getInteger(bytes, offset);
             }
         };

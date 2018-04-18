@@ -23,12 +23,12 @@ import java.util.Stack;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.util.objectpool.IObjectFactory;
 import org.apache.hyracks.util.objectpool.MapObjectPool;
 
-public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis, Long> {
+public class PrefixSumWaveletTransform extends AbstractIntegerSynopsisBuilder<WaveletSynopsis> {
     private final Stack<WaveletCoefficient> avgStack;
     private MapObjectPool<WaveletCoefficient, Integer> avgStackObjectPool;
     protected long transformPosition;
@@ -164,7 +164,7 @@ public class PrefixSumWaveletTransform extends AbstractSynopsisBuilder<WaveletSy
     }
 
     @Override
-    public void addValue(Long tuplePosition) {
+    public void addValue(long tuplePosition) {
         // check whether tuple with this position was already seen
         if (transformPosition != tuplePosition) {
             transformTuple(transformPosition, prefixSumFrequency, transformFrequency);

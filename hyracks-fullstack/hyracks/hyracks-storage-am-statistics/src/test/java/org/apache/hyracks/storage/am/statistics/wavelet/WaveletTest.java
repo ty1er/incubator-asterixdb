@@ -20,7 +20,7 @@ package org.apache.hyracks.storage.am.statistics.wavelet;
 
 import java.util.PriorityQueue;
 
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.test.support.RepeatRule;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
@@ -58,7 +58,7 @@ public abstract class WaveletTest {
 
         WaveletSynopsis createSynopsis(DomainConstants domain, int threshold, boolean normalize);
 
-        AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis);
+        AbstractIntegerSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis);
     }
 
     @DataPoint("prefixSumWavelet")
@@ -70,7 +70,7 @@ public abstract class WaveletTest {
         }
 
         @Override
-        public AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
+        public AbstractIntegerSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
             return new PrefixSumWaveletTransform(synopsis, "", "", "", "", false, null, null);
         }
     };
@@ -84,7 +84,7 @@ public abstract class WaveletTest {
         }
 
         @Override
-        public AbstractSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
+        public AbstractIntegerSynopsisBuilder createSynopsisBuilder(WaveletSynopsis synopsis) {
             return new WaveletTransform(synopsis, "", "", "", "", false, null, null);
         }
     };

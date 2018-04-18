@@ -22,12 +22,13 @@ import java.util.List;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.historgram.EquiHeightHistogramSynopsis;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 
-public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHistogramSynopsis<HistogramBucket>, Long> {
+public class QuantileSketchBuilder
+        extends AbstractIntegerSynopsisBuilder<EquiHeightHistogramSynopsis<HistogramBucket>> {
 
     private QuantileSketch<Long> sketch;
 
@@ -60,7 +61,7 @@ public class QuantileSketchBuilder extends AbstractSynopsisBuilder<EquiHeightHis
     }
 
     @Override
-    public void addValue(Long value) {
+    public void addValue(long value) {
         sketch.add(value);
     }
 

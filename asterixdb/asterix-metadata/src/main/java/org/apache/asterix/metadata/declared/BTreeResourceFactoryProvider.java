@@ -32,10 +32,10 @@ import org.apache.asterix.metadata.api.IResourceFactoryProvider;
 import org.apache.asterix.metadata.dataset.hints.DatasetHints.DatasetStatisticsHint;
 import org.apache.asterix.metadata.entities.Dataset;
 import org.apache.asterix.metadata.entities.Index;
-import org.apache.asterix.metadata.utils.DatasetUtil;
 import org.apache.asterix.metadata.utils.IndexUtil;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.IAType;
+import org.apache.asterix.runtime.statistics.StatisticsUtil;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.common.utils.Pair;
 import org.apache.hyracks.algebricks.data.IBinaryComparatorFactoryProvider;
@@ -78,7 +78,8 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
         if (!statisticsType.needsSortedOrder() && statisticsFieldsHint != null) {
             unorderedStatisticsFields = statisticsFieldsHint.split(",");
         }
-        ITypeTraits[] typeTraits = getTypeTraits(mdProvider, dataset, index, recordType, metaType);
+        ITypeTraitProvider typeTraitProvider = mdProvider.getStorageComponentProvider().getTypeTraitProvider();
+        ITypeTraits[] typeTraits = getTypeTraits(typeTraitProvider, dataset, index, recordType, metaType);
         IBinaryComparatorFactory[] cmpFactories = getCmpFactories(mdProvider, dataset, index, recordType, metaType);
         int[] bloomFilterFields = getBloomFilterFields(dataset, index);
         double bloomFilterFalsePositiveRate = mdProvider.getStorageProperties().getBloomFilterFalsePositiveRate();
@@ -110,7 +111,10 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
                     statisticsFactory = new StatisticsFactory(
                             mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType(),
                             dataset.getDataverseName(), dataset.getDatasetName(), index.getIndexName(),
-                            DatasetUtil.computeStatisticsFieldExtractors(recordType, index, unorderedStatisticsFields),
+                            StatisticsUtil.computeStatisticsFieldExtractors(typeTraitProvider,
+                                    mdProvider.getStorageComponentProvider().getPrimitiveValueProviderFactory(),
+                                    recordType, index.getKeyFieldNames(), index.isPrimaryIndex(),
+                                    unorderedStatisticsFields),
                             mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
@@ -129,9 +133,9 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
         }
     }
 
-    public static ITypeTraits[] getTypeTraits(MetadataProvider metadataProvider, Dataset dataset, Index index,
+    public static ITypeTraits[] getTypeTraits(ITypeTraitProvider typeTraitProvider, Dataset dataset, Index index,
             ARecordType recordType, ARecordType metaType) throws AlgebricksException {
-        ITypeTraits[] primaryTypeTraits = dataset.getPrimaryTypeTraits(metadataProvider, recordType, metaType);
+        ITypeTraits[] primaryTypeTraits = dataset.getPrimaryTypeTraits(typeTraitProvider, recordType, metaType);
         if (index.isPrimaryIndex()) {
             return primaryTypeTraits;
         } else if (dataset.getDatasetType() == DatasetType.EXTERNAL
@@ -140,7 +144,7 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
         }
         int numPrimaryKeys = dataset.getPrimaryKeys().size();
         int numSecondaryKeys = index.getKeyFieldNames().size();
-        ITypeTraitProvider typeTraitProvider = metadataProvider.getStorageComponentProvider().getTypeTraitProvider();
+
         ITypeTraits[] secondaryTypeTraits = new ITypeTraits[numSecondaryKeys + numPrimaryKeys];
         for (int i = 0; i < numSecondaryKeys; i++) {
             ARecordType sourceType;

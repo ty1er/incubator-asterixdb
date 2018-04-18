@@ -33,9 +33,16 @@ public class FloatPrimitiveValueProviderFactory implements IPrimitiveValueProvid
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public double getValue(byte[] bytes, int offset) {
                 return FloatPointable.getFloat(bytes, offset);
+            }
+
+            @Override
+            public long getLongValue(byte[] bytes, int offset) {
+                return (long) FloatPointable.getFloat(bytes, offset);
             }
         };
     }

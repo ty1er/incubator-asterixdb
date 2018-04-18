@@ -22,11 +22,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 
 public class TransformHelper {
 
-    public static void runTransform(List<TransformTuple> inputData, AbstractSynopsisBuilder synopsisBuilder)
+    public static void runTransform(List<TransformTuple> inputData, AbstractIntegerSynopsisBuilder synopsisBuilder)
             throws Exception {
         Collections.sort(inputData, Comparator.comparingLong(o -> o.position));
         for (TransformTuple t : inputData) {

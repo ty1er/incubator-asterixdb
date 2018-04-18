@@ -19,7 +19,7 @@
 
 package org.apache.hyracks.storage.am.statistics.common;
 
-import java.util.logging.Level;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
@@ -51,7 +51,7 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
     private double accuracy;
 
     public StatisticsFactory(SynopsisType type, String dataverseName, String datasetName, String indexName,
-            IFieldExtractor[] extractors, int size, int fanout, double failureProbability, double accuracy,
+            List<IFieldExtractor> extractors, int size, int fanout, double failureProbability, double accuracy,
             double energyAccuracy) {
         super(extractors);
         this.type = type;
@@ -71,12 +71,14 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
             return false;
         }
         for (IFieldExtractor extractor : extractors) {
+            // for now support only fixed length fields
+            if (!extractor.getFieldTypeTraits().isFixedLength()) {
+                return false;
+            }
             //check if the key can be mapped on long domain, i.e. key length  <= 8 bytes. 1 byte is reserved for typeTag
-            if (extractor.getFieldTypeTraits().getFixedLength() > (8 + 1)) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
-                            + extractor.getFieldTypeTraits());
-                }
+            if (extractor.getFieldTypeTraits().getFixedLength() > (Long.SIZE / 8 + 1)) {
+                LOGGER.warning("Unable to collect statistics for keys with size greater than 8 bytes"
+                        + extractor.getFieldTypeTraits());
                 return false;
             }
         }

@@ -18,18 +18,18 @@
  */
 package org.apache.asterix.om.base;
 
-public abstract class AbstractIntegerObject implements IAObject, Comparable<AbstractIntegerObject> {
+public abstract class AIntegerObject implements IAObject, Comparable<AIntegerObject> {
 
     public abstract long minDomainValue();
 
     public abstract long maxDomainValue();
 
-    public abstract int maxLevel();
+    public abstract int size();
 
     public abstract long longValue();
 
     @Override
-    public int compareTo(AbstractIntegerObject o) {
+    public int compareTo(AIntegerObject o) {
         return Long.compare(longValue(), o.longValue());
     }
 }

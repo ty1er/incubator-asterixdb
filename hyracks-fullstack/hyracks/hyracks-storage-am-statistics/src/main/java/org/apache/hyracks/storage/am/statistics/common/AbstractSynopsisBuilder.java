@@ -24,10 +24,9 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
-public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISynopsisElement<V>>, V>
+public abstract class AbstractSynopsisBuilder<T extends ISynopsis>
         implements ISynopsisBuilder {
 
     protected boolean isEmpty = true;
@@ -38,19 +37,18 @@ public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISyn
     private final String index;
     private final String field;
     protected final boolean isAntimatter;
-    private final IFieldExtractor<V> fieldExtractor;
     private final ComponentStatistics componentStatistics;
+
     private long numTuples = 0L;
 
     public AbstractSynopsisBuilder(T synopsis, String dataverse, String dataset, String index, String field,
-            boolean isAntimatter, IFieldExtractor<V> fieldExtractor, ComponentStatistics componentStatistics) {
+            boolean isAntimatter, ComponentStatistics componentStatistics) {
         this.synopsis = synopsis;
         this.dataverse = dataverse;
         this.dataset = dataset;
         this.index = index;
         this.field = field;
         this.isAntimatter = isAntimatter;
-        this.fieldExtractor = fieldExtractor;
         this.componentStatistics = componentStatistics;
     }
 
@@ -68,8 +66,7 @@ public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISyn
     @Override
     public void add(ITupleReference tuple) throws HyracksDataException {
         numTuples++;
-        V value = fieldExtractor.extractFieldValue(tuple);
-        addValue(value);
+        processTuple(tuple);
         isEmpty = false;
     }
 
@@ -92,7 +89,7 @@ public abstract class AbstractSynopsisBuilder<T extends ISynopsis<? extends ISyn
         //Noop
     }
 
-    public abstract void addValue(V value);
+    protected abstract void processTuple(ITupleReference tuple) throws HyracksDataException;
 
     public abstract void finishSynopsisBuild() throws HyracksDataException;
 }

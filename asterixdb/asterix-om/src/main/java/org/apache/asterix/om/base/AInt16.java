@@ -24,7 +24,7 @@ import org.apache.asterix.om.types.IAType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AInt16 extends AbstractIntegerObject {
+public class AInt16 extends AIntegerObject {
 
     protected short value;
 
@@ -82,7 +82,7 @@ public class AInt16 extends AbstractIntegerObject {
     }
 
     @Override
-    public int maxLevel() {
+    public int size() {
         return Short.SIZE;
     }
 

@@ -20,12 +20,12 @@ package org.apache.hyracks.storage.am.statistics.wavelet;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
 /// Algorithm follows "Straddling coefficients" algorithm outline, presented in "Surfing Wavelets on Streams: One-Pass
 /// Summaries for Approximate Aggregate Queries" by Gilbert et al.
-public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis, Long> {
+public class WaveletTransform extends AbstractIntegerSynopsisBuilder<WaveletSynopsis> {
     private long transformPosition;
     private double transformFrequency;
     private WaveletCoefficient[] straddlingCoeffs;
@@ -42,7 +42,7 @@ public class WaveletTransform extends AbstractSynopsisBuilder<WaveletSynopsis, L
     }
 
     @Override
-    public void addValue(Long tuplePosition) {
+    public void addValue(long tuplePosition) {
         // check whether tuple with this position was already seen
         if (transformPosition != tuplePosition && !isEmpty) {
             transformTuple(transformPosition, transformFrequency);

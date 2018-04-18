@@ -24,7 +24,7 @@ import org.apache.asterix.om.types.IAType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AInt32 extends AbstractIntegerObject {
+public class AInt32 extends AIntegerObject {
 
     protected int value;
 
@@ -92,7 +92,7 @@ public class AInt32 extends AbstractIntegerObject {
     }
 
     @Override
-    public int maxLevel() {
+    public int size() {
         return Integer.SIZE;
     }
 

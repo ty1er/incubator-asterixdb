@@ -18,7 +18,10 @@
  */
 package org.apache.asterix.test.dataflow;
 
+import java.util.List;
+
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractStatisticsFactory;
@@ -63,12 +66,12 @@ public class TestCountingStatisticsFactory extends AbstractStatisticsFactory {
     class CountingSynopsisBuilder extends AbstractSynopsisBuilder {
 
         public CountingSynopsisBuilder(ISynopsis synopsis, String dataverse, String dataset, String index, String field,
-                boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics) {
-            super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
+                boolean isAntimatter, ComponentStatistics componentStatistics) {
+            super(synopsis, dataverse, dataset, index, field, isAntimatter, componentStatistics);
         }
 
         @Override
-        public void addValue(Object value) {
+        public void processTuple(ITupleReference tuple) throws HyracksDataException {
             ((CountingSynopsis) synopsis).count++;
         }
 
@@ -82,7 +85,7 @@ public class TestCountingStatisticsFactory extends AbstractStatisticsFactory {
     private final String index;
 
     public TestCountingStatisticsFactory(String dataverse, String dataset, String index,
-            IFieldExtractor[] fieldExtractors) {
+            List<IFieldExtractor> fieldExtractors) {
         super(fieldExtractors);
         this.dataverse = dataverse;
         this.dataset = dataset;
@@ -93,7 +96,7 @@ public class TestCountingStatisticsFactory extends AbstractStatisticsFactory {
     protected AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
             boolean isAntimatter, IFieldExtractor fieldExtractor) throws HyracksDataException {
         return new CountingSynopsisBuilder(new CountingSynopsis(), dataverse, dataset, index,
-                fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics);
+                fieldExtractor.getFieldName(), isAntimatter, componentStatistics);
     }
 
     @Override

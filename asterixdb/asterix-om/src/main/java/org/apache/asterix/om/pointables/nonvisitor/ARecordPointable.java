@@ -21,8 +21,8 @@ package org.apache.asterix.om.pointables.nonvisitor;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 
-import org.apache.asterix.common.exceptions.AsterixException;
 import org.apache.asterix.om.types.ARecordType;
 import org.apache.asterix.om.types.ATypeTag;
 import org.apache.asterix.om.types.AUnionType;
@@ -69,9 +69,9 @@ import org.apache.hyracks.util.string.UTF8StringWriter;
  *   IPointable fieldValue;
  * }
  */
-public class ARecordPointable extends AbstractPointable {
-
+public class ARecordPointable extends AbstractPointable implements Serializable {
     private final UTF8StringWriter utf8Writer = new UTF8StringWriter();
+    private static final long serialVersionUID = 1L;
     public static final ARecordPointableFactory FACTORY = new ARecordPointableFactory();
 
     public static final ITypeTraits TYPE_TRAITS = new ITypeTraits() {

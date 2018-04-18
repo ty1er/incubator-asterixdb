@@ -22,13 +22,13 @@ import java.util.List;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformHelper;
 import org.apache.hyracks.storage.am.statistics.wavelet.helper.TransformTuple;
 
 public abstract class WaveletTransformTest extends WaveletTest {
 
-    protected AbstractSynopsisBuilder builder;
+    protected AbstractIntegerSynopsisBuilder builder;
     protected WaveletSynopsis synopsis;
 
     public WaveletTransformTest(int threshold) {

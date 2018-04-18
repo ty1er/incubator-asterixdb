@@ -19,6 +19,7 @@
 package org.apache.hyracks.storage.am.statistics.common;
 
 import java.io.Serializable;
+import java.util.List;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
@@ -27,25 +28,26 @@ import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
 public abstract class AbstractStatisticsFactory implements IStatisticsFactory, Serializable {
 
-    protected final IFieldExtractor[] extractors;
+    protected final List<IFieldExtractor> extractors;
 
-    protected AbstractStatisticsFactory(IFieldExtractor[] extractors) {
+    protected AbstractStatisticsFactory(List<IFieldExtractor> extractors) {
         this.extractors = extractors;
     }
 
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.length];
-        for (int i = 0; i < extractors.length; i++) {
-            AbstractSynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, extractors[i]);
+        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.size()];
+        int i = 0;
+        for (IFieldExtractor e : extractors) {
+            ISynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, e);
             if (isBulkload) {
                 builders[i] = synopsisBuilder;
             } else {
-                AbstractSynopsisBuilder antimatterSynopsisBuilder =
-                        createSynopsisBuilder(componentStatistics, true, extractors[i]);
+                ISynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true, e);
                 builders[i] = new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
             }
+            i++;
         }
         if (builders.length == 1) {
             return builders[0];
@@ -54,6 +56,6 @@ public abstract class AbstractStatisticsFactory implements IStatisticsFactory, S
         }
     }
 
-    protected abstract AbstractSynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
+    protected abstract ISynopsisBuilder createSynopsisBuilder(ComponentStatistics componentStatistics,
             boolean isAntimatter, IFieldExtractor fieldExtractor) throws HyracksDataException;
 }

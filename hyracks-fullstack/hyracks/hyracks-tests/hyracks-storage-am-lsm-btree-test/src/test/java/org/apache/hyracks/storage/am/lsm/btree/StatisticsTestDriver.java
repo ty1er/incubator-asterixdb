@@ -18,6 +18,10 @@
  */
 package org.apache.hyracks.storage.am.lsm.btree;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -25,7 +29,10 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
+import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
+import org.apache.hyracks.dataflow.common.utils.SerdeUtils;
 import org.apache.hyracks.storage.am.btree.OrderedIndexTestContext;
 import org.apache.hyracks.storage.am.btree.OrderedIndexTestDriver;
 import org.apache.hyracks.storage.am.btree.frames.BTreeLeafFrameType;
@@ -36,7 +43,6 @@ import org.apache.hyracks.storage.am.lsm.btree.impl.TestSynopsisElement;
 import org.apache.hyracks.storage.am.lsm.btree.util.LSMBTreeTestContext;
 import org.apache.hyracks.storage.am.lsm.btree.util.LSMBTreeTestHarness;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
-import org.apache.hyracks.storage.am.statistics.common.FieldExtractor;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.junit.After;
 import org.junit.Assert;
@@ -68,9 +74,28 @@ public abstract class StatisticsTestDriver extends OrderedIndexTestDriver {
     @Override
     protected OrderedIndexTestContext createTestContext(ISerializerDeserializer[] fieldSerdes, int numKeys,
             BTreeLeafFrameType leafType, boolean filtered) throws Exception {
-        IFieldExtractor[] fieldValueExtractors = new IFieldExtractor[fieldSerdes.length];
+        List<IFieldExtractor> fieldValueExtractors = new ArrayList<>();
         for (int i = 0; i < fieldSerdes.length; i++) {
-            fieldValueExtractors[i] = new FieldExtractor(fieldSerdes[i], i, Integer.toString(i));
+            final int fieldIdx = i;
+            fieldValueExtractors.add(new IFieldExtractor<Comparable>() {
+                @Override
+                public String getFieldName() {
+                    return Integer.toString(fieldIdx);
+                }
+
+                @Override
+                public ITypeTraits getFieldTypeTraits() {
+                    return SerdeUtils.serdeToTypeTrait(fieldSerdes[fieldIdx]);
+                }
+
+                @Override
+                public Comparable extractFieldValue(ITupleReference tuple) throws HyracksDataException {
+                    ByteArrayInputStream inStream = new ByteArrayInputStream(tuple.getFieldData(fieldIdx),
+                            tuple.getFieldStart(fieldIdx), tuple.getFieldLength(fieldIdx));
+                    DataInput dataIn = new DataInputStream(inStream);
+                    return (Comparable) fieldSerdes[fieldIdx].deserialize(dataIn);
+                }
+            });
         }
         return LSMBTreeTestContext.create(harness.getIOManager(), harness.getVirtualBufferCaches(),
                 harness.getFileReference(), harness.getDiskBufferCache(), fieldSerdes, numKeys,

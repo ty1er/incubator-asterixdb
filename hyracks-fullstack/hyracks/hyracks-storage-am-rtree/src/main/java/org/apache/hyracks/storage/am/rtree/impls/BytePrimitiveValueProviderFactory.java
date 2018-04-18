@@ -19,13 +19,10 @@
 package org.apache.hyracks.storage.am.rtree.impls;
 
 import org.apache.hyracks.data.std.primitive.BytePointable;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProvider;
-import org.apache.hyracks.storage.am.common.api.IOrdinalPrimitiveValueProviderFactory;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProvider;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProviderFactory;
 
-public class BytePrimitiveValueProviderFactory
-        implements IPrimitiveValueProviderFactory, IOrdinalPrimitiveValueProviderFactory {
+public class BytePrimitiveValueProviderFactory implements IPrimitiveValueProviderFactory {
     private static final long serialVersionUID = 1L;
 
     public static final BytePrimitiveValueProviderFactory INSTANCE = new BytePrimitiveValueProviderFactory();
@@ -36,18 +33,15 @@ public class BytePrimitiveValueProviderFactory
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public double getValue(byte[] bytes, int offset) {
                 return BytePointable.getByte(bytes, offset);
             }
-        };
-    }
 
-    @Override
-    public IOrdinalPrimitiveValueProvider createOrdinalPrimitiveValueProvider() {
-        return new IOrdinalPrimitiveValueProvider() {
             @Override
-            public long getOrdinalValue(byte[] bytes, int offset) {
+            public long getLongValue(byte[] bytes, int offset) {
                 return BytePointable.getByte(bytes, offset);
             }
         };

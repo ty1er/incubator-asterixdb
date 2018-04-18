@@ -20,10 +20,10 @@ package org.apache.hyracks.storage.am.statistics.historgram;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
-public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<? extends HistogramBucket>, Long> {
+public class HistogramBuilder extends AbstractIntegerSynopsisBuilder<HistogramSynopsis<? extends HistogramBucket>> {
 
     private int activeBucket;
     private int activeBucketElementsNum;
@@ -39,7 +39,7 @@ public class HistogramBuilder extends AbstractSynopsisBuilder<HistogramSynopsis<
     }
 
     @Override
-    public void addValue(Long currTuplePosition) {
+    public void addValue(long currTuplePosition) {
         while (synopsis.advanceBucket(activeBucket, activeBucketElementsNum, currTuplePosition,
                 lastAddedTuplePosition)) {
             activeBucket++;

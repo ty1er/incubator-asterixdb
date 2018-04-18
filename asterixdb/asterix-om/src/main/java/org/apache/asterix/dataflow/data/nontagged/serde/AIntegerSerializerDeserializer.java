@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.asterix.dataflow.data.nontagged.serde;
 
-package org.apache.hyracks.storage.am.common.api;
+import org.apache.asterix.om.base.AIntegerObject;
+import org.apache.hyracks.api.dataflow.value.ISerializerDeserializer;
 
-import java.io.Serializable;
-
-public interface IOrdinalPrimitiveValueProvider extends Serializable {
-    public long getOrdinalValue(byte[] bytes, int offset);
+public interface AIntegerSerializerDeserializer<T extends AIntegerObject> extends ISerializerDeserializer<T> {
+    long getLongValue(byte[] bytes, int offset);
 }

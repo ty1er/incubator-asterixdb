@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
-import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsisBuilder;
+import org.apache.hyracks.storage.am.statistics.common.AbstractIntegerSynopsisBuilder;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletCoefficient;
 import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
@@ -32,7 +32,7 @@ import org.apache.hyracks.storage.am.statistics.wavelet.WaveletSynopsis;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
-public class GroupCountSketchBuilder extends AbstractSynopsisBuilder<WaveletSynopsis, Long> {
+public class GroupCountSketchBuilder extends AbstractIntegerSynopsisBuilder<WaveletSynopsis> {
     private final static Logger LOGGER = Logger.getLogger(GroupCountSketch.class.getName());
     private final int fanout;
     private final int fanoutLog;
@@ -80,7 +80,7 @@ public class GroupCountSketchBuilder extends AbstractSynopsisBuilder<WaveletSyno
     }
 
     @Override
-    public void addValue(Long position) {
+    public void addValue(long position) {
         double value = 1.0;
         WaveletCoefficient coeff = new WaveletCoefficient(value, 0, position);
         //translate adding coeff on level 0 to updates in upper levels of error tree
