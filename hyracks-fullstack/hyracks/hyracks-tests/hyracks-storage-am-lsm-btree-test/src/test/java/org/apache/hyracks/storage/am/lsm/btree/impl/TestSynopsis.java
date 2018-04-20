@@ -24,8 +24,6 @@ import java.util.TreeSet;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 public class TestSynopsis implements ISynopsis<TestSynopsisElement> {
 
     protected Collection<TestSynopsisElement> elements;
@@ -46,21 +44,23 @@ public class TestSynopsis implements ISynopsis<TestSynopsisElement> {
 
     @Override
     public SynopsisType getType() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double pointQuery(long position) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double rangeQuery(long startPosition, long endPosition) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void merge(ISynopsis<TestSynopsisElement> mergeSynopsis) throws HyracksDataException {
-        elements.addAll(mergeSynopsis.getElements());
+        if (mergeSynopsis != null) {
+            elements.addAll(mergeSynopsis.getElements());
+        }
     }
 }

@@ -22,15 +22,11 @@
 package org.apache.hyracks.storage.am.lsm.common.api;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
 import org.apache.hyracks.storage.common.IIndexBulkLoader;
 
 public interface ISynopsisBuilder extends IIndexBulkLoader {
 
-    static enum StatisticsMessageType {
-        FLUSH,
-        MERGE
-    }
-
-    void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component)
-            throws HyracksDataException;
+    void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component,
+            LSMIOOperationType opType) throws HyracksDataException;
 }

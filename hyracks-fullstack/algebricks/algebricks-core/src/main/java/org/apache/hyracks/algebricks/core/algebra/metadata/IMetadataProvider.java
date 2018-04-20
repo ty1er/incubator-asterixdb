@@ -36,6 +36,8 @@ import org.apache.hyracks.algebricks.runtime.base.IPushRuntimeFactory;
 import org.apache.hyracks.api.dataflow.IOperatorDescriptor;
 import org.apache.hyracks.api.dataflow.value.RecordDescriptor;
 import org.apache.hyracks.api.job.JobSpecification;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatisticsId;
 
 public interface IMetadataProvider<S, I> {
     public IDataSource<S> findDataSource(S id) throws AlgebricksException;
@@ -207,4 +209,11 @@ public interface IMetadataProvider<S, I> {
             RecordDescriptor inputDesc, JobGenContext context, JobSpecification spec) throws AlgebricksException;
 
     public Map<String, String> getConfig();
+
+    void addStatistics(String dataverseName, String datasetName, String indexName, String fieldName, String node,
+            String partition, ComponentStatisticsId componentId, boolean isAntimatter, ISynopsis synopsis)
+            throws AlgebricksException;
+
+    void dropStatistics(String dataverseName, String datasetName, String indexName, String fieldName, String node,
+            String partition, ComponentStatisticsId componentId, boolean isAntimatter) throws AlgebricksException;
 }

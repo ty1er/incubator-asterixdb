@@ -240,9 +240,9 @@ public abstract class AbstractLSMDiskComponent extends AbstractLSMComponent impl
         }
         if (statistics != null) {
             statistics = new ComponentStatistics(numElementsHint, numAntimatterElementsHint);
-            // utilizing that cleanupEmptyComponent == true for bulkloaded component to distinguish it from flush\merge
-            chainedBulkLoader.addBulkLoader(new StatisticsBulkLoader(
-                    statisticsFactory.createStatistics(statistics, cleanupEmptyComponent), statisticsManager, this));
+            chainedBulkLoader.addBulkLoader(
+                    new StatisticsBulkLoader(statisticsFactory.createStatistics(statistics, cleanupEmptyComponent),
+                            statisticsManager, this, opType));
         }
         IChainedComponentBulkLoader indexBulkloader = opType == LSMIOOperationType.MERGE
                 ? createMergeIndexBulkLoader(fillFactor, verifyInput, numElementsHint + numAntimatterElementsHint,

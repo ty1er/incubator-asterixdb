@@ -33,15 +33,8 @@ public class ShortPrimitiveValueProviderFactory implements IPrimitiveValueProvid
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
-            private static final long serialVersionUID = 1L;
-
             @Override
             public double getValue(byte[] bytes, int offset) {
-                return ShortPointable.getShort(bytes, offset);
-            }
-
-            @Override
-            public long getLongValue(byte[] bytes, int offset) {
                 return ShortPointable.getShort(bytes, offset);
             }
         };

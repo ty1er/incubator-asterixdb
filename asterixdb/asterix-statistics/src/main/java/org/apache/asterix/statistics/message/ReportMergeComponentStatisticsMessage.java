@@ -20,29 +20,22 @@ package org.apache.asterix.statistics.message;
 
 import java.util.List;
 
-import org.apache.asterix.common.dataflow.ICcApplicationContext;
-import org.apache.asterix.metadata.declared.MetadataProvider;
 import org.apache.asterix.statistics.StatisticsMetadataUtil;
-import org.apache.hyracks.api.exceptions.HyracksDataException;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
-import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisElement;
-import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
+import org.apache.asterix.statistics.common.StatisticsManager.StatisticsEntry;
+import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
+import org.apache.hyracks.algebricks.core.algebra.metadata.IMetadataProvider;
+import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatisticsId;
 
 public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentStatisticsMessage {
     private static final long serialVersionUID = 1L;
 
     private List<ComponentStatisticsId> mergeComponentIds;
 
-    public ReportMergeComponentStatisticsMessage(ISynopsis<? extends ISynopsisElement<Long>> synopsis, String dataverse,
-            String dataset, String index, String field, String node, String partition,
+    public ReportMergeComponentStatisticsMessage(StatisticsEntry entry, String node, String partition,
             ComponentStatisticsId newComponentId, boolean isAntimatter,
             List<ComponentStatisticsId> mergeComponentsIds) {
-        super(synopsis, dataverse, dataset, index, field, node, partition, newComponentId, isAntimatter);
+        super(entry, node, partition, newComponentId, isAntimatter);
         this.mergeComponentIds = mergeComponentsIds;
-    }
-
-    public List<ComponentStatisticsId> getMergeComponentIds() {
-        return mergeComponentIds;
     }
 
     @Override
@@ -51,8 +44,8 @@ public class ReportMergeComponentStatisticsMessage extends ReportFlushComponentS
     }
 
     @Override
-    public void handle(ICcApplicationContext cs) throws HyracksDataException, InterruptedException {
-        MetadataProvider mdProvider = new MetadataProvider(cs, null);
-        StatisticsMetadataUtil.createMergeStatistics(this, cs.getMetadataLockManager(), mdProvider);
+    protected void handleMessage(IMetadataProvider mdProvider) throws AlgebricksException {
+        StatisticsMetadataUtil.handleMerge(mdProvider, entry.getDataverse(), entry.getDataset(), entry.getIndex(),
+                entry.getField(), node, partition, componentId, isAntimatter, entry.getSynopsis(), mergeComponentIds);
     }
 }

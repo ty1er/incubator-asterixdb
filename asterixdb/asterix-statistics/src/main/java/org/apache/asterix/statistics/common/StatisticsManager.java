@@ -19,6 +19,7 @@
 package org.apache.asterix.statistics.common;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,30 +40,57 @@ import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.impls.AbstractLSMIndexFileManager;
-import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
+import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatisticsId;
 
 public class StatisticsManager implements IStatisticsManager {
 
-    class SynopsisEntry {
+    public static class StatisticsEntry implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private final ISynopsis synopsis;
         private final String dataverse;
         private final String dataset;
         private final String index;
         private final String field;
 
-        SynopsisEntry(ISynopsis synopsis, String dataverse, String dataset, String index, String field) {
+        public StatisticsEntry(ISynopsis synopsis, String dataverse, String dataset, String index, String field) {
             this.synopsis = synopsis;
             this.dataverse = dataverse;
             this.dataset = dataset;
             this.index = index;
             this.field = field;
         }
+
+        public ISynopsis getSynopsis() {
+            return synopsis;
+        }
+
+        public String getDataverse() {
+            return dataverse;
+        }
+
+        public String getDataset() {
+            return dataset;
+        }
+
+        public String getIndex() {
+            return index;
+        }
+
+        public String getField() {
+            return field;
+        }
+
+        public String toString() {
+            return "TestStatisticsMessageID{" + "dataverse='" + dataverse + '\'' + ", dataset='" + dataset + '\''
+                    + ", index='" + index + '\'' + ", field='" + field + '\'' + '}';
+        }
     }
 
     private final INCServiceContext ncContext;
     //TODO:refactor this to use component IDs instead
-    private MultiValuedMap<ILSMDiskComponent, SynopsisEntry> synopsisMap;
-    private MultiValuedMap<ILSMDiskComponent, SynopsisEntry> antimatterSynopsisMap;
+    private MultiValuedMap<ILSMDiskComponent, StatisticsEntry> synopsisMap;
+    private MultiValuedMap<ILSMDiskComponent, StatisticsEntry> antimatterSynopsisMap;
 
     public StatisticsManager(INCServiceContext ncApplicationContext) {
         ncContext = ncApplicationContext;
@@ -117,30 +145,31 @@ public class StatisticsManager implements IStatisticsManager {
         return results;
     }
 
-    private void sendFlushSynopsisStatistics(Collection<SynopsisEntry> flushComponentSynopses,
+    private void sendFlushSynopsisStatistics(Collection<StatisticsEntry> flushComponentSynopses,
             ILSMDiskComponent newComponent, boolean isAntimatter) throws HyracksDataException {
-        for (SynopsisEntry flushComponentSynopsis : flushComponentSynopses) {
+        for (StatisticsEntry flushComponentSynopsis : flushComponentSynopses) {
             // send message only about non-empty statistics
             if (flushComponentSynopsis != null) {
                 List<String> parsedComponentsPath =
                         parsePathComponents(((BTree) newComponent.getIndex()).getFileReference().getRelativePath());
-                ICcAddressedMessage msg = new ReportFlushComponentStatisticsMessage(flushComponentSynopsis.synopsis,
-                        flushComponentSynopsis.dataverse, flushComponentSynopsis.dataset, flushComponentSynopsis.index,
-                        flushComponentSynopsis.field, ncContext.getNodeId(), parsedComponentsPath.get(1),
-                        new ComponentStatisticsId(
-                                LocalDateTime.parse(parsedComponentsPath.get(6), AbstractLSMIndexFileManager.FORMATTER),
-                                LocalDateTime.parse(parsedComponentsPath.get(5),
-                                        AbstractLSMIndexFileManager.FORMATTER)),
-                        isAntimatter);
+                ICcAddressedMessage msg =
+                        new ReportFlushComponentStatisticsMessage(flushComponentSynopsis, ncContext.getNodeId(),
+                                parsedComponentsPath.get(1),
+                                new ComponentStatisticsId(
+                                        LocalDateTime.parse(parsedComponentsPath.get(6),
+                                                AbstractLSMIndexFileManager.FORMATTER),
+                                        LocalDateTime.parse(parsedComponentsPath.get(5),
+                                                AbstractLSMIndexFileManager.FORMATTER)),
+                                isAntimatter);
                 sendMessage(msg);
             }
         }
     }
 
-    private void sendMergeSynopsisStatistics(Collection<SynopsisEntry> flushComponentSynopses,
+    private void sendMergeSynopsisStatistics(Collection<StatisticsEntry> flushComponentSynopses,
             ILSMDiskComponent newComponent, List<ILSMDiskComponent> mergedComponents, boolean isAntimatter)
             throws HyracksDataException {
-        for (SynopsisEntry flushComponentSynopsis : flushComponentSynopses) {
+        for (StatisticsEntry flushComponentSynopsis : flushComponentSynopses) {
             List<String> parsedComponentsPath =
                     parsePathComponents(((BTree) newComponent.getIndex()).getFileReference().getRelativePath());
             List<ComponentStatisticsId> mergedComponentIds = new ArrayList<>(mergedComponents.size());
@@ -151,9 +180,8 @@ public class StatisticsManager implements IStatisticsManager {
                         LocalDateTime.parse(parsedMergedComponentPath.get(6), AbstractLSMIndexFileManager.FORMATTER),
                         LocalDateTime.parse(parsedMergedComponentPath.get(5), AbstractLSMIndexFileManager.FORMATTER)));
             }
-            ICcAddressedMessage msg = new ReportMergeComponentStatisticsMessage(flushComponentSynopsis.synopsis,
-                    flushComponentSynopsis.dataverse, flushComponentSynopsis.dataset, flushComponentSynopsis.index,
-                    flushComponentSynopsis.field, ncContext.getNodeId(), parsedComponentsPath.get(1),
+            ICcAddressedMessage msg = new ReportMergeComponentStatisticsMessage(flushComponentSynopsis,
+                    ncContext.getNodeId(), parsedComponentsPath.get(1),
                     new ComponentStatisticsId(
                             LocalDateTime.parse(parsedComponentsPath.get(6), AbstractLSMIndexFileManager.FORMATTER),
                             LocalDateTime.parse(parsedComponentsPath.get(5), AbstractLSMIndexFileManager.FORMATTER)),
@@ -178,7 +206,7 @@ public class StatisticsManager implements IStatisticsManager {
     @Override
     public void addStatistics(ISynopsis synopsis, String dataverse, String dataset, String index, String field,
             boolean isAntimatter, ILSMDiskComponent component) {
-        SynopsisEntry newEntry = new SynopsisEntry(synopsis, dataverse, dataset, index, field);
+        StatisticsEntry newEntry = new StatisticsEntry(synopsis, dataverse, dataset, index, field);
         if (isAntimatter) {
             antimatterSynopsisMap.put(component, newEntry);
         } else {

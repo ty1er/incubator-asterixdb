@@ -18,6 +18,7 @@
  */
 package org.apache.asterix.common.config;
 
+import static org.apache.hyracks.control.common.config.OptionTypes.BOOLEAN;
 import static org.apache.hyracks.control.common.config.OptionTypes.DOUBLE;
 import static org.apache.hyracks.control.common.config.OptionTypes.INTEGER;
 import static org.apache.hyracks.control.common.config.OptionTypes.STRING;
@@ -32,6 +33,7 @@ public class StatisticsProperties extends AbstractProperties {
 
     public enum Option implements IOption {
 
+        STATISTICS_PRIMARY_KEYS_ENABLED(BOOLEAN, false, "Whether to keep statistics on primary keys or not"),
         STATISTICS_SYNOPSIS_TYPE(STRING, "None", "The type of synopsis used for collecting dataset statistics"),
         STATISTICS_SYNOPSIS_SIZE(
                 INTEGER,
@@ -92,8 +94,18 @@ public class StatisticsProperties extends AbstractProperties {
         }
     }
 
+    public static String STATISTICS_SYNOPSIS_TYPE_KEY = Option.STATISTICS_SYNOPSIS_TYPE.ini();
+
+    public static String STATISTICS_SYNOPSIS_SIZE_KEY = Option.STATISTICS_SYNOPSIS_SIZE.ini();
+
+    public static String STATISTICS_PRIMARY_KEYS_ENABLED = Option.STATISTICS_PRIMARY_KEYS_ENABLED.ini();
+
     public StatisticsProperties(PropertiesAccessor accessor) {
         super(accessor);
+    }
+
+    public boolean isStatisticsOnPrimaryKeysEnabled() {
+        return accessor.getBoolean(Option.STATISTICS_PRIMARY_KEYS_ENABLED);
     }
 
     public SynopsisType getStatisticsSynopsisType() {

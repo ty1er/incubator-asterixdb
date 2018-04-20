@@ -23,12 +23,9 @@ import org.apache.asterix.om.types.EnumDeserializer;
 import org.apache.hyracks.algebricks.common.exceptions.NotImplementedException;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProvider;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProviderFactory;
-import org.apache.hyracks.storage.am.rtree.impls.BytePrimitiveValueProviderFactory;
 import org.apache.hyracks.storage.am.rtree.impls.DoublePrimitiveValueProviderFactory;
 import org.apache.hyracks.storage.am.rtree.impls.FloatPrimitiveValueProviderFactory;
 import org.apache.hyracks.storage.am.rtree.impls.IntegerPrimitiveValueProviderFactory;
-import org.apache.hyracks.storage.am.rtree.impls.LongPrimitiveValueProviderFactory;
-import org.apache.hyracks.storage.am.rtree.impls.ShortPrimitiveValueProviderFactory;
 
 public class PrimitiveValueProviderFactory implements IPrimitiveValueProviderFactory {
 
@@ -42,14 +39,6 @@ public class PrimitiveValueProviderFactory implements IPrimitiveValueProviderFac
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
-            private static final long serialVersionUID = 1L;
-
-            final IPrimitiveValueProvider byteProvider =
-                    BytePrimitiveValueProviderFactory.INSTANCE.createPrimitiveValueProvider();
-            final IPrimitiveValueProvider shortProvider =
-                    ShortPrimitiveValueProviderFactory.INSTANCE.createPrimitiveValueProvider();
-            final IPrimitiveValueProvider longProvider =
-                    LongPrimitiveValueProviderFactory.INSTANCE.createPrimitiveValueProvider();
             final IPrimitiveValueProvider intProvider =
                     IntegerPrimitiveValueProviderFactory.INSTANCE.createPrimitiveValueProvider();
             final IPrimitiveValueProvider floatProvider =
@@ -67,23 +56,6 @@ public class PrimitiveValueProviderFactory implements IPrimitiveValueProviderFac
                         return floatProvider.getValue(bytes, offset + 1);
                     case DOUBLE:
                         return doubleProvider.getValue(bytes, offset + 1);
-                    default:
-                        throw new NotImplementedException("Value provider for type " + tag + " is not implemented");
-                }
-            }
-
-            @Override
-            public long getLongValue(byte[] bytes, int offset) {
-                ATypeTag tag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(bytes[offset]);
-                switch (tag) {
-                    case TINYINT:
-                        return byteProvider.getLongValue(bytes, offset + 1);
-                    case SMALLINT:
-                        return shortProvider.getLongValue(bytes, offset + 1);
-                    case INTEGER:
-                        return intProvider.getLongValue(bytes, offset + 1);
-                    case BIGINT:
-                        return longProvider.getLongValue(bytes, offset + 1);
                     default:
                         throw new NotImplementedException("Value provider for type " + tag + " is not implemented");
                 }

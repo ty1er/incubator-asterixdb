@@ -19,38 +19,44 @@
 package org.apache.hyracks.storage.am.statistics.common;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsFactory;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
 public abstract class AbstractStatisticsFactory implements IStatisticsFactory, Serializable {
+    private static final long serialVersionUID = 1L;
 
     protected final List<IFieldExtractor> extractors;
+    protected final SynopsisType type;
 
-    protected AbstractStatisticsFactory(List<IFieldExtractor> extractors) {
+    protected AbstractStatisticsFactory(List<IFieldExtractor> extractors, SynopsisType type) {
         this.extractors = extractors;
+        this.type = type;
     }
 
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.size()];
-        int i = 0;
+        List<ISynopsisBuilder> builders = new ArrayList<>();
         for (IFieldExtractor e : extractors) {
+            if (e.isUnordered() && type.needsSortedOrder()) {
+                continue;
+            }
             ISynopsisBuilder synopsisBuilder = createSynopsisBuilder(componentStatistics, false, e);
             if (isBulkload) {
-                builders[i] = synopsisBuilder;
+                builders.add(synopsisBuilder);
             } else {
                 ISynopsisBuilder antimatterSynopsisBuilder = createSynopsisBuilder(componentStatistics, true, e);
-                builders[i] = new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder);
+                builders.add(new CombinedSynopsisBuilder(synopsisBuilder, antimatterSynopsisBuilder));
             }
-            i++;
         }
-        if (builders.length == 1) {
-            return builders[0];
+        if (builders.size() == 1) {
+            return builders.get(0);
         } else {
             return new DelegatingSynopsisBuilder(builders);
         }

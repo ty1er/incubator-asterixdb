@@ -38,7 +38,7 @@ import org.apache.asterix.metadata.entities.Library;
 import org.apache.asterix.metadata.entities.NodeGroup;
 import org.apache.asterix.metadata.entities.Statistics;
 import org.apache.asterix.metadata.utils.MetadataUtil;
-import org.apache.hyracks.storage.am.statistics.common.ComponentStatisticsId;
+import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatisticsId;
 
 /**
  * Used to implement serializable transactions against the MetadataCache.

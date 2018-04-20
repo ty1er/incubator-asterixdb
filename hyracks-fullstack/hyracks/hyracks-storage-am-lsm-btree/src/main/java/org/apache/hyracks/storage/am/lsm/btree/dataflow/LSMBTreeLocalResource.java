@@ -80,8 +80,8 @@ public class LSMBTreeLocalResource extends LsmResource {
         ioOpCallbackFactory.initialize(serviceCtx, this);
         //only secondary indexes are allowed to mark entries as updated-in-place
         boolean updateAware = !isPrimary;
-        boolean hasStatistics = statisticsFactory != null && statisticsManagerProvider != null
-                && statisticsFactory.canCollectStats(isPrimary);
+        boolean hasStatistics =
+                statisticsFactory != null && statisticsManagerProvider != null && statisticsFactory.canCollectStats();
         return LSMBTreeUtil.createLSMTree(ioManager, vbcs, file, storageManager.getBufferCache(serviceCtx), typeTraits,
                 cmpFactories, bloomFilterKeyFields, bloomFilterFalsePositiveRate,
                 mergePolicyFactory.createMergePolicy(mergePolicyProperties, serviceCtx),

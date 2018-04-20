@@ -19,12 +19,11 @@
 
 package org.apache.hyracks.storage.am.common.api;
 
-import java.io.Serializable;
-
 /**
- * Provides primitive values for operations from encoded bytes
+ * Provides double values for RTree operations from encoded bytes
  */
-public interface IPrimitiveValueProvider extends Serializable {
+@FunctionalInterface
+public interface IPrimitiveValueProvider {
     /**
      * @param bytes
      *            the source byte array
@@ -33,13 +32,4 @@ public interface IPrimitiveValueProvider extends Serializable {
      * @return the decoded double value
      */
     double getValue(byte[] bytes, int offset);
-
-    /**
-     * @param bytes
-     *            the source byte array
-     * @param offset
-     *            the offset of the value
-     * @return the decoded long value
-     */
-    long getLongValue(byte[] bytes, int offset);
 }

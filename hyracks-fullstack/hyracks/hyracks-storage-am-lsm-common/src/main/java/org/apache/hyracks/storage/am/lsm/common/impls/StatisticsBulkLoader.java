@@ -20,6 +20,7 @@ package org.apache.hyracks.storage.am.lsm.common.impls;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 
@@ -27,13 +28,15 @@ public class StatisticsBulkLoader implements IChainedComponentBulkLoader {
 
     protected final ISynopsisBuilder statisticsBuilder;
     private final AbstractLSMDiskComponent component;
+    private final LSMIOOperationType opType;
     protected final IStatisticsManager statisticsManager;
 
     public StatisticsBulkLoader(ISynopsisBuilder statisticsBuilder, IStatisticsManager statisticsManager,
-            AbstractLSMDiskComponent component) {
+            AbstractLSMDiskComponent component, LSMIOOperationType opType) {
         this.statisticsBuilder = statisticsBuilder;
         this.statisticsManager = statisticsManager;
         this.component = component;
+        this.opType = opType;
     }
 
     @Override
@@ -51,7 +54,7 @@ public class StatisticsBulkLoader implements IChainedComponentBulkLoader {
     @Override
     public void end() throws HyracksDataException {
         statisticsBuilder.end();
-        statisticsBuilder.gatherComponentStatistics(statisticsManager, component);
+        statisticsBuilder.gatherComponentStatistics(statisticsManager, component, opType);
         component.getStatistics().writeTuplesNum(component.getMetadata());
     }
 

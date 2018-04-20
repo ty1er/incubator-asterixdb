@@ -41,18 +41,10 @@ public class PointablePrimitiveValueProviderFactory implements IPrimitiveValuePr
         assert traits.isFixedLength();
         final int length = traits.getFixedLength();
         return new IPrimitiveValueProvider() {
-            private static final long serialVersionUID = 1L;
-
             @Override
             public double getValue(byte[] bytes, int offset) {
                 p.set(bytes, offset, length);
                 return ((INumeric) p).doubleValue();
-            }
-
-            @Override
-            public long getLongValue(byte[] bytes, int offset) {
-                p.set(bytes, offset, length);
-                return ((INumeric) p).longValue();
             }
         };
     }

@@ -22,8 +22,7 @@ import org.apache.hyracks.data.std.primitive.LongPointable;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProvider;
 import org.apache.hyracks.storage.am.common.api.IPrimitiveValueProviderFactory;
 
-public class LongPrimitiveValueProviderFactory
-        implements IPrimitiveValueProviderFactory {
+public class LongPrimitiveValueProviderFactory implements IPrimitiveValueProviderFactory {
     private static final long serialVersionUID = 1L;
 
     public static final LongPrimitiveValueProviderFactory INSTANCE = new LongPrimitiveValueProviderFactory();
@@ -34,17 +33,12 @@ public class LongPrimitiveValueProviderFactory
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
-            private static final long serialVersionUID = 1L;
 
             @Override
             public double getValue(byte[] bytes, int offset) {
                 return LongPointable.getLong(bytes, offset);
             }
 
-            @Override
-            public long getLongValue(byte[] bytes, int offset) {
-                return LongPointable.getLong(bytes, offset);
-            }
         };
     }
 }

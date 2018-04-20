@@ -19,24 +19,29 @@
 package org.apache.asterix.runtime.statistics;
 
 import org.apache.asterix.dataflow.data.nontagged.serde.AIntegerSerializerDeserializer;
+import org.apache.asterix.om.types.ATypeTag;
+import org.apache.asterix.om.types.EnumDeserializer;
 import org.apache.hyracks.api.dataflow.value.ITypeTraits;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 
 public class FieldExtractor implements IFieldExtractor<Long> {
+    private static final long serialVersionUID = 1L;
 
     private AIntegerSerializerDeserializer serde;
     private int fieldIdx;
     private final String fieldName;
     private final ITypeTraits fieldTypeTraits;
+    private final ATypeTag typeTag;
 
     public FieldExtractor(AIntegerSerializerDeserializer serde, int fieldIdx, String fieldName,
-            ITypeTraits fieldTypeTraits) {
+            ITypeTraits fieldTypeTraits, ATypeTag typeTag) {
         this.serde = serde;
         this.fieldIdx = fieldIdx;
         this.fieldName = fieldName;
         this.fieldTypeTraits = fieldTypeTraits;
+        this.typeTag = typeTag;
     }
 
     @Override
@@ -50,7 +55,18 @@ public class FieldExtractor implements IFieldExtractor<Long> {
     }
 
     @Override
+    public boolean isUnordered() {
+        return false;
+    }
+
+    @Override
     public Long extractFieldValue(ITupleReference tuple) throws HyracksDataException {
-        return serde.getLongValue(tuple.getFieldData(fieldIdx), tuple.getFieldStart(fieldIdx));
+        byte[] data = tuple.getFieldData(fieldIdx);
+        int startOffset = tuple.getFieldStart(fieldIdx);
+        ATypeTag tag = EnumDeserializer.ATYPETAGDESERIALIZER.deserialize(data[startOffset]);
+        if (tag != typeTag) {
+            throw new HyracksDataException("Expected to see " + typeTag + ", but got " + tag);
+        }
+        return serde.getLongValue(data, startOffset + 1);
     }
 }

@@ -86,9 +86,8 @@ public class TestLsmBTreeResourceFactoryProvider implements IResourceFactoryProv
                 bloomFilterFalsePositiveRate, index.isPrimaryIndex(), btreeFields,
                 new TestCountingStatisticsFactory(dataset.getDataverseName(), dataset.getDatasetName(),
                         index.getIndexName(),
-                        StatisticsUtil.computeStatisticsFieldExtractors(typeTraitProvider,
-                                storageComponentProvider.getPrimitiveValueProviderFactory(), recordType,
-                                index.getKeyFieldNames(), index.isPrimaryIndex(), null)),
+                        StatisticsUtil.computeStatisticsFieldExtractors(typeTraitProvider, recordType,
+                                index.getKeyFieldNames(), index.isPrimaryIndex(), true, null)),
                 hasStatistics ? storageComponentProvider.getStatisticsManagerProvider() : null, updateAware);
     }
 }

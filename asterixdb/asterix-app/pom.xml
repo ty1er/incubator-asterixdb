@@ -427,11 +427,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-      <dependency>
-      <groupId>org.apache.asterix</groupId>
-      <artifactId>asterix-statistics</artifactId>
-      <version>${project.version}</version>
-      </dependency>
     <dependency>
       <groupId>org.apache.asterix</groupId>
       <artifactId>asterix-external-data</artifactId>
@@ -444,6 +439,17 @@
       <groupId>org.apache.asterix</groupId>
       <artifactId>asterix-external-data</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.asterix</groupId>
+      <artifactId>asterix-statistics</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.asterix</groupId>
+      <artifactId>asterix-statistics</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
     </dependency>
     <dependency>
       <groupId>org.apache.hyracks</groupId>

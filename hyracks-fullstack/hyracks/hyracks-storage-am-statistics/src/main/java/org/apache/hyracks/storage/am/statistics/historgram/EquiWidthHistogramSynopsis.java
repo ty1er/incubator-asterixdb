@@ -30,7 +30,7 @@ public class EquiWidthHistogramSynopsis extends HistogramSynopsis<HistogramBucke
             Collection<HistogramBucket> synopsisElements) {
         super(domainStart, domainEnd, maxLevel, bucketsNum, synopsisElements);
         //TODO:avoid numeric overflows
-        bucketWidth = (domainEnd - domainStart) / bucketsNum;
+        bucketWidth = (domainEnd - domainStart + 1) / bucketsNum;
         long border = domainStart + bucketWidth;
         for (int i = 0; i < bucketsNum; i++) {
             getBuckets().add(new HistogramBucket(border, 0.0));

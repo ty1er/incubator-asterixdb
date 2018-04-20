@@ -45,7 +45,6 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
     private final String indexName;
     private final int size;
     private final double energyAccuracy;
-    private final SynopsisType type;
     private final int fanout;
     private double failureProbability;
     private double accuracy;
@@ -53,8 +52,7 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
     public StatisticsFactory(SynopsisType type, String dataverseName, String datasetName, String indexName,
             List<IFieldExtractor> extractors, int size, int fanout, double failureProbability, double accuracy,
             double energyAccuracy) {
-        super(extractors);
-        this.type = type;
+        super(extractors, type);
         this.dataverseName = dataverseName;
         this.datasetName = datasetName;
         this.indexName = indexName;
@@ -66,10 +64,7 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
     }
 
     @Override
-    public boolean canCollectStats(boolean unorderedTuples) {
-        if (unorderedTuples && type.needsSortedOrder()) {
-            return false;
-        }
+    public boolean canCollectStats() {
         for (IFieldExtractor extractor : extractors) {
             // for now support only fixed length fields
             if (!extractor.getFieldTypeTraits().isFixedLength()) {

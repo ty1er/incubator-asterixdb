@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.asterix.common.config.DatasetConfig.DatasetType;
+import org.apache.asterix.common.config.StatisticsProperties;
 import org.apache.asterix.common.context.AsterixVirtualBufferCacheProvider;
 import org.apache.asterix.common.context.IStorageComponentProvider;
 import org.apache.asterix.common.exceptions.CompilationException;
@@ -72,8 +73,8 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
         int[] btreeFields = IndexUtil.getBtreeFieldsIfFiltered(dataset, index);
         IStorageComponentProvider storageComponentProvider = mdProvider.getStorageComponentProvider();
         String statisticsFieldsHint = dataset.getHints().get(DatasetStatisticsHint.NAME);
-        SynopsisType statisticsType =
-                mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType();
+        SynopsisType statisticsType = getStatsType(mdProvider.getConfig(),
+                mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType());
         String[] unorderedStatisticsFields = null;
         if (!statisticsType.needsSortedOrder() && statisticsFieldsHint != null) {
             unorderedStatisticsFields = statisticsFieldsHint.split(",");
@@ -108,15 +109,16 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
                         new AsterixVirtualBufferCacheProvider(dataset.getDatasetId());
                 IStatisticsFactory statisticsFactory = null;
                 if (statisticsType != SynopsisType.None) {
-                    statisticsFactory = new StatisticsFactory(
-                            mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSynopsisType(),
-                            dataset.getDataverseName(), dataset.getDatasetName(), index.getIndexName(),
-                            StatisticsUtil.computeStatisticsFieldExtractors(typeTraitProvider,
-                                    mdProvider.getStorageComponentProvider().getPrimitiveValueProviderFactory(),
-                                    recordType, index.getKeyFieldNames(), index.isPrimaryIndex(),
+                    int statsSize = getStatsSize(mdProvider.getConfig(),
+                            mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize());
+                    boolean statsOnPrimaryKeys = isStatsOnPrimaryKeysEnabled(mdProvider.getConfig(), mdProvider
+                            .getApplicationContext().getStatisticsProperties().isStatisticsOnPrimaryKeysEnabled());
+                    statisticsFactory = new StatisticsFactory(statisticsType, dataset.getDataverseName(),
+                            dataset.getDatasetName(), index.getIndexName(),
+                            StatisticsUtil.computeStatisticsFieldExtractors(typeTraitProvider, recordType,
+                                    index.getKeyFieldNames(), index.isPrimaryIndex(), statsOnPrimaryKeys,
                                     unorderedStatisticsFields),
-                            mdProvider.getApplicationContext().getStatisticsProperties().getStatisticsSize(),
-                            mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
+                            statsSize, mdProvider.getApplicationContext().getStatisticsProperties().getSketchFanout(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchFailureProbability(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchAccuracy(),
                             mdProvider.getApplicationContext().getStatisticsProperties().getSketchEnergyAccuracy());
@@ -131,6 +133,41 @@ public class BTreeResourceFactoryProvider implements IResourceFactoryProvider {
                 throw new CompilationException(ErrorCode.COMPILATION_UNKNOWN_DATASET_TYPE,
                         dataset.getDatasetType().toString());
         }
+    }
+
+    private boolean isStatsOnPrimaryKeysEnabled(Map<String, String> queryConfig, boolean statsOnPrimaryKeysEnabled) {
+        // query-defined properties take precedence over config-defined
+        String queryDefinedStatsSize = queryConfig.get(StatisticsProperties.STATISTICS_PRIMARY_KEYS_ENABLED);
+        if (queryDefinedStatsSize != null) {
+            return Boolean.valueOf(queryDefinedStatsSize);
+        }
+        return statsOnPrimaryKeysEnabled;
+    }
+
+    private SynopsisType getStatsType(Map<String, String> queryConfig, SynopsisType statsType) {
+        // query-defined properties take precedence over config-defined
+        String queryDefinedStatsSize = queryConfig.get(StatisticsProperties.STATISTICS_SYNOPSIS_TYPE_KEY);
+        if (queryDefinedStatsSize != null) {
+            try {
+                return SynopsisType.valueOf(queryDefinedStatsSize);
+            } catch (IllegalArgumentException e) {
+                //swallow, fall back to config value
+            }
+        }
+        return statsType;
+    }
+
+    private int getStatsSize(Map<String, String> queryConfig, int configDefinedStatsSize) {
+        // query-defined properties take precedence over config-defined
+        String queryDefinedStatsSize = queryConfig.get(StatisticsProperties.STATISTICS_SYNOPSIS_SIZE_KEY);
+        if (queryDefinedStatsSize != null) {
+            try {
+                return Integer.parseInt(queryDefinedStatsSize);
+            } catch (NumberFormatException e) {
+                //swallow, fall back to config value
+            }
+        }
+        return configDefinedStatsSize;
     }
 
     public static ITypeTraits[] getTypeTraits(ITypeTraitProvider typeTraitProvider, Dataset dataset, Index index,

@@ -18,24 +18,27 @@
  */
 package org.apache.hyracks.storage.am.statistics.common;
 
+import java.util.List;
+
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 
 public class DelegatingSynopsisBuilder implements ISynopsisBuilder {
-    private ISynopsisBuilder[] builders;
+    private List<ISynopsisBuilder> builders;
 
-    public DelegatingSynopsisBuilder(ISynopsisBuilder[] builders) {
+    public DelegatingSynopsisBuilder(List<ISynopsisBuilder> builders) {
         this.builders = builders;
     }
 
     @Override
-    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component)
-            throws HyracksDataException {
+    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component,
+            LSMIOOperationType opType) throws HyracksDataException {
         for (ISynopsisBuilder builder : builders) {
-            builder.gatherComponentStatistics(statisticsManager, component);
+            builder.gatherComponentStatistics(statisticsManager, component, opType);
         }
     }
 

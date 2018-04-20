@@ -43,17 +43,17 @@ public class StatisticsMessageIOOperationCallbackWrapper implements ILSMIOOperat
     @Override
     public void afterOperation(ILSMIndexOperationContext opCtx) throws HyracksDataException {
         wrapperIOOpCallback.afterOperation(opCtx);
+    }
+
+    @Override
+    public void afterFinalize(ILSMIndexOperationContext opCtx) throws HyracksDataException {
+        wrapperIOOpCallback.afterFinalize(opCtx);
         if (opCtx.getIoOperationType() == LSMIOOperationType.FLUSH
                 || opCtx.getIoOperationType() == LSMIOOperationType.LOAD) {
             statisticsManager.sendFlushStatistics(opCtx.getNewComponent());
         } else if (opCtx.getIoOperationType() == LSMIOOperationType.MERGE) {
             statisticsManager.sendMergeStatistics(opCtx.getNewComponent(), opCtx.getComponentsToBeMerged());
         }
-    }
-
-    @Override
-    public void afterFinalize(ILSMIndexOperationContext opCtx) throws HyracksDataException {
-        wrapperIOOpCallback.afterFinalize(opCtx);
     }
 
     @Override

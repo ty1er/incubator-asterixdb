@@ -21,13 +21,13 @@ package org.apache.hyracks.storage.am.statistics.common;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 
-public abstract class AbstractSynopsisBuilder<T extends ISynopsis>
-        implements ISynopsisBuilder {
+public abstract class AbstractSynopsisBuilder<T extends ISynopsis> implements ISynopsisBuilder {
 
     protected boolean isEmpty = true;
 
@@ -53,12 +53,12 @@ public abstract class AbstractSynopsisBuilder<T extends ISynopsis>
     }
 
     @Override
-    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component)
-            throws HyracksDataException {
-        // Skip sending statistics about empty synopses
+    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component,
+            LSMIOOperationType opType) throws HyracksDataException {
+        // Skip sending statistics about empty synopses if it's flush of bulkload
         if (!isEmpty) {
             statisticsManager.addStatistics(synopsis, dataverse, dataset, index, field, isAntimatter, component);
-        } else {
+        } else if (opType == LSMIOOperationType.MERGE) {
             statisticsManager.addStatistics(null, dataverse, dataset, index, field, isAntimatter, component);
         }
     }

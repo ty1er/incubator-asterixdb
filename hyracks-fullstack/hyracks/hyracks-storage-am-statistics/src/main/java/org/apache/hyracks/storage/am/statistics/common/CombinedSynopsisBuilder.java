@@ -23,6 +23,7 @@ package org.apache.hyracks.storage.am.statistics.common;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMDiskComponent;
+import org.apache.hyracks.storage.am.lsm.common.api.ILSMIOOperation.LSMIOOperationType;
 import org.apache.hyracks.storage.am.lsm.common.api.ILSMTreeTupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.IStatisticsManager;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
@@ -59,9 +60,9 @@ public class CombinedSynopsisBuilder implements ISynopsisBuilder {
     }
 
     @Override
-    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component)
-            throws HyracksDataException {
-        synopsisBuilder.gatherComponentStatistics(statisticsManager, component);
-        antimatterSynopsisBuilder.gatherComponentStatistics(statisticsManager, component);
+    public void gatherComponentStatistics(IStatisticsManager statisticsManager, ILSMDiskComponent component,
+            LSMIOOperationType opType) throws HyracksDataException {
+        synopsisBuilder.gatherComponentStatistics(statisticsManager, component, opType);
+        antimatterSynopsisBuilder.gatherComponentStatistics(statisticsManager, component, opType);
     }
 }

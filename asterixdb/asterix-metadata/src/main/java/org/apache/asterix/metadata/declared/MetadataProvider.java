@@ -136,6 +136,8 @@ import org.apache.hyracks.storage.am.common.api.ISearchOperationCallbackFactory;
 import org.apache.hyracks.storage.am.common.dataflow.IIndexDataflowHelperFactory;
 import org.apache.hyracks.storage.am.common.dataflow.IndexDataflowHelperFactory;
 import org.apache.hyracks.storage.am.common.ophelpers.IndexOperation;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatisticsId;
 import org.apache.hyracks.storage.am.lsm.invertedindex.dataflow.BinaryTokenizerOperatorDescriptor;
 import org.apache.hyracks.storage.am.lsm.invertedindex.tokenizers.IBinaryTokenizerFactory;
 import org.apache.hyracks.storage.am.rtree.dataflow.RTreeSearchOperatorDescriptor;
@@ -375,6 +377,22 @@ public class MetadataProvider implements IMetadataProvider<DataSourceId, String>
     public List<Statistics> getMergedStatistics(String dataverseName, String datasetName, String indexName,
             String fieldName) throws AlgebricksException {
         return MetadataManager.INSTANCE.getMergedStatistics(mdTxnCtx, dataverseName, datasetName, indexName, fieldName);
+    }
+
+    @Override
+    public void addStatistics(String dataverseName, String datasetName, String indexName, String fieldName, String node,
+            String partition, ComponentStatisticsId componentId, boolean isAntimatter, ISynopsis synopsis)
+            throws AlgebricksException {
+        MetadataManager.INSTANCE.addStatistics(mdTxnCtx, new Statistics(dataverseName, datasetName, indexName,
+                fieldName, node, partition, componentId, false, isAntimatter, synopsis));
+    }
+
+    @Override
+    public void dropStatistics(String dataverseName, String datasetName, String indexName, String fieldName,
+            String node, String partition, ComponentStatisticsId componentId, boolean isAntimatter)
+            throws AlgebricksException {
+        MetadataManager.INSTANCE.dropStatistics(mdTxnCtx, dataverseName, datasetName, indexName, fieldName, node,
+                partition, componentId, isAntimatter);
     }
 
     @Override

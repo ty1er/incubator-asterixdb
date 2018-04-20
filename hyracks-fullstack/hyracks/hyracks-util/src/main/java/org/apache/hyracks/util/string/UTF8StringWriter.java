@@ -20,8 +20,11 @@ package org.apache.hyracks.util.string;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 
-public class UTF8StringWriter {
+public class UTF8StringWriter implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     byte[] tempBytes;
 
     public final void writeUTF8(CharSequence str, DataOutput out) throws IOException {

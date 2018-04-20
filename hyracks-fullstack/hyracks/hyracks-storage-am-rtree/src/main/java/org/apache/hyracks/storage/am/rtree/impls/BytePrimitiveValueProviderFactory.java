@@ -33,17 +33,12 @@ public class BytePrimitiveValueProviderFactory implements IPrimitiveValueProvide
     @Override
     public IPrimitiveValueProvider createPrimitiveValueProvider() {
         return new IPrimitiveValueProvider() {
-            private static final long serialVersionUID = 1L;
 
             @Override
             public double getValue(byte[] bytes, int offset) {
                 return BytePointable.getByte(bytes, offset);
             }
 
-            @Override
-            public long getLongValue(byte[] bytes, int offset) {
-                return BytePointable.getByte(bytes, offset);
-            }
         };
     }
 }

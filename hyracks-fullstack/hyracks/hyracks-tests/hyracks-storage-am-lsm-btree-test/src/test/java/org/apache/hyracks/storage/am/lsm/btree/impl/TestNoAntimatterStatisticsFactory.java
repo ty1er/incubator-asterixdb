@@ -18,9 +18,11 @@
  */
 package org.apache.hyracks.storage.am.lsm.btree.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsisBuilder;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractStatisticsFactory;
@@ -31,11 +33,11 @@ import org.apache.hyracks.storage.am.statistics.common.IFieldExtractor;
 public class TestNoAntimatterStatisticsFactory extends AbstractStatisticsFactory {
 
     public TestNoAntimatterStatisticsFactory(List<IFieldExtractor> fieldExtractors) {
-        super(fieldExtractors);
+        super(fieldExtractors, SynopsisType.None);
     }
 
     @Override
-    public boolean canCollectStats(boolean unorderedTuples) {
+    public boolean canCollectStats() {
         return true;
     }
 
@@ -49,14 +51,12 @@ public class TestNoAntimatterStatisticsFactory extends AbstractStatisticsFactory
     @Override
     public ISynopsisBuilder createStatistics(ComponentStatistics componentStatistics, boolean isBulkload)
             throws HyracksDataException {
-        ISynopsisBuilder[] builders = new ISynopsisBuilder[extractors.size()];
-        int i = 0;
+        List<ISynopsisBuilder> builders = new ArrayList<>(extractors.size());
         for (IFieldExtractor e : extractors) {
-            builders[i] = createSynopsisBuilder(componentStatistics, false, e);
-            i++;
+            builders.add(createSynopsisBuilder(componentStatistics, false, e));
         }
-        if (builders.length == 1) {
-            return builders[0];
+        if (builders.size() == 1) {
+            return builders.get(0);
         } else {
             return new DelegatingSynopsisBuilder(builders);
         }

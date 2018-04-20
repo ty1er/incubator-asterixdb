@@ -29,5 +29,7 @@ public interface IFieldExtractor<T> extends Serializable {
 
     ITypeTraits getFieldTypeTraits();
 
+    boolean isUnordered();
+
     T extractFieldValue(ITupleReference tuple) throws HyracksDataException;
 }

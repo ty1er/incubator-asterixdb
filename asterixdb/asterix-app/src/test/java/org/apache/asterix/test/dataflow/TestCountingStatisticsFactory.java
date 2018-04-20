@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.ITupleReference;
 import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis;
+import org.apache.hyracks.storage.am.lsm.common.api.ISynopsis.SynopsisType;
 import org.apache.hyracks.storage.am.lsm.common.impls.ComponentStatistics;
 import org.apache.hyracks.storage.am.statistics.common.AbstractStatisticsFactory;
 import org.apache.hyracks.storage.am.statistics.common.AbstractSynopsis;
@@ -86,7 +87,7 @@ public class TestCountingStatisticsFactory extends AbstractStatisticsFactory {
 
     public TestCountingStatisticsFactory(String dataverse, String dataset, String index,
             List<IFieldExtractor> fieldExtractors) {
-        super(fieldExtractors);
+        super(fieldExtractors, SynopsisType.None);
         this.dataverse = dataverse;
         this.dataset = dataset;
         this.index = index;
@@ -100,7 +101,7 @@ public class TestCountingStatisticsFactory extends AbstractStatisticsFactory {
     }
 
     @Override
-    public boolean canCollectStats(boolean unorderedTuples) {
+    public boolean canCollectStats() {
         return true;
     }
 }
