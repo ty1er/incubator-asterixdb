@@ -68,9 +68,9 @@ public class PrefixSumWaveletTransform extends AbstractIntegerSynopsisBuilder<Wa
         if (coeff.getLevel() < 0) {
             return synopsis.getDomainStart();
         } else if (coeff.getLevel() == 0) {
-            return coeff.getKey() + 1;
+            return coeff.getIdx() + 1;
         } else {
-            return ((((coeff.getKey() + 1) << (coeff.getLevel() - 1)) - (1l << (synopsis.getMaxLevel() - 1))) << 1)
+            return ((((coeff.getIdx() + 1) << (coeff.getLevel() - 1)) - (1l << (synopsis.getMaxLevel() - 1))) << 1)
                     + synopsis.getDomainStart();
         }
     }
@@ -135,7 +135,7 @@ public class PrefixSumWaveletTransform extends AbstractIntegerSynopsisBuilder<Wa
                 coeff = avgStackObjectPool.allocate(avgStack.peek().getLevel());
                 coeff.setValue(prefixSum);
                 // starting with the sibling of the top coefficient on the stack
-                coeff.setIndex(avgStack.peek().getKey() + 1l);
+                coeff.setIndex(avgStack.peek().getIdx() + 1L);
             }
             // special case when there is no coeffs on the stack.
             else {
@@ -151,9 +151,9 @@ public class PrefixSumWaveletTransform extends AbstractIntegerSynopsisBuilder<Wa
                 newCoeff.setValue(prefixSum);
                 if (newCoeff.getLevel() == 0) {
                     newCoeff.setIndex(
-                            ((coeff.getKey() - (1l << (synopsis.getMaxLevel() - 1))) << 1) + synopsis.getDomainStart());
+                            ((coeff.getIdx() - (1l << (synopsis.getMaxLevel() - 1))) << 1) + synopsis.getDomainStart());
                 } else {
-                    newCoeff.setIndex(coeff.getKey() << 1);
+                    newCoeff.setIndex(coeff.getIdx() << 1);
                 }
                 coeff = newCoeff;
             }

@@ -48,7 +48,7 @@ public abstract class EquiHeightHistogramSynopsis<T extends HistogramBucket> ext
 
     public boolean advanceBucket(int activeBucket, int activeBucketElementsNum, long currTuplePosition,
             long lastAddedTuplePosition) {
-        if (activeBucket < size - 1 && currTuplePosition != lastAddedTuplePosition
+        if (activeBucket <= size - 1 && currTuplePosition != lastAddedTuplePosition
                 && activeBucketElementsNum >= elementsPerBucket) {
             setBucketBorder(activeBucket, currTuplePosition - 1);
             return true;

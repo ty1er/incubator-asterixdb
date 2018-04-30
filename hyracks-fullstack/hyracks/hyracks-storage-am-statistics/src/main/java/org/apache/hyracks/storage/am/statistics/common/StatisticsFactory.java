@@ -30,7 +30,7 @@ import org.apache.hyracks.storage.am.statistics.historgram.EquiHeightHistogramSy
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBucket;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramBuilder;
 import org.apache.hyracks.storage.am.statistics.historgram.HistogramSynopsis;
-import org.apache.hyracks.storage.am.statistics.sketch.GroupCountSketchBuilder;
+import org.apache.hyracks.storage.am.statistics.sketch.groupcount.GroupCountSketchBuilder;
 import org.apache.hyracks.storage.am.statistics.sketch.quantile.QuantileSketchBuilder;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletSynopsis;
 import org.apache.hyracks.storage.am.statistics.wavelet.PrefixSumWaveletTransform;
@@ -102,7 +102,7 @@ public class StatisticsFactory extends AbstractStatisticsFactory {
             case GroupCountSketch:
                 return new GroupCountSketchBuilder((WaveletSynopsis) synopsis, dataverseName, datasetName, indexName,
                         fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics, fanout,
-                        failureProbability, accuracy, energyAccuracy, numElements, (int) System.currentTimeMillis());
+                        failureProbability, accuracy, energyAccuracy, numElements, System.currentTimeMillis());
             case QuantileSketch:
                 return new QuantileSketchBuilder((EquiHeightHistogramSynopsis) synopsis, dataverseName, datasetName,
                         indexName, fieldExtractor.getFieldName(), isAntimatter, fieldExtractor, componentStatistics,

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.hyracks.storage.am.statistics.sketch;
+package org.apache.hyracks.storage.am.statistics.sketch.groupcount;
 
 public class HashGenerator {
 
@@ -44,11 +44,21 @@ public class HashGenerator {
         return (int) result;
     }
 
-    public static int fourwiseIndependent(long[] coeffs, long x) {
+    /**
+     * Method generates a vector of products [ x^3, x^2, x ] of the parameter x
+     * 
+     * @param x
+     * @return
+     */
+    public static long[] productVector(long x) {
+        return new long[] { x * x * x, x * x, x };
+    }
+
+    public static int fourwiseIndependent(long[] coeffs, long[] products) {
         long result;
 
         // returns values that are 4-wise independent calculated as a*x^3 + b*x^2+ c*x + d
-        result = coeffs[0] * x * x * x + coeffs[1] * x * x + coeffs[2] * x + coeffs[3];
+        result = coeffs[0] * products[0] + coeffs[1] * products[1] + coeffs[2] * products[2] + coeffs[3];
         result = ((result >> HL) + result) & MOD;
         return (int) result;
     }

@@ -41,7 +41,7 @@ public class WaveletCoefficient implements ISynopsisElement<Long> {
 
         @Override
         public int compare(WaveletCoefficient o1, WaveletCoefficient o2) {
-            return Long.compareUnsigned(o1.getKey(), o2.getKey());
+            return Long.compareUnsigned(o1.getIdx(), o2.getIdx());
         }
     }
 
@@ -64,7 +64,7 @@ public class WaveletCoefficient implements ISynopsisElement<Long> {
     public void reset(WaveletCoefficient c) {
         this.value = c.getValue();
         this.level = c.getLevel();
-        this.index = c.getKey();
+        this.index = c.getIdx();
     }
 
     public void reset(double value, int level, long index) {
@@ -75,6 +75,10 @@ public class WaveletCoefficient implements ISynopsisElement<Long> {
 
     @Override
     public Long getKey() {
+        return index;
+    }
+
+    public long getIdx() {
         return index;
     }
 

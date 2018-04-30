@@ -142,7 +142,7 @@ public class WaveletRandomJoinTest extends WaveletTest {
         while (compareIt.hasNext()) {
             WaveletCoefficient compareCoeff = compareIt.next();
             double joinedCoeffValue =
-                    joinedSynopsis.findCoeffValue(joinedIt, compareCoeff.getKey(), compareCoeff.getLevel());
+                    joinedSynopsis.findCoeffValue(joinedIt, compareCoeff.getIdx(), compareCoeff.getLevel());
             assertEquals(compareCoeff.getValue(), joinedCoeffValue,
                     compareCoeff.getValue() == 0.0 ? epsilon : Math.abs(compareCoeff.getValue() * epsilon));
         }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.hyracks.storage.am.statistics.sketch;
+package org.apache.hyracks.storage.am.statistics.sketch.groupcount;
 
 import java.util.Random;
 

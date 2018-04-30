@@ -36,14 +36,13 @@ public class QuantileSketchBuilder
             String field, boolean isAntimatter, IFieldExtractor fieldExtractor, ComponentStatistics componentStatistics,
             double accuracy) {
         super(synopsis, dataverse, dataset, index, field, isAntimatter, fieldExtractor, componentStatistics);
-        sketch = new QuantileSketch<>(accuracy, synopsis.getDomainEnd());
+        sketch = new QuantileSketch<>(synopsis.getSize(), synopsis.getDomainStart(), accuracy);
     }
 
     @Override
     public void finishSynopsisBuild() throws HyracksDataException {
         //extract quantiles from the sketch, i.e. create an equi-height histogram
-        List<Long> ranks =
-                sketch.extractAllRanks(synopsis.getSize(), synopsis.getDomainStart(), sketch.calculateMaxError());
+        List<Long> ranks = sketch.finish();
         // take into account that rank values could contain duplicates
         Long prev = null;
         long bucketHeight = 0;
@@ -62,7 +61,7 @@ public class QuantileSketchBuilder
 
     @Override
     public void addValue(long value) {
-        sketch.add(value);
+        sketch.insert(value);
     }
 
     @Override

@@ -59,15 +59,15 @@ public class WaveletTransform extends AbstractIntegerSynopsisBuilder<WaveletSyno
         for (int i = 0; i < synopsis.getMaxLevel(); i++) {
             coeff.reset(Math.abs(coeff.getValue()) * sign / 2, coeff.getLevel() + 1,
                     coeff.getParentCoeffIndex(synopsis.getDomainStart(), synopsis.getMaxLevel()));
-            sign = ((coeff.getKey() & 0x1) == 1) ? -1 : 1;
+            sign = ((coeff.getIdx() & 0x1) == 1) ? -1 : 1;
             if (straddlingCoeffs[i].covers(tuplePosition, synopsis.getMaxLevel(), synopsis.getDomainStart())) {
                 straddlingCoeffs[i].reset(straddlingCoeffs[i].getValue() + coeff.getValue(), coeff.getLevel(),
-                        coeff.getKey());
+                        coeff.getIdx());
             } else {
                 // tuple's position is not covered by the straddling coefficient C anymore, i.e. transform for C is
                 // finished. Add C to priority queue if the coefficient is not dummy and renew straddling coefficient.
                 if (!straddlingCoeffs[i].isDummy()) {
-                    synopsis.addElement(straddlingCoeffs[i]);
+                    synopsis.addElement(straddlingCoeffs[i], synopsis.isNormalized());
                 }
                 straddlingCoeffs[i].reset(coeff);
             }
@@ -82,7 +82,7 @@ public class WaveletTransform extends AbstractIntegerSynopsisBuilder<WaveletSyno
         transformTuple(transformPosition, transformFrequency);
         // finish all straddling coefficients
         for (int i = 0; i <= synopsis.getMaxLevel(); i++) {
-            synopsis.addElement(straddlingCoeffs[i]);
+            synopsis.addElement(straddlingCoeffs[i], synopsis.isNormalized());
         }
         synopsis.orderByKeys();
     }

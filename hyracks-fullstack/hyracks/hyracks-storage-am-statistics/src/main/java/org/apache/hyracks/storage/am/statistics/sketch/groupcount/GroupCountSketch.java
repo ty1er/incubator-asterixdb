@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.hyracks.storage.am.statistics.sketch;
+package org.apache.hyracks.storage.am.statistics.sketch.groupcount;
 
 import java.util.Random;
 
@@ -50,8 +50,8 @@ public class GroupCountSketch {
         initSeeds(itemHashes, random, hashFunction);
     }
 
-    public int getSketchSize() {
-        return testsNum * bucketNum * subbucketNum * 8;
+    public int getSize() {
+        return testsNum * bucketNum * subbucketNum * Long.BYTES;
     }
 
     private void initSeeds(long[][] hashSeeds, Random random, HashFunction murmurHash) {
@@ -74,16 +74,17 @@ public class GroupCountSketch {
     // Updates values inside GC sketch.
     // Operates in *wavelet* domain, i.e., inputs correspond to appropriate wavelet coefficient's index & value
     public void update(long coeffIdx, long groupIdx, double diff) {
+        long[] products = HashGenerator.productVector(coeffIdx);
         for (int i = 0; i < testsNum; i++) {
-            int itemHash = HashGenerator.fourwiseIndependent(itemHashes[i], coeffIdx) % 2;
-            int sign = itemHash == 1 ? 1 : -1;
-            int subbucketHash = HashGenerator.pairwiseIndependent(subbucketHashes[i], coeffIdx) % subbucketNum;
             int groupHash = HashGenerator.pairwiseIndependent(bucketHashes[i], groupIdx) % bucketNum;
+            int subbucketHash = HashGenerator.pairwiseIndependent(subbucketHashes[i], coeffIdx) % subbucketNum;
+            int itemHash = HashGenerator.fourwiseIndependent(itemHashes[i], products) % 2;
+            int sign = itemHash == 1 ? 1 : -1;
             counters[i][groupHash][subbucketHash] += diff * sign;
         }
     }
 
-    // estimate the F2 moment of the vector (sum of squares)
+    // estimate the L2 moment of the vector (sum of squares)
     public double estimateL2(long groupIdx) {
         double estimates[] = new double[testsNum];
         for (int i = 0; i < testsNum; i++) {
@@ -98,9 +99,10 @@ public class GroupCountSketch {
 
     // estimate value frequency. Can be called only for singleton groups, hence does not need to iterate over subbuckets
     public double estimateValue(long coeffIdx) {
+        long[] products = HashGenerator.productVector(coeffIdx);
         double estimates[] = new double[testsNum];
         for (int i = 0; i < testsNum; i++) {
-            int itemHash = HashGenerator.fourwiseIndependent(itemHashes[i], coeffIdx) % 2;
+            int itemHash = HashGenerator.fourwiseIndependent(itemHashes[i], products) % 2;
             int subbucketHash = HashGenerator.pairwiseIndependent(subbucketHashes[i], coeffIdx) % subbucketNum;
             int groupHash = HashGenerator.pairwiseIndependent(bucketHashes[i], coeffIdx) % bucketNum;
             if (itemHash == 1) {

@@ -68,8 +68,8 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
     }
 
     // Adds a new coefficient to the transform, subject to thresholding
-    public void addElement(WaveletCoefficient coeff) {
-        addElement(coeff.getKey(), coeff.getValue(), coeff.getLevel(), normalize);
+    public void addElement(WaveletCoefficient coeff, boolean normalize) {
+        addElement(coeff.getIdx(), coeff.getValue(), coeff.getLevel(), normalize);
     }
 
     // Adds a new detail coefficient to the transform, subject to thresholding
@@ -125,10 +125,10 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         TreeNode transformTreeRoot = null;
         boolean fakeRoot = false;
         for (WaveletCoefficient w : sortedCoefficients) {
-            if (w.getKey() == 0) {
+            if (w.getIdx() == 0) {
                 synopsisElements.add(w);
                 continue;
-            } else if (w.getKey() == 1) {
+            } else if (w.getIdx() == 1) {
                 transformTreeRoot = new TreeNode(w);
                 continue;
             } else if (transformTreeRoot == null) {
@@ -159,7 +159,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                     activeNode = nextNode;
                     //determine is it left or right child
                     isLeft = (insertedNode.value
-                            .getKey() >> (Math.abs(insertedNode.value.getLevel() - nextNode.value.getLevel()) - 1)
+                            .getIdx() >> (Math.abs(insertedNode.value.getLevel() - nextNode.value.getLevel()) - 1)
                             & 0x1) == 0;
                     if (isLeft) {
                         nextNode = nextNode.left;
@@ -215,23 +215,23 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         }
         while (mergedEntry != null || entry != null) {
             if ((mergedEntry != null && entry == null)
-                    || (mergedEntry != null && entry != null && mergedEntry.getKey() < entry.getKey())) {
-                addElement(mergedEntry.getKey(), mergedEntry.getValue(), mergedEntry.getLevel(), false);
+                    || (mergedEntry != null && entry != null && mergedEntry.getIdx() < entry.getIdx())) {
+                addElement(mergedEntry.getIdx(), mergedEntry.getValue(), mergedEntry.getLevel(), false);
                 if (mergedIt.hasNext()) {
                     mergedEntry = mergedIt.next();
                 } else {
                     mergedEntry = null;
                 }
             } else if ((entry != null && mergedEntry == null)
-                    || (mergedEntry != null && entry != null && entry.getKey() < mergedEntry.getKey())) {
-                addElement(entry.getKey(), entry.getValue(), entry.getLevel(), false);
+                    || (mergedEntry != null && entry != null && entry.getIdx() < mergedEntry.getIdx())) {
+                addElement(entry.getIdx(), entry.getValue(), entry.getLevel(), false);
                 if (it.hasNext()) {
                     entry = it.next();
                 } else {
                     entry = null;
                 }
             } else {
-                addElement(entry.getKey(), entry.getValue() + mergedEntry.getValue(), entry.getLevel(), false);
+                addElement(entry.getIdx(), entry.getValue() + mergedEntry.getValue(), entry.getLevel(), false);
                 if (mergedIt.hasNext()) {
                     mergedEntry = mergedIt.next();
                 } else {
@@ -252,9 +252,9 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
             return 0.0;
         long currIdx;
         if (curr.getLevel() <= coeffLevel)
-            currIdx = curr.getKey() >> (coeffLevel - curr.getLevel());
+            currIdx = curr.getIdx() >> (coeffLevel - curr.getLevel());
         else
-            currIdx = curr.getKey() << (curr.getLevel() - coeffLevel);
+            currIdx = curr.getIdx() << (curr.getLevel() - coeffLevel);
         try {
             while (it.hasNext() && currIdx < coeffIdx) {
                 it.next();
@@ -262,9 +262,9 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                 if (curr == null)
                     return 0.0;
                 if (curr.getLevel() <= coeffLevel)
-                    currIdx = curr.getKey() >> (coeffLevel - curr.getLevel());
+                    currIdx = curr.getIdx() >> (coeffLevel - curr.getLevel());
                 else
-                    currIdx = curr.getKey() << (curr.getLevel() - coeffLevel);
+                    currIdx = curr.getIdx() << (curr.getLevel() - coeffLevel);
             }
         } catch (NoSuchElementException e) {
             return 0.0;
@@ -355,11 +355,11 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
         WaveletCoefficient currCoeff;
         if (it.hasNext()) {
             currCoeff = it.next();
-            int coeffLevel = WaveletCoefficient.getLevel(currCoeff.getKey(), maxLevel);
+            int coeffLevel = WaveletCoefficient.getLevel(currCoeff.getIdx(), maxLevel);
             while (level <= maxLevel) {
                 while (coeffLevel <= level && it.hasNext()) {
-                    if (currCoeff.getKey() == leftBorderCoeff.getKey()
-                            || currCoeff.getKey() == rightBorderCoeff.getKey()) {
+                    if (currCoeff.getIdx() == leftBorderCoeff.getIdx()
+                            || currCoeff.getIdx() == rightBorderCoeff.getIdx()) {
                         DyadicTupleRange supportInterval =
                                 currCoeff.convertCoeffToSupportInterval(domainStart, domainEnd, maxLevel);
                         //border between left child's range and right child's range
@@ -375,7 +375,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                                                 : 1);
                     }
                     currCoeff = it.next();
-                    coeffLevel = WaveletCoefficient.getLevel(currCoeff.getKey(), maxLevel);
+                    coeffLevel = WaveletCoefficient.getLevel(currCoeff.getIdx(), maxLevel);
                 }
                 level++;
                 leftBorderCoeff.reset(leftBorderCoeff.getValue(), level,
@@ -384,11 +384,11 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                         rightBorderCoeff.getParentCoeffIndex(domainStart, maxLevel));
             }
             // will this ever happen????
-            while (it.hasNext() && currCoeff.getKey() != 0) {
+            while (it.hasNext() && currCoeff.getIdx() != 0) {
                 currCoeff = it.next();
             }
             // Compute root coefficient's contribution
-            if (currCoeff.getKey() == 0) {
+            if (currCoeff.getIdx() == 0) {
                 result += MathUtils.safeRangeMultiply(endPosition, startPosition, currCoeff.getValue())
                         * (normalize ? WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeffLevel) : 1);
             }
@@ -416,19 +416,19 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                     WaveletCoefficient larger = leftCoeff.getLevel() > rightCoeff.getLevel() ? leftCoeff : rightCoeff;
                     WaveletCoefficient smaller = leftCoeff.getLevel() > rightCoeff.getLevel() ? rightCoeff : leftCoeff;
                     // process only coefficients on the path from root to smaller
-                    if (larger.getKey() == smaller.getAncestorCoeffIndex(domainStart, maxLevel, levelDifference)) {
+                    if (larger.getIdx() == smaller.getAncestorCoeffIndex(domainStart, maxLevel, levelDifference)) {
                         //main average always contributes positively
-                        int sign = larger.getKey() == 0 ? 1
-                                : (((1L << (levelDifference - 1)) & smaller.getKey()) > 0 ? -1 : 1);
+                        int sign = larger.getIdx() == 0 ? 1
+                                : (((1L << (levelDifference - 1)) & smaller.getIdx()) > 0 ? -1 : 1);
                         double joinedCoeffValue = smaller.getValue() * larger.getValue() * sign * (!isNormalized() ? 1
                                 : WaveletCoefficient.getNormalizationCoefficient(maxLevel, smaller.getLevel())
                                         * WaveletCoefficient.getNormalizationCoefficient(maxLevel, larger.getLevel()));
-                        joinedWavelet.compute(smaller.getKey(), (k, v) -> (v == null ? 0 : v) + joinedCoeffValue);
+                        joinedWavelet.compute(smaller.getIdx(), (k, v) -> (v == null ? 0 : v) + joinedCoeffValue);
                     }
-                } else if (leftCoeff.getKey() == rightCoeff.getKey()) {
+                } else if (leftCoeff.getIdx() == rightCoeff.getIdx()) {
                     WaveletCoefficient coeff = leftCoeff;
                     //special case: product of two main averages contributes to joined main average
-                    if (coeff.getKey() == 0) {
+                    if (coeff.getIdx() == 0) {
                         double joinedCoeffValue = leftCoeff.getValue() * rightCoeff.getValue() * (!isNormalized() ? 1
                                 : WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel())
                                         * WaveletCoefficient.getNormalizationCoefficient(maxLevel, coeff.getLevel()));
@@ -437,7 +437,7 @@ public class WaveletSynopsis extends AbstractSynopsis<WaveletCoefficient> {
                     for (int i = maxLevel - coeff.getLevel() + 1; i > 0; i--) {
                         long ancestorIndex = coeff.getAncestorCoeffIndex(domainStart, maxLevel, i);
                         //main average always contributes positively
-                        int sign = ancestorIndex == 0 ? 1 : (((1L << (i - 1)) & coeff.getKey()) > 0 ? -1 : 1);
+                        int sign = ancestorIndex == 0 ? 1 : (((1L << (i - 1)) & coeff.getIdx()) > 0 ? -1 : 1);
                         long scaleFactor = Math.min(i, maxLevel - coeff.getLevel());
                         // offset numeric overflow, which can drive (1L << scaleFactor) into negative domain
                         int adjustSign = (scaleFactor == Long.SIZE - 1) ? -1 : 1;

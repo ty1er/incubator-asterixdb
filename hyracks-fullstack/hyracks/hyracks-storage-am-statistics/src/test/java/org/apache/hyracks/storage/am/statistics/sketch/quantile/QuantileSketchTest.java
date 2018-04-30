@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -50,32 +49,30 @@ public class QuantileSketchTest<T extends Comparable<T>> {
     private static int QUANTILE_NUM = 20;
     private final Function<Random, T> randomGenerator;
     private final T domainMin;
-    private final T domainMax;
 
     private QuantileSketch<T> sketch;
 
-    public QuantileSketchTest(Function<Random, T> randomGenerator, T domainMin, T domainMax) {
+    public QuantileSketchTest(Function<Random, T> randomGenerator, T domainMin) {
         this.randomGenerator = randomGenerator;
         this.domainMin = domainMin;
-        this.domainMax = domainMax;
     }
 
     @Parameters
     public static Collection<Object[]> data() {
+        Function<Random, Byte> byteGenerator = (Random r) -> (byte) (r.nextInt(256) - 128);
+        Function<Random, Byte> shortGenerator = (Random r) -> (byte) (r.nextInt(65536) - 32768);
         Function<Random, Integer> intGenerator = Random::nextInt;
         Function<Random, Long> longGenerator = Random::nextLong;
         Function<Random, String> stringGenerator = (Random r) -> new RandomStringGenerator.Builder()
                 .withinRange('a', 'z').usingRandom(r::nextInt).build().generate(10);
-        Function<Random, Date> dateGenerator = (Random r) -> new Date(r.nextLong());
-        return Arrays.asList(new Object[][] { { intGenerator, Integer.MIN_VALUE, Integer.MAX_VALUE },
-                { longGenerator, Long.MIN_VALUE, Long.MAX_VALUE }, { stringGenerator, "", "zzzzzzzzzz" },
-                { dateGenerator, new Date(Long.MIN_VALUE), new Date(Long.MAX_VALUE) } });
+        return Arrays.asList(new Object[][] { { byteGenerator, Byte.MIN_VALUE }, { shortGenerator, Short.MIN_VALUE },
+                { intGenerator, Integer.MIN_VALUE }, { longGenerator, Long.MIN_VALUE }, { stringGenerator, "" } });
     }
 
     private void init(List<T> inputData) {
-        sketch = new QuantileSketch<>(ACCURACY, domainMax);
+        sketch = new QuantileSketch<>(QUANTILE_NUM, domainMin, ACCURACY);
         for (T i : inputData) {
-            sketch.add(i);
+            sketch.insert(i);
         }
     }
 
@@ -96,13 +93,13 @@ public class QuantileSketchTest<T extends Comparable<T>> {
     public void testQuantileCorrectness() {
         List<T> inputData = generateRandomData(NUM_RECORDS);
         init(inputData);
-        List<T> approximateRanks = sketch.extractAllRanks(QUANTILE_NUM, domainMin, sketch.calculateMaxError());
+        List<T> approximateRanks = sketch.finish();
         Collections.sort(inputData);
         assertEquals(QUANTILE_NUM, approximateRanks.size());
         for (int i = 1; i <= QUANTILE_NUM; i++) {
             // inner loop for all ε-accurate values of the rank
             Set<T> rankValues = new HashSet<>();
-            rankValues.add(domainMax);
+            //rankValues.add(domainMax);
             double rank = ((double) i) / QUANTILE_NUM;
             for (int j = Math.max(0, (int) Math.floor((rank - ACCURACY) * NUM_RECORDS)); j < Math.min(NUM_RECORDS,
                     (int) Math.floor((rank + ACCURACY) * NUM_RECORDS)); j++) {

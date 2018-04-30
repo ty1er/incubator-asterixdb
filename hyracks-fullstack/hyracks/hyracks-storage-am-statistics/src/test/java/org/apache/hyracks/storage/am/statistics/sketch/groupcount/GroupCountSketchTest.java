@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.hyracks.storage.am.statistics.sketch;
+package org.apache.hyracks.storage.am.statistics.sketch.groupcount;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyLong;
@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.apache.hyracks.api.exceptions.HyracksDataException;
+import org.apache.hyracks.storage.am.statistics.sketch.groupcount.GroupCountSketch;
+import org.apache.hyracks.storage.am.statistics.sketch.groupcount.HashGenerator;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -75,7 +77,8 @@ public class GroupCountSketchTest {
         sketch.update(coeffIdx, groupIdx, 2.0);
         sketch.update(coeffIdx, groupIdx, 3.0);
 
-        int sign = HashGenerator.fourwiseIndependent(hashes, coeffIdx) % 2 == 1 ? 1 : -1;
+        long[] products = HashGenerator.productVector(coeffIdx);
+        int sign = HashGenerator.fourwiseIndependent(hashes, products) % 2 == 1 ? 1 : -1;
         assertEquals(sketch.estimateValue(groupIdx), sign * 6.0, epsilon);
     }
 
@@ -86,7 +89,8 @@ public class GroupCountSketchTest {
         sketch.update(coeffIdx, 1L, 2.0);
         sketch.update(coeffIdx, 2L, 3.0);
 
-        int sign = HashGenerator.fourwiseIndependent(hashes, coeffIdx) % 2 == 1 ? 1 : -1;
+        long[] products = HashGenerator.productVector(coeffIdx);
+        int sign = HashGenerator.fourwiseIndependent(hashes, products) % 2 == 1 ? 1 : -1;
         assertEquals(sketch.estimateValue(0L), sign * 1.0, epsilon);
         assertEquals(sketch.estimateValue(1L), sign * 2.0, epsilon);
         assertEquals(sketch.estimateValue(2L), sign * 3.0, epsilon);
